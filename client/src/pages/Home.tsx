@@ -145,9 +145,7 @@ export default function Home() {
         <div className="flex justify-between items-center mb-2">
           <h3 className="font-medium flex items-center">
             Ví Web3 Có Số Dư Tìm Thấy 
-            {walletsWithBalance.length > 0 && (
-              <span className="ml-2 text-sm text-gray-500">({walletsWithBalance.length})</span>
-            )}
+            <span className="ml-2 text-sm text-primary">({stats.withBalance})</span>
           </h3>
           {walletsWithBalance.length > 0 && (
             <Button variant="ghost" size="sm" onClick={handleResetAll} className="h-8 w-8 p-0">
