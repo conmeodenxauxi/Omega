@@ -21,7 +21,8 @@ export default function Home() {
     "DOGE",
   ]);
   const [seedPhraseLength, setSeedPhraseLength] = useState<(12 | 24)[]>([12, 24]);
-  const [autoReset, setAutoReset] = useState(true);
+  // autoReset ở đây chỉ cho chức năng tự động reset khi đạt 7000 ví, không hiển thị trên giao diện
+  const autoReset = false;
 
   const {
     isSearching,
@@ -59,16 +60,6 @@ export default function Home() {
       {/* Header */}
       <header className="mb-4 flex justify-between items-center">
         <h1 className="text-xl font-bold">Ví web3 có số dư</h1>
-        <div className="flex items-center">
-          <Checkbox 
-            id="auto-reset" 
-            checked={autoReset} 
-            onCheckedChange={(checked) => setAutoReset(!!checked)} 
-          />
-          <label htmlFor="auto-reset" className="ml-2 text-sm font-medium">
-            Tự động reset
-          </label>
-        </div>
       </header>
 
       {/* Blockchain Selection */}
@@ -90,8 +81,6 @@ export default function Home() {
         <ControlPanel
           isSearching={isSearching}
           stats={stats}
-          autoReset={autoReset}
-          setAutoReset={setAutoReset}
           onToggleSearch={toggleSearching}
           onReset={handleResetAll}
           walletsCount={walletsWithBalance.length}
