@@ -291,32 +291,94 @@ const getBSCBalance = async (address: string): Promise<BalanceResponse> => {
 // API cho Solana
 const getSOLBalance = async (address: string): Promise<BalanceResponse> => {
   try {
-    // Solana public RPC endpoint
-    const solanaRpcUrl = 'https://api.mainnet-beta.solana.com';
+    console.log(`Checking SOL balance for ${address} via multiple APIs`);
     
-    const response = await fetch(solanaRpcUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        id: 1,
-        method: 'getBalance',
-        params: [address]
-      })
+    // Danh sách API để kiểm tra
+    const apis = [
+      // Solana Public RPC
+      {
+        url: 'https://api.mainnet-beta.solana.com',
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'getBalance',
+          params: [address]
+        }),
+        processResponse: async (res: any) => {
+          const data = await res.json() as any;
+          if (data.result && data.result.value !== undefined) {
+            // Chuyển đổi từ lamports sang SOL (1 SOL = 10^9 lamports)
+            const balanceLamports = data.result.value;
+            const balanceSOL = (balanceLamports / 1e9).toFixed(9);
+            console.log(`Solana RPC balance for ${address}: ${balanceSOL} SOL`);
+            return { success: true, balance: balanceSOL };
+          }
+          throw new Error('Unexpected response from Solana RPC');
+        }
+      },
+      // Helius API
+      {
+        url: `https://api.helius.xyz/v0/addresses/${address}/balances?api-key=${getApiKey('SOL')}`,
+        processResponse: async (res: any) => {
+          try {
+            const data = await res.json() as any;
+            if (data && data.tokens) {
+              // Trích xuất số dư SOL từ phản hồi Helius
+              const nativeBalance = data.nativeBalance;
+              if (nativeBalance !== undefined) {
+                // Chuyển đổi từ lamports sang SOL (1 SOL = 10^9 lamports)
+                const balanceSOL = (nativeBalance / 1e9).toFixed(9);
+                console.log(`Helius API balance for ${address}: ${balanceSOL} SOL`);
+                return { success: true, balance: balanceSOL };
+              }
+            }
+            console.error('Helius API response format unexpected:', data);
+            throw new Error('Unexpected response from Helius API');
+          } catch (error) {
+            console.error('Error processing Helius API response:', error);
+            throw error;
+          }
+        }
+      }
+    ];
+
+    // Tạo kiểu cho API
+    type ApiDefinition = {
+      url: string;
+      headers?: Record<string, string>;
+      method?: string;
+      body?: string;
+      processResponse: (res: any) => Promise<BalanceResponse>;
+    };
+    
+    // Thực hiện các request đồng thời
+    const apiPromises = apis.map((api: ApiDefinition) => {
+      // Sửa kiểu cho phù hợp với node-fetch
+      const options: any = {
+        method: api.method || 'GET',
+        headers: api.headers || { 'Content-Type': 'application/json' }
+      };
+      
+      if (api.body) {
+        options.body = api.body;
+      }
+      
+      return fetch(api.url, options)
+        .then(res => api.processResponse(res))
+        .catch(err => ({ success: false, balance: '0', error: err.message }));
     });
     
-    const data = await response.json() as any;
+    // Race promises để lấy kết quả từ API phản hồi nhanh nhất
+    const result = await Promise.race([
+      Promise.any(apiPromises),
+      timeoutPromise(API_TIMEOUT)
+    ]);
     
-    if (data.result && data.result.value !== undefined) {
-      // Chuyển đổi từ lamports sang SOL (1 SOL = 10^9 lamports)
-      const balanceLamports = data.result.value;
-      const balanceSOL = (balanceLamports / 1e9).toFixed(9);
-      
-      return { success: true, balance: balanceSOL };
-    }
-    
-    throw new Error('Failed to get SOL balance from Solana RPC');
+    return result;
   } catch (error: any) {
+    console.error('Error in getSOLBalance:', error.message);
     circuitBreakerManager.recordFailure('sol');
     return { success: false, balance: '0', error: error.message };
   }
@@ -325,30 +387,97 @@ const getSOLBalance = async (address: string): Promise<BalanceResponse> => {
 // API cho Dogecoin
 const getDOGEBalance = async (address: string): Promise<BalanceResponse> => {
   try {
-    // Thử với Blockchair API (không cần API key, giới hạn 30 requests/phút) 
-    const blockchairUrl = `https://api.blockchair.com/dogecoin/dashboards/address/${address}`;
+    console.log(`Checking DOGE balance for ${address} via multiple APIs`);
     
-    console.log(`Checking DOGE balance for ${address} via Blockchair`);
-    const response = await fetch(blockchairUrl);
-    const data = await response.json() as any;
+    // Danh sách API để kiểm tra
+    const apis = [
+      // Blockchair API (không cần API key, giới hạn 30 requests/phút)
+      {
+        url: `https://api.blockchair.com/dogecoin/dashboards/address/${address}`,
+        processResponse: async (res: any) => {
+          const data = await res.json() as any;
+          if (data && data.data && data.data[address] && data.data[address].address) {
+            const balanceDoge = data.data[address].address.balance;
+            const formattedBalance = (balanceDoge / 100000000).toFixed(8);
+            console.log(`Blockchair balance for ${address}: ${formattedBalance} DOGE`);
+            return { success: true, balance: formattedBalance };
+          }
+          throw new Error('Unexpected response from Blockchair');
+        }
+      },
+      // SoChain API (không cần API key)
+      {
+        url: `https://sochain.com/api/v2/get_address_balance/DOGE/${address}`,
+        processResponse: async (res: any) => {
+          const data = await res.json() as any;
+          if (data && data.status === 'success' && data.data && data.data.confirmed_balance) {
+            const balance = parseFloat(data.data.confirmed_balance);
+            const formattedBalance = balance.toFixed(8);
+            console.log(`SoChain balance for ${address}: ${formattedBalance} DOGE`);
+            return { success: true, balance: formattedBalance };
+          }
+          throw new Error('Unexpected response from SoChain');
+        }
+      },
+      // CryptoAPIs API (sử dụng API key)
+      {
+        url: `https://rest.cryptoapis.io/blockchain-data/doge/mainnet/addresses/${address}/balance?context=yourExampleString`,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': getApiKey('DOGE')
+        },
+        processResponse: async (res: any) => {
+          try {
+            const data = await res.json() as any;
+            if (data && data.data && data.data.item && data.data.item.confirmedBalance) {
+              const balance = parseFloat(data.data.item.confirmedBalance);
+              const formattedBalance = balance.toFixed(8);
+              console.log(`CryptoAPIs balance for ${address}: ${formattedBalance} DOGE`);
+              return { success: true, balance: formattedBalance };
+            }
+            console.error('CryptoAPIs response format unexpected:', data);
+            throw new Error('Unexpected response from CryptoAPIs');
+          } catch (error) {
+            console.error('Error processing CryptoAPIs response:', error);
+            throw error;
+          }
+        }
+      }
+    ];
+
+    // Tạo kiểu cho API
+    type ApiDefinition = {
+      url: string;
+      headers?: Record<string, string>;
+      method?: string;
+      body?: string;
+      processResponse: (res: any) => Promise<BalanceResponse>;
+    };
     
-    if (data && data.data && data.data[address] && data.data[address].address) {
-      const balanceDoge = data.data[address].address.balance;
-      return { success: true, balance: (balanceDoge / 100000000).toString() };
-    }
+    // Thực hiện các request đồng thời
+    const apiPromises = apis.map((api: ApiDefinition) => {
+      // Sửa kiểu cho phù hợp với node-fetch
+      const options: any = {
+        method: api.method || 'GET',
+        headers: api.headers || { 'Content-Type': 'application/json' }
+      };
+      
+      if (api.body) {
+        options.body = api.body;
+      }
+      
+      return fetch(api.url, options)
+        .then(res => api.processResponse(res))
+        .catch(err => ({ success: false, balance: '0', error: err.message }));
+    });
     
-    // Nếu Blockchair thất bại, thử với DogeChain.info.xyz (API công khai thay thế)
-    console.log(`Blockchair failed, trying alternative API for ${address}`);
-    const altUrl = `https://sochain.com/api/v2/get_address_balance/DOGE/${address}`;
+    // Race promises để lấy kết quả từ API phản hồi nhanh nhất
+    const result = await Promise.race([
+      Promise.any(apiPromises),
+      timeoutPromise(API_TIMEOUT)
+    ]);
     
-    const altResponse = await fetch(altUrl);
-    const altData = await altResponse.json() as any;
-    
-    if (altData && altData.status === 'success' && altData.data && altData.data.confirmed_balance) {
-      return { success: true, balance: altData.data.confirmed_balance.toString() };
-    }
-    
-    throw new Error('Failed to get DOGE balance from available APIs');
+    return result;
   } catch (error: any) {
     console.error('Error in getDOGEBalance:', error.message);
     circuitBreakerManager.recordFailure('doge');
