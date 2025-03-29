@@ -1,11 +1,10 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import * as walletGenerator from "./blockchain/wallets";
+import * as addressGenerator from "./blockchain/address-generator";
 import { checkBalance, getCachedBalance, setCachedBalance } from "./blockchain/api";
-import { BlockchainType, blockchainSchema, seedPhraseSchema, wallets } from "@shared/schema";
+import { BlockchainType, blockchainSchema, seedPhraseSchema, wallets, BalanceCheckResult, WalletAddress } from "@shared/schema";
 import { z } from "zod";
-import { WalletAddress } from "../client/src/types";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Generate addresses from seed phrase
@@ -28,7 +27,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { seedPhrase, blockchains } = validationResult.data;
 
       // Generate addresses
-      const addresses = await walletGenerator.generateAddressesFromSeedPhrase(
+      const addresses = await addressGenerator.generateAddressesFromSeedPhrase(
         seedPhrase,
         blockchains
       );
@@ -91,17 +90,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
 
           // Check balance from APIs
-          const balanceResult = await checkBalance(blockchain, address);
+          const balance = await checkBalance(blockchain, address);
 
           // Cache the result
-          setCachedBalance(blockchain, address, balanceResult.balance);
+          setCachedBalance(blockchain, address, balance);
 
           // If balance > 0, add to result
-          if (balanceResult.success && parseFloat(balanceResult.balance) > 0) {
+          if (parseFloat(balance) > 0) {
             walletsWithBalance.push({
               blockchain,
               address,
-              balance: balanceResult.balance,
+              balance,
               seedPhrase: req.body.seedPhrase || "Unknown",
             });
             
@@ -110,7 +109,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               await storage.createWallet({
                 blockchain,
                 address,
-                balance: balanceResult.balance,
+                balance,
                 seedPhrase: req.body.seedPhrase || "Unknown",
                 path: "",
                 metadata: {},

@@ -1,9 +1,10 @@
-import React from "react";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { PlayIcon, Square as StopIcon, RefreshCwIcon } from "lucide-react";
-import { WalletCheckStats } from "@/types";
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2, Search, RotateCcw, AlertCircle } from 'lucide-react';
+import { WalletCheckStats } from '../types';
 
 interface ControlPanelProps {
   isSearching: boolean;
@@ -15,67 +16,72 @@ interface ControlPanelProps {
 }
 
 export function ControlPanel({
-  isSearching,
-  stats,
+  isSearching, 
+  stats, 
   autoReset,
   setAutoReset,
   onToggleSearch,
-  onReset,
+  onReset
 }: ControlPanelProps) {
   return (
-    <div className="flex flex-wrap items-center gap-3 mb-4">
-      <div className="flex gap-2">
-        <Button
-          variant="default"
-          className="bg-primary hover:bg-primary/90 text-white"
-          onClick={onToggleSearch}
-        >
+    <Card>
+      <CardHeader>
+        <CardTitle>Bảng điều khiển</CardTitle>
+        <CardDescription>Kiểm soát quá trình tìm kiếm ví</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-3 gap-4">
+          <div className="flex flex-col items-center p-4 bg-muted rounded-lg">
+            <span className="text-sm font-medium text-muted-foreground">Đã tạo</span>
+            <span className="text-2xl font-bold">{stats.created}</span>
+          </div>
+          <div className="flex flex-col items-center p-4 bg-muted rounded-lg">
+            <span className="text-sm font-medium text-muted-foreground">Đã kiểm tra</span>
+            <span className="text-2xl font-bold">{stats.checked}</span>
+          </div>
+          <div className="flex flex-col items-center p-4 bg-primary/20 rounded-lg">
+            <span className="text-sm font-medium text-primary">Tìm thấy</span>
+            <span className="text-2xl font-bold text-primary">{stats.withBalance}</span>
+          </div>
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          <Switch 
+            id="auto-reset" 
+            checked={autoReset}
+            onCheckedChange={setAutoReset}
+          />
+          <Label htmlFor="auto-reset">Tự động reset khi tìm thấy ví có số dư</Label>
+        </div>
+        
+        {stats.withBalance > 0 && (
+          <div className="bg-yellow-100 dark:bg-yellow-900/30 p-3 rounded-md flex items-start space-x-2">
+            <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 mt-0.5" />
+            <div className="text-sm text-yellow-800 dark:text-yellow-400">
+              Đã tìm thấy {stats.withBalance} ví có số dư. Kiểm tra danh sách kết quả phía dưới.
+            </div>
+          </div>
+        )}
+      </CardContent>
+      <CardFooter className="flex justify-between">
+        <Button variant="outline" onClick={onReset} disabled={isSearching}>
+          <RotateCcw className="mr-2 h-4 w-4" />
+          Reset
+        </Button>
+        <Button onClick={onToggleSearch} disabled={isSearching && !stats.created}>
           {isSearching ? (
             <>
-              <StopIcon className="h-5 w-5 mr-1" />
-              Dừng lại
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Dừng tìm kiếm
             </>
           ) : (
             <>
-              <PlayIcon className="h-5 w-5 mr-1" />
-              Bắt đầu
+              <Search className="mr-2 h-4 w-4" />
+              Bắt đầu tìm kiếm
             </>
           )}
         </Button>
-
-        <Button
-          variant="outline"
-          className="bg-slate-200 hover:bg-slate-300 text-slate-700"
-          onClick={onReset}
-        >
-          <RefreshCwIcon className="h-5 w-5 mr-1" />
-          Reset
-        </Button>
-      </div>
-
-      <Label className="inline-flex items-center bg-white rounded-md py-1 px-2 border border-slate-200 shadow-sm cursor-pointer">
-        <Checkbox
-          checked={autoReset}
-          onCheckedChange={(checked) => setAutoReset(!!checked)}
-          className="h-4 w-4 text-secondary rounded mr-1"
-        />
-        <span className="text-sm">Tự động reset</span>
-      </Label>
-
-      <div className="flex gap-3 ml-auto">
-        <div className="text-center">
-          <div className="text-xs text-slate-500">Đã tạo:</div>
-          <div className="text-lg font-semibold">{stats.created}</div>
-        </div>
-        <div className="text-center">
-          <div className="text-xs text-slate-500">Đã kiểm tra:</div>
-          <div className="text-lg font-semibold">{stats.checked}</div>
-        </div>
-        <div className="text-center">
-          <div className="text-xs text-slate-500">Có số dư:</div>
-          <div className="text-lg font-semibold text-accent">{stats.withBalance}</div>
-        </div>
-      </div>
-    </div>
+      </CardFooter>
+    </Card>
   );
 }

@@ -1,185 +1,353 @@
-import fetch from "node-fetch";
 import { BlockchainType } from "@shared/schema";
+import fetch from "node-fetch";
 
+// Cache để lưu trữ kết quả kiểm tra số dư
+const balanceCache = new Map<string, string>();
+
+// Thời gian cache (1 giờ)
+const CACHE_TTL = 60 * 60 * 1000;
+
+// Thời gian timeout cho các API request
+const API_TIMEOUT = 5000;
+
+// Circuit breaker để tránh quá nhiều request lỗi
+class CircuitBreaker {
+  private failures: Map<string, number> = new Map();
+  private lastCheck: Map<string, number> = new Map();
+  private readonly threshold = 3;
+  private readonly resetTime = 60 * 1000; // 1 phút
+
+  public canRequest(service: string): boolean {
+    const failures = this.failures.get(service) || 0;
+    const lastCheck = this.lastCheck.get(service) || 0;
+    const now = Date.now();
+
+    if (failures >= this.threshold) {
+      if (now - lastCheck > this.resetTime) {
+        // Reset sau thời gian cố định
+        this.failures.set(service, 0);
+        return true;
+      }
+      return false;
+    }
+    return true;
+  }
+
+  public recordFailure(service: string): void {
+    const failures = this.failures.get(service) || 0;
+    this.failures.set(service, failures + 1);
+    this.lastCheck.set(service, Date.now());
+  }
+
+  public recordSuccess(service: string): void {
+    this.failures.set(service, 0);
+  }
+}
+
+const circuitBreakerManager = new CircuitBreaker();
+
+// Promise với timeout
+const timeoutPromise = (ms: number) => {
+  return new Promise<never>((_, reject) => {
+    setTimeout(() => reject(new Error('Request timed out')), ms);
+  });
+};
+
+// Rotation của API keys
+let serviceKeyIndex: Record<string, number> = {};
+
+// Định dạng kết quả kiểm tra số dư
 interface BalanceResponse {
   success: boolean;
   balance: string;
   error?: string;
 }
 
-// Define API endpoints for various blockchain balance checks
-const BLOCKCHAIN_APIS = {
-  BTC: [
-    // Multiple APIs for fallback
-    (address: string) => `https://blockchain.info/balance?active=${address}`,
-    (address: string) => `https://api.blockcypher.com/v1/btc/main/addrs/${address}/balance`,
-  ],
-  ETH: [
-    (address: string) => `https://api.etherscan.io/api?module=account&action=balance&address=${address}&tag=latest`,
-    (address: string) => `https://api.ethplorer.io/getAddressInfo/${address}?apiKey=freekey`,
-  ],
-  BSC: [
-    (address: string) => `https://api.bscscan.com/api?module=account&action=balance&address=${address}&tag=latest`,
-  ],
-  SOL: [
-    (address: string) => `https://api.mainnet-beta.solana.com`,
-  ],
-  DOGE: [
-    (address: string) => `https://dogechain.info/api/v1/address/balance/${address}`,
-    (address: string) => `https://api.blockcypher.com/v1/doge/main/addrs/${address}/balance`,
-  ],
-};
-
-// Parse balance responses based on blockchain type
-async function parseBalanceResponse(
-  blockchain: BlockchainType,
-  address: string,
-  response: any
-): Promise<BalanceResponse> {
+// API cho Bitcoin
+const getBTCBalance = async (address: string): Promise<BalanceResponse> => {
   try {
-    switch (blockchain) {
-      case "BTC":
-        if (response[address]?.final_balance !== undefined) {
-          // Blockchain.info format
-          return {
-            success: true,
-            balance: (response[address].final_balance / 100000000).toString(),
-          };
-        } else if (response.balance !== undefined) {
-          // Blockcypher format
-          return {
-            success: true,
-            balance: (response.balance / 100000000).toString(),
-          };
+    // Danh sách API để kiểm tra
+    const apis = [
+      // Blockchain.info
+      {
+        url: `https://blockchain.info/balance?active=${address}`,
+        processResponse: async (res: Response) => {
+          const data = await res.json() as any;
+          if (data && data[address] && typeof data[address].final_balance === 'number') {
+            const balanceSats = data[address].final_balance;
+            // Chuyển đổi từ satoshi sang BTC (1 BTC = 100,000,000 satoshi)
+            const balanceBTC = (balanceSats / 100000000).toFixed(8);
+            return { success: true, balance: balanceBTC };
+          }
+          throw new Error('Unexpected response from Blockchain.info');
         }
-        break;
-      case "ETH":
-        if (response.result !== undefined) {
-          // Etherscan format
-          return {
-            success: true,
-            balance: (parseInt(response.result) / 1e18).toString(),
-          };
-        } else if (response.ETH?.balance !== undefined) {
-          // Ethplorer format
-          return {
-            success: true,
-            balance: response.ETH.balance.toString(),
-          };
+      },
+      // Blockstream API
+      {
+        url: `https://blockstream.info/api/address/${address}`,
+        processResponse: async (res: Response) => {
+          const data = await res.json() as any;
+          if (data && typeof data.chain_stats?.funded_txo_sum === 'number' && typeof data.chain_stats?.spent_txo_sum === 'number') {
+            const funded = data.chain_stats.funded_txo_sum;
+            const spent = data.chain_stats.spent_txo_sum;
+            const balanceSats = funded - spent;
+            const balanceBTC = (balanceSats / 100000000).toFixed(8);
+            return { success: true, balance: balanceBTC };
+          }
+          throw new Error('Unexpected response from Blockstream');
         }
-        break;
-      case "BSC":
-        if (response.result !== undefined) {
-          return {
-            success: true,
-            balance: (parseInt(response.result) / 1e18).toString(),
-          };
+      },
+      // Mempool API
+      {
+        url: `https://mempool.space/api/address/${address}`,
+        processResponse: async (res: Response) => {
+          const data = await res.json() as any;
+          if (data && typeof data.chain_stats?.funded_txo_sum === 'number' && typeof data.chain_stats?.spent_txo_sum === 'number') {
+            const funded = data.chain_stats.funded_txo_sum;
+            const spent = data.chain_stats.spent_txo_sum;
+            const balanceSats = funded - spent;
+            const balanceBTC = (balanceSats / 100000000).toFixed(8);
+            return { success: true, balance: balanceBTC };
+          }
+          throw new Error('Unexpected response from Mempool');
         }
-        break;
-      case "SOL":
-        // SOL requires a POST request with a specific payload
-        return {
-          success: true,
-          balance: response?.result?.value?.toString() || "0",
-        };
-        break;
-      case "DOGE":
-        if (response.balance !== undefined) {
-          // Dogechain.info format
-          return {
-            success: true,
-            balance: response.balance,
-          };
-        } else if (response.final_balance !== undefined) {
-          // Blockcypher format
-          return {
-            success: true,
-            balance: (response.final_balance / 100000000).toString(),
-          };
-        }
-        break;
-    }
+      }
+    ];
 
-    return { success: false, balance: "0", error: "Invalid response format" };
-  } catch (error) {
-    return { success: false, balance: "0", error: String(error) };
-  }
-}
-
-// Make specialized request for Solana using JSON-RPC
-async function getSolanaBalance(address: string): Promise<BalanceResponse> {
-  try {
-    const response = await fetch("https://api.mainnet-beta.solana.com", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: 1,
-        method: "getBalance",
-        params: [address],
-      }),
+    // Thực hiện các request đồng thời
+    const apiPromises = apis.map(api => {
+      return fetch(api.url)
+        .then(res => api.processResponse(res))
+        .catch(err => ({ success: false, balance: '0', error: err.message }));
     });
 
-    const data = await response.json();
-    if (data.result?.value !== undefined) {
-      return {
-        success: true,
-        balance: (data.result.value / 1e9).toString(), // Convert lamports to SOL
-      };
-    }
+    // Race promises để lấy kết quả từ API phản hồi nhanh nhất
+    const result = await Promise.race([
+      Promise.any(apiPromises),
+      timeoutPromise(API_TIMEOUT)
+    ]);
 
-    return { success: false, balance: "0", error: "Invalid response" };
+    return result;
+  } catch (error: any) {
+    circuitBreakerManager.recordFailure('btc');
+    return { success: false, balance: '0', error: error.message };
+  }
+};
+
+// API cho Ethereum
+const getETHBalance = async (address: string): Promise<BalanceResponse> => {
+  try {
+    // Etherscan API
+    const etherscanUrl = `https://api.etherscan.io/api?module=account&action=balance&address=${address}&tag=latest`;
+    
+    const response = await fetch(etherscanUrl);
+    const data = await response.json() as any;
+    
+    if (data.status === '1' && data.result) {
+      // Chuyển đổi từ wei sang ETH (1 ETH = 10^18 wei)
+      const balanceWei = BigInt(data.result);
+      const balanceETH = (Number(balanceWei) / 1e18).toFixed(18);
+      
+      return { success: true, balance: balanceETH };
+    }
+    
+    throw new Error('Failed to get ETH balance from Etherscan');
+  } catch (error: any) {
+    circuitBreakerManager.recordFailure('eth');
+    return { success: false, balance: '0', error: error.message };
+  }
+};
+
+// API cho BSC
+const getBSCBalance = async (address: string): Promise<BalanceResponse> => {
+  try {
+    // BSCScan API
+    const bscscanUrl = `https://api.bscscan.com/api?module=account&action=balance&address=${address}&tag=latest`;
+    
+    const response = await fetch(bscscanUrl);
+    const data = await response.json() as any;
+    
+    if (data.status === '1' && data.result) {
+      // Chuyển đổi từ wei sang BNB (1 BNB = 10^18 wei)
+      const balanceWei = BigInt(data.result);
+      const balanceBNB = (Number(balanceWei) / 1e18).toFixed(18);
+      
+      return { success: true, balance: balanceBNB };
+    }
+    
+    throw new Error('Failed to get BSC balance from BSCScan');
+  } catch (error: any) {
+    circuitBreakerManager.recordFailure('bsc');
+    return { success: false, balance: '0', error: error.message };
+  }
+};
+
+// API cho Solana
+const getSOLBalance = async (address: string): Promise<BalanceResponse> => {
+  try {
+    // Solana public RPC endpoint
+    const solanaRpcUrl = 'https://api.mainnet-beta.solana.com';
+    
+    const response = await fetch(solanaRpcUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'getBalance',
+        params: [address]
+      })
+    });
+    
+    const data = await response.json() as any;
+    
+    if (data.result && data.result.value !== undefined) {
+      // Chuyển đổi từ lamports sang SOL (1 SOL = 10^9 lamports)
+      const balanceLamports = data.result.value;
+      const balanceSOL = (balanceLamports / 1e9).toFixed(9);
+      
+      return { success: true, balance: balanceSOL };
+    }
+    
+    throw new Error('Failed to get SOL balance from Solana RPC');
+  } catch (error: any) {
+    circuitBreakerManager.recordFailure('sol');
+    return { success: false, balance: '0', error: error.message };
+  }
+};
+
+// API cho Dogecoin
+const getDOGEBalance = async (address: string): Promise<BalanceResponse> => {
+  try {
+    // DOGE API (Sử dụng API công khai)
+    const dogeApiUrl = `https://dogechain.info/api/v1/address/balance/${address}`;
+    
+    const response = await fetch(dogeApiUrl);
+    const data = await response.json() as any;
+    
+    if (data.success === 1 && data.balance) {
+      return { success: true, balance: data.balance.toString() };
+    }
+    
+    throw new Error('Failed to get DOGE balance from dogechain.info');
+  } catch (error: any) {
+    circuitBreakerManager.recordFailure('doge');
+    return { success: false, balance: '0', error: error.message };
+  }
+};
+
+// Parse kết quả kiểm tra số dư
+async function parseBalanceResponse(
+  blockchain: BlockchainType,
+  result: BalanceResponse
+): Promise<string> {
+  if (!result.success || !result.balance) {
+    return '0';
+  }
+  
+  try {
+    const balance = parseFloat(result.balance);
+    if (isNaN(balance)) return '0';
+    
+    // Format số dư theo loại blockchain
+    switch (blockchain) {
+      case 'BTC':
+        return balance.toFixed(8);
+      case 'ETH':
+      case 'BSC':
+        return balance.toFixed(18);
+      case 'SOL':
+        return balance.toFixed(9);
+      case 'DOGE':
+        return balance.toFixed(8);
+      default:
+        return balance.toString();
+    }
   } catch (error) {
-    return { success: false, balance: "0", error: String(error) };
+    console.error(`Error parsing balance for ${blockchain}:`, error);
+    return '0';
   }
 }
 
-// Check balance with fallback across multiple APIs
+// Kiểm tra số dư cho một địa chỉ
 export async function checkBalance(
   blockchain: BlockchainType,
   address: string
-): Promise<BalanceResponse> {
-  if (blockchain === "SOL") {
-    return getSolanaBalance(address);
+): Promise<string> {
+  // Kiểm tra cache trước
+  const cacheKey = `${blockchain}:${address}`;
+  const cachedBalance = getCachedBalance(blockchain, address);
+  if (cachedBalance) {
+    console.log(`Using cached balance for ${blockchain}:${address}: ${cachedBalance}`);
+    return cachedBalance;
   }
-
-  const apiUrls = BLOCKCHAIN_APIS[blockchain];
   
-  // Try each API endpoint until we get a successful response
-  for (const getUrl of apiUrls) {
-    try {
-      const url = getUrl(address);
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        continue; // Try the next API if this one fails
-      }
-      
-      const data = await response.json();
-      const result = await parseBalanceResponse(blockchain, address, data);
-      
-      if (result.success) {
-        return result;
-      }
-    } catch (error) {
-      console.error(`Error checking balance for ${blockchain} address ${address}:`, error);
-      // Continue to the next API
+  // Kiểm tra circuit breaker
+  if (!circuitBreakerManager.canRequest(blockchain.toLowerCase())) {
+    console.log(`Circuit breaker open for ${blockchain}. Skipping request.`);
+    return '0';
+  }
+  
+  try {
+    let result: BalanceResponse;
+    
+    // Thực hiện kiểm tra theo loại blockchain
+    switch (blockchain) {
+      case 'BTC':
+        result = await getBTCBalance(address);
+        break;
+      case 'ETH':
+        result = await getETHBalance(address);
+        break;
+      case 'BSC':
+        result = await getBSCBalance(address);
+        break;
+      case 'SOL':
+        result = await getSOLBalance(address);
+        break;
+      case 'DOGE':
+        result = await getDOGEBalance(address);
+        break;
+      default:
+        return '0';
     }
+    
+    // Parse kết quả và lưu vào cache
+    const balance = await parseBalanceResponse(blockchain, result);
+    
+    if (parseFloat(balance) > 0) {
+      console.log(`Found positive balance for ${blockchain}:${address}: ${balance}`);
+      setCachedBalance(blockchain, address, balance);
+    }
+    
+    circuitBreakerManager.recordSuccess(blockchain.toLowerCase());
+    return balance;
+  } catch (error) {
+    console.error(`Error checking balance for ${blockchain}:${address}:`, error);
+    circuitBreakerManager.recordFailure(blockchain.toLowerCase());
+    return '0';
+  }
+}
+
+// Lấy số dư từ cache
+export function getCachedBalance(blockchain: BlockchainType, address: string): string | null {
+  const cacheKey = `${blockchain}:${address}`;
+  const cacheEntry = balanceCache.get(cacheKey);
+  
+  if (cacheEntry) {
+    return cacheEntry;
   }
   
-  // If all APIs fail, return error
-  return { success: false, balance: "0", error: "All APIs failed" };
+  return null;
 }
 
-// Cache to avoid duplicate balance checks
-const balanceCache = new Map<string, string>();
-
-export function getCachedBalance(blockchain: BlockchainType, address: string): string | null {
-  const key = `${blockchain}:${address}`;
-  return balanceCache.get(key) || null;
-}
-
+// Lưu số dư vào cache
 export function setCachedBalance(blockchain: BlockchainType, address: string, balance: string): void {
-  const key = `${blockchain}:${address}`;
-  balanceCache.set(key, balance);
+  const cacheKey = `${blockchain}:${address}`;
+  balanceCache.set(cacheKey, balance);
+  
+  // Thiết lập timeout để xóa cache sau một thời gian
+  setTimeout(() => {
+    balanceCache.delete(cacheKey);
+  }, CACHE_TTL);
 }

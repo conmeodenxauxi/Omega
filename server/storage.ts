@@ -33,18 +33,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createWallet(insertWallet: InsertWallet): Promise<Wallet> {
-    // Insert without explicit createdAt, SQLite will add timestamp
+    // Prepare wallet data
+    const walletData = {
+      blockchain: insertWallet.blockchain,
+      address: insertWallet.address,
+      balance: insertWallet.balance,
+      seedPhrase: insertWallet.seedPhrase,
+      path: insertWallet.path,
+      metadata: insertWallet.metadata,
+    };
+    
+    // Insert the wallet
     const result = await db
       .insert(wallets)
-      .values({
-        blockchain: insertWallet.blockchain,
-        address: insertWallet.address,
-        balance: insertWallet.balance,
-        seedPhrase: insertWallet.seedPhrase,
-        path: insertWallet.path,
-        metadata: insertWallet.metadata,
-        createdAt: Math.floor(Date.now() / 1000) // Unix timestamp in seconds
-      });
+      .values(walletData);
     
     // Find the wallet by its unique attributes
     const foundWallets = await db

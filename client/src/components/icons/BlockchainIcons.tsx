@@ -1,58 +1,147 @@
-import { BlockchainType } from "@shared/schema";
+import React from 'react';
+import { LucideProps } from 'lucide-react';
+import { Bitcoin, Laptop2, DollarSign } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { BlockchainType } from '@shared/schema';
 
-export function BitcoinIcon() {
+export function BitcoinIcon(props: LucideProps) {
   return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M23.638 14.904c-1.602 6.425-8.113 10.343-14.542 8.743C2.67 22.05-1.244 15.542.355 9.105 1.962 2.67 8.475-1.243 14.9.358c6.42 1.605 10.337 8.115 8.738 14.548v-.002zm-6.349-4.613c.24-1.59-.974-2.45-2.64-3.03l.54-2.153-1.315-.33-.525 2.107c-.345-.087-.705-.167-1.064-.25l.526-2.127-1.32-.33-.54 2.165c-.285-.067-.565-.132-.84-.2l-1.815-.45-.35 1.407s.975.225.96.238c.53.132.63.486.615.766l-1.477 5.92c-.075.18-.24.45-.614.347.015.02-.96-.24-.96-.24l-.66 1.51 1.71.426.93.242-.54 2.19 1.32.327.54-2.17c.36.1.705.19 1.05.273l-.525 2.12 1.32.33.54-2.18c2.24.427 3.93.255 4.64-1.774.57-1.637-.03-2.58-1.217-3.196.854-.193 1.5-.76 1.68-1.93h.01zm-3.01 4.22c-.404 1.64-3.157.75-4.05.53l.72-2.9c.896.223 3.757.626 3.33 2.37zm.41-4.24c-.37 1.49-2.662.735-3.405.55l.654-2.64c.744.185 3.137.524 2.75 2.084l.001.006z" />
+    <Bitcoin {...props} />
+  );
+}
+
+export function EthereumIcon(props: LucideProps) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      strokeWidth="2"
+      stroke="currentColor"
+      fill="none"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+      <path d="M6 12l6 -9l6 9l-6 9z"></path>
+      <path d="M6 12l6 -3l6 3l-6 2z"></path>
     </svg>
   );
 }
 
-export function EthereumIcon() {
+export function BinanceIcon(props: LucideProps) {
   return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M11.944 17.97L4.58 13.62 11.943 24l7.37-10.38-7.372 4.35h.003zM12.056 0L4.69 12.223l7.365 4.354 7.365-4.35L12.056 0z" />
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      strokeWidth="2"
+      stroke="currentColor"
+      fill="none"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3l-8 4.5l0 9l8 4.5l8 -4.5l0 -9l-8 -4.5" />
+      <path d="M16 12l-4 4l-4 -4l4 -4z" />
+      <path d="M12 16l0 4" />
+      <path d="M12 4l0 4" />
+      <path d="M4 12l4 0" />
+      <path d="M16 12l4 0" />
     </svg>
   );
 }
 
-export function BinanceIcon() {
+export function SolanaIcon(props: LucideProps) {
   return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 0L5.81 12l6.19 3.62L24 12 12 0zm0 1.441L22.376 12l-4.282 2.519-6.103-3.152L12 1.44zM5.92 13.176L0 12l12 22V16.381l-6.08-3.205z" />
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      strokeWidth="2"
+      stroke="currentColor"
+      fill="none"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+      <path d="M4 18h12l4 -4h-12z"></path>
+      <path d="M4 14h12l4 -4h-12z"></path>
+      <path d="M4 10h12l4 -4h-12z"></path>
     </svg>
   );
 }
 
-export function SolanaIcon() {
+export function DogeIcon(props: LucideProps) {
   return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M17.813 9.334L12 13.51 6.187 9.334 12 0l5.813 9.334zM6.187 10.334L12 14.573l5.813-4.239L12 24l-5.813-13.666z" />
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      strokeWidth="2"
+      stroke="currentColor"
+      fill="none"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+      <path d="M6 12h6"></path>
+      <path d="M9 6v12"></path>
+      <path d="M3 6h6"></path>
+      <path d="M3 18h6"></path>
+      <path d="M13 13c0 -2 2 -2 4 -2c2 0 4 0 4 2s-1 3 -4 3c-3 0 -4 -1 -4 -3z"></path>
+      <path d="M13 7c0 -1 1 -2 4 -2c2 0 4 1 4 2"></path>
     </svg>
   );
 }
 
-export function DogeIcon() {
-  return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12.288 7.908l1.776 1.81 3.77-3.855-3.77-3.855-1.776 1.808 1.97 2.047-1.97 2.045zM6.677 9.718l1.776-1.81L6.48 5.863l1.97-2.047-1.776-1.808L2.902 5.863l3.775 3.855zm10.647 4.564l-1.776-1.807-1.97 2.043 1.97 2.048-1.776 1.807 3.771-3.855-3.77-3.854 1.776 1.807v.001zm-10.647 0l3.775 3.855-3.775 3.855-1.776-1.807 1.97-2.048-1.97-2.043 1.776-1.808v-.004zm3.826 0l1.776 1.808 1.776-1.808-1.776-1.807-1.776 1.807zm0-7.734l1.776 1.807 1.776-1.807-1.776-1.808-1.776 1.808zm-5.548 8.639v2.047h2.572v-2.047H5.002v.002zm2.454-8.639h2.573V3.858H7.455l.001 2.047zm9.087 0v2.047h2.575V6.858h-2.575v.002zm-9.087 4.661h2.573V9.47H7.455l.001 2.048zm9.087 0v2.048h2.575v-2.048h-2.575zm0 6.71v-2.048h2.575v2.047h-2.575zm-9.087-2.048v2.047h2.573v-2.047H7.455z" />
-    </svg>
-  );
-}
-
-export function getBlockchainIcon(blockchain: BlockchainType) {
+export function getBlockchainIcon(blockchain: BlockchainType): LucideIcon {
   switch (blockchain) {
-    case "BTC":
-      return <BitcoinIcon />;
-    case "ETH":
-      return <EthereumIcon />;
-    case "BSC":
-      return <BinanceIcon />;
-    case "SOL":
-      return <SolanaIcon />;
-    case "DOGE":
-      return <DogeIcon />;
+    case 'BTC':
+      return BitcoinIcon;
+    case 'ETH':
+      return EthereumIcon;
+    case 'BSC':
+      return BinanceIcon;
+    case 'SOL':
+      return SolanaIcon;
+    case 'DOGE':
+      return DogeIcon;
     default:
-      return null;
+      return Laptop2;
+  }
+}
+
+export function getBlockchainName(blockchain: BlockchainType): string {
+  switch (blockchain) {
+    case 'BTC':
+      return 'Bitcoin';
+    case 'ETH':
+      return 'Ethereum';
+    case 'BSC':
+      return 'Binance Smart Chain';
+    case 'SOL':
+      return 'Solana';
+    case 'DOGE':
+      return 'Dogecoin';
+    default:
+      return 'Unknown';
+  }
+}
+
+export function getBlockchainColor(blockchain: BlockchainType): string {
+  switch (blockchain) {
+    case 'BTC':
+      return 'text-orange-500';
+    case 'ETH':
+      return 'text-blue-500';
+    case 'BSC':
+      return 'text-yellow-500';
+    case 'SOL':
+      return 'text-purple-500';
+    case 'DOGE':
+      return 'text-yellow-600';
+    default:
+      return 'text-gray-500';
   }
 }

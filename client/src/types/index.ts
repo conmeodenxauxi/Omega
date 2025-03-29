@@ -1,6 +1,9 @@
 import { BlockchainType } from "@shared/schema";
 import { LucideIcon } from "lucide-react";
 
+/**
+ * Địa chỉ ví trên một blockchain
+ */
 export interface WalletAddress {
   blockchain: BlockchainType;
   type?: string;
@@ -8,6 +11,9 @@ export interface WalletAddress {
   addresses: string[];
 }
 
+/**
+ * Ví với số dư dương
+ */
 export interface WalletWithBalance {
   blockchain: BlockchainType;
   address: string;
@@ -15,12 +21,18 @@ export interface WalletWithBalance {
   seedPhrase: string;
 }
 
+/**
+ * Thống kê kiểm tra ví
+ */
 export interface WalletCheckStats {
   created: number;
   checked: number;
   withBalance: number;
 }
 
+/**
+ * Icon cho blockchain
+ */
 export interface BlockchainIcon {
   id: BlockchainType;
   icon: LucideIcon;

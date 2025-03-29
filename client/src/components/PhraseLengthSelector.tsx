@@ -1,6 +1,6 @@
-import React from "react";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
+import React from 'react';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Label } from '@/components/ui/label';
 
 interface PhraseLengthSelectorProps {
   selected: (12 | 24)[];
@@ -11,35 +11,38 @@ export function PhraseLengthSelector({
   selected,
   onChange,
 }: PhraseLengthSelectorProps) {
-  const handleToggle = (value: 12 | 24) => {
-    if (selected.includes(value)) {
-      // Don't allow removing if it would result in empty selection
-      if (selected.length > 1) {
-        onChange(selected.filter((item) => item !== value));
-      }
-    } else {
-      onChange([...selected, value]);
+  
+  const handleValueChange = (value: string[]) => {
+    // Convert string values back to numbers
+    const numericValues = value
+      .map(v => parseInt(v, 10))
+      .filter(v => v === 12 || v === 24) as (12 | 24)[];
+    
+    // Make sure we always have at least one option selected
+    if (numericValues.length === 0) {
+      return;
     }
+    
+    onChange(numericValues);
   };
 
   return (
-    <div className="flex gap-4 mb-4">
-      <Label className="inline-flex items-center bg-white rounded-md py-1 px-2 border border-slate-200 shadow-sm cursor-pointer">
-        <Checkbox
-          checked={selected.includes(12)}
-          onCheckedChange={() => handleToggle(12)}
-          className="h-4 w-4 text-secondary rounded mr-1"
-        />
-        <span className="text-sm">12 từ</span>
-      </Label>
-      <Label className="inline-flex items-center bg-white rounded-md py-1 px-2 border border-slate-200 shadow-sm cursor-pointer">
-        <Checkbox
-          checked={selected.includes(24)}
-          onCheckedChange={() => handleToggle(24)}
-          className="h-4 w-4 text-secondary rounded mr-1"
-        />
-        <span className="text-sm">24 từ</span>
-      </Label>
+    <div className="space-y-2">
+      <Label>Số từ trong seed phrase</Label>
+      <ToggleGroup 
+        type="multiple" 
+        variant="outline"
+        value={selected.map(String)}
+        onValueChange={handleValueChange}
+        className="justify-start"
+      >
+        <ToggleGroupItem value="12" aria-label="12 từ">
+          12 từ
+        </ToggleGroupItem>
+        <ToggleGroupItem value="24" aria-label="24 từ">
+          24 từ
+        </ToggleGroupItem>
+      </ToggleGroup>
     </div>
   );
 }

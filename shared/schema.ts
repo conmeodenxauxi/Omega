@@ -15,7 +15,7 @@ export const wallets = sqliteTable("wallets", {
   balance: text("balance").notNull(), // Store as string to maintain precision
   seedPhrase: text("seed_phrase").notNull(),
   path: text("derivation_path"),
-  createdAt: integer("created_at", { mode: 'timestamp' }).notNull(),
+  createdAt: integer("created_at", { mode: 'timestamp' }).notNull().defaultNow(),
   metadata: text("metadata", { mode: 'json' }), // For additional blockchain-specific data
 });
 
@@ -52,3 +52,26 @@ export const seedPhraseSchema = z.string().refine(
     message: "Seed phrase must have 12 or 24 words",
   }
 );
+
+// Định nghĩa kiểu dữ liệu cho địa chỉ ví
+export interface WalletAddress {
+  blockchain: BlockchainType;
+  type?: string;
+  batchNumber: number;
+  addresses: string[];
+}
+
+// Định nghĩa kiểu dữ liệu cho kết quả kiểm tra số dư
+export interface BalanceCheckResult {
+  address: string;
+  balance: string;
+  hasBalance: boolean;
+}
+
+// Định nghĩa kiểu dữ liệu cho ví có số dư
+export interface WalletWithBalance {
+  blockchain: BlockchainType;
+  address: string;
+  balance: string;
+  seedPhrase: string;
+}
