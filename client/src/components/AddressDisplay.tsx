@@ -42,7 +42,7 @@ export function AddressDisplay({ addresses }: AddressDisplayProps) {
                         key={`${walletAddress.blockchain}-${batchNumber}-${addrIndex}`}
                         className="p-2 bg-muted rounded-md"
                       >
-                        <code className="text-xs font-mono break-all">
+                        <code className="text-xs font-mono truncate block">
                           {address}
                         </code>
                       </div>
@@ -72,7 +72,7 @@ export function AddressDisplay({ addresses }: AddressDisplayProps) {
                     {addrIndex !== 0 && <div className="min-w-[100px] mr-2"></div>}
                     
                     <div className="p-2 bg-muted rounded-md flex-1">
-                      <code className="text-xs font-mono break-all">
+                      <code className="text-xs font-mono truncate block">
                         {address}
                       </code>
                     </div>
