@@ -93,6 +93,7 @@ export default function Home() {
         setAutoReset={setAutoReset}
         onToggleSearch={toggleSearching}
         onReset={handleResetAll}
+        walletsCount={walletsWithBalance.length}
       />
 
       {/* Phrase Length Selection */}

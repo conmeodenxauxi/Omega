@@ -13,6 +13,7 @@ interface ControlPanelProps {
   setAutoReset: (value: boolean) => void;
   onToggleSearch: () => void;
   onReset: () => void;
+  walletsCount: number;
 }
 
 export function ControlPanel({
@@ -21,7 +22,8 @@ export function ControlPanel({
   autoReset,
   setAutoReset,
   onToggleSearch,
-  onReset
+  onReset,
+  walletsCount
 }: ControlPanelProps) {
   return (
     <Card className="mb-4">
@@ -53,7 +55,7 @@ export function ControlPanel({
           </div>
           <div className="flex flex-col items-center p-2 bg-primary/10 rounded">
             <span className="text-xs text-primary/80">Tìm thấy</span>
-            <span className="text-lg font-bold text-primary">{stats.withBalance}</span>
+            <span className="text-lg font-bold text-primary">{walletsCount}</span>
           </div>
         </div>
       </CardContent>
