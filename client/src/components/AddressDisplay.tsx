@@ -31,22 +31,31 @@ export function AddressDisplay({ addresses }: AddressDisplayProps) {
                   <div className="flex items-center space-x-2 mb-2">
                     <Icon className={`h-4 w-4 ${colorClass}`} />
                     <span className="font-medium">{blockchain}</span>
-                    {walletAddress.type && (
-                      <span className="text-xs text-muted-foreground">({walletAddress.type})</span>
-                    )}
+                    <span className="text-xs text-muted-foreground">(3 dạng)</span>
                   </div>
                   
                   <div className="space-y-1">
-                    {walletAddress.addresses.map((address, addrIndex) => (
-                      <div 
-                        key={`${walletAddress.blockchain}-${batchNumber}-${addrIndex}`}
-                        className="p-2 bg-muted rounded-md overflow-hidden"
-                      >
-                        <code className="text-xs font-mono w-full inline-block truncate">
-                          {address}
-                        </code>
-                      </div>
-                    ))}
+                    {walletAddress.addresses.map((address, addrIndex) => {
+                      // Xác định loại địa chỉ BTC dựa vào index
+                      let addressType = '';
+                      if (addrIndex === 0) addressType = 'Legacy';
+                      else if (addrIndex === 1) addressType = 'Nested SegWit';
+                      else if (addrIndex === 2) addressType = 'Native SegWit';
+                      
+                      return (
+                        <div 
+                          key={`${walletAddress.blockchain}-${batchNumber}-${addrIndex}`}
+                          className="p-2 bg-muted rounded-md overflow-hidden"
+                        >
+                          <div className="flex items-center mb-1">
+                            <span className="text-xs font-medium mr-2 min-w-[100px]">{addressType}:</span>
+                          </div>
+                          <code className="text-xs font-mono w-full inline-block truncate">
+                            {address}
+                          </code>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );
