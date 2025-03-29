@@ -62,7 +62,7 @@ export default function Home() {
       </header>
 
       {/* Blockchain Selection */}
-      <div className="mb-4 flex flex-wrap gap-2">
+      <div className="mb-4 flex justify-between">
         {["BTC", "ETH", "BSC", "SOL", "DOGE"].map((blockchain) => (
           <CryptoCheckbox
             key={blockchain}
@@ -92,7 +92,6 @@ export default function Home() {
         <Button 
           onClick={toggleSearching}
           className="bg-slate-900 text-white hover:bg-slate-800 w-full sm:w-auto"
-          disabled={isSearching}
         >
           {isSearching ? "Dừng lại" : "Bắt đầu"}
         </Button>
