@@ -344,8 +344,16 @@ const getDOGEBalance = async (address: string): Promise<BalanceResponse> => {
       console.log(`Using DOGE API key: ${apiKey ? apiKey.substring(0, 5) + '...' : 'NULL'}`);
       
       // Sử dụng URL chính xác theo tài liệu
-      const cryptoApisUrl = `https://rest.cryptoapis.io/blockchain-data/dogecoin/mainnet/addresses/${address}/balance`;
+      const cryptoApisUrl = getApiEndpoint('DOGE', address);
+      const headers = getApiHeaders('DOGE');
       console.log(`Calling CryptoAPIs.io with URL: ${cryptoApisUrl}`);
+      console.log(`Using headers: ${JSON.stringify(headers)}`);
+
+      // Thêm bước kiểm tra API key
+      if (!headers['x-api-key']) {
+        console.error('ERROR: Missing API key for CryptoAPIs!');
+        return { success: false, balance: '0', error: 'Missing API key' };
+      }
       
       // Thêm timeout cho request
       const controller = new AbortController();
@@ -354,10 +362,7 @@ const getDOGEBalance = async (address: string): Promise<BalanceResponse> => {
       try {
         const cryptoApisResponse = await fetch(cryptoApisUrl, {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': apiKey
-          },
+          headers: headers,
           signal: controller.signal
         });
         
