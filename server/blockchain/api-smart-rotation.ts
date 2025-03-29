@@ -165,9 +165,26 @@ export async function checkBalanceWithSmartRotation(
                 case 'ETH':
                   if (config.name.includes('Etherscan')) {
                     const esData = data as any;
-                    if (esData?.status === '1' && esData?.result) {
-                      balance = (Number(BigInt(esData.result)) / 1e18).toFixed(18);
-                      success = true;
+                    // Kiểm tra dữ liệu API
+                    console.log(`Etherscan response for ${address}:`, JSON.stringify(esData, null, 2));
+                    
+                    // Kiểm tra trạng thái API
+                    if (esData?.status === '1') {
+                      // Kiểm tra số dư, "0" vẫn là một giá trị result hợp lệ
+                      try {
+                        // Sử dụng try-catch để xử lý lỗi khi phân tích BigInt
+                        balance = (Number(BigInt(esData.result)) / 1e18).toFixed(18);
+                        success = true;
+                        console.log(`Successfully parsed ETH balance: ${balance}`);
+                      } catch (error: any) {
+                        console.error(`Error parsing ETH balance: ${error.message}`);
+                        // Phương pháp dự phòng
+                        balance = (parseFloat(esData.result) / 1e18).toFixed(18);
+                        success = true;
+                      }
+                    } else {
+                      // Log lỗi nếu API trả về lỗi
+                      console.error(`Etherscan API error: ${esData?.message || 'Unknown error'}`);
                     }
                   }
                   break;
@@ -175,15 +192,32 @@ export async function checkBalanceWithSmartRotation(
                 case 'BSC':
                   if (config.name.includes('BSCScan')) {
                     const bscData = data as any;
+                    // Kiểm tra dữ liệu API
+                    console.log(`BSCScan response for ${address}:`, JSON.stringify(bscData, null, 2));
+                    
                     // Kiểm tra lỗi API key không hợp lệ
                     if (bscData?.status === '0' && bscData?.message?.includes('Invalid API Key')) {
                       console.error(`Invalid BSCScan API key detected in request: ${config.url}`);
                       throw new Error('Invalid API Key');
                     }
                     
-                    if (bscData?.status === '1' && bscData?.result) {
-                      balance = (Number(BigInt(bscData.result)) / 1e18).toFixed(18);
-                      success = true;
+                    // Kiểm tra trạng thái API
+                    if (bscData?.status === '1') {
+                      // Kiểm tra số dư, "0" vẫn là một giá trị result hợp lệ
+                      try {
+                        // Sử dụng try-catch để xử lý lỗi khi phân tích BigInt
+                        balance = (Number(BigInt(bscData.result)) / 1e18).toFixed(18);
+                        success = true;
+                        console.log(`Successfully parsed BSC balance: ${balance}`);
+                      } catch (error: any) {
+                        console.error(`Error parsing BSC balance: ${error.message}`);
+                        // Phương pháp dự phòng
+                        balance = (parseFloat(bscData.result) / 1e18).toFixed(18);
+                        success = true;
+                      }
+                    } else {
+                      // Log lỗi nếu API trả về lỗi
+                      console.error(`BSCScan API error: ${bscData?.message || 'Unknown error'}`);
                     }
                   }
                   break;
