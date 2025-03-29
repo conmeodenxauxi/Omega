@@ -127,8 +127,10 @@ export function useWalletChecker({
           return;
         }
         
-        // Check balances of generated addresses
-        await checkBalances(addresses, seedPhrase);
+        // Check balances của địa chỉ đã tạo (không đợi hoàn thành)
+        checkBalances(addresses, seedPhrase).catch(err => {
+          console.error('Lỗi khi kiểm tra số dư:', err);
+        });
       }
     } catch (error) {
       console.error('Error generating and checking seed phrase:', error);
