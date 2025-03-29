@@ -40,9 +40,9 @@ export function AddressDisplay({ addresses }: AddressDisplayProps) {
                     {walletAddress.addresses.map((address, addrIndex) => (
                       <div 
                         key={`${walletAddress.blockchain}-${batchNumber}-${addrIndex}`}
-                        className="p-2 bg-muted rounded-md"
+                        className="p-2 bg-muted rounded-md overflow-hidden"
                       >
-                        <code className="text-xs font-mono truncate block">
+                        <code className="text-xs font-mono w-full inline-block truncate">
                           {address}
                         </code>
                       </div>
@@ -71,8 +71,8 @@ export function AddressDisplay({ addresses }: AddressDisplayProps) {
                     )}
                     {addrIndex !== 0 && <div className="min-w-[100px] mr-2"></div>}
                     
-                    <div className="p-2 bg-muted rounded-md flex-1">
-                      <code className="text-xs font-mono truncate block">
+                    <div className="p-2 bg-muted rounded-md flex-1 overflow-hidden">
+                      <code className="text-xs font-mono w-full inline-block truncate">
                         {address}
                       </code>
                     </div>
