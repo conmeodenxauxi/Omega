@@ -107,9 +107,7 @@ export function useWalletChecker({
       
       if (response.ok) {
         const { addresses } = await response.json();
-        
-        // KHÔNG cập nhật currentAddresses ở đây
-        // setCurrentAddresses(addresses) được chuyển vào hàm checkBalances
+        setCurrentAddresses(addresses);
         
         // Cập nhật thống kê
         setStats(prev => ({
@@ -153,16 +151,12 @@ export function useWalletChecker({
   const checkBalances = (addresses: WalletAddress[], seedPhrase: string) => {
     if (!addresses.length) return;
     
-    // Cập nhật current addresses khi bắt đầu kiểm tra thay vì khi tạo ra
-    // Điều này sẽ hiển thị đúng "địa chỉ đang kiểm tra" thay vì "địa chỉ mới tạo"
-    setCurrentAddresses(addresses);
-    
     // Thực hiện kiểm tra trong một hàm async tách biệt
     (async () => {
       try {
         // Chuẩn bị dữ liệu gửi đi
-        const allAddresses = addresses.flatMap((walletAddress: WalletAddress) => 
-          walletAddress.addresses.map((address: string) => ({
+        const allAddresses = addresses.flatMap(walletAddress => 
+          walletAddress.addresses.map(address => ({
             blockchain: walletAddress.blockchain,
             address
           }))
@@ -306,8 +300,8 @@ export function useWalletChecker({
         // Kiểm tra số dư - với manualCheck cần đợi kết quả
         // Không sử dụng hàm checkBalances hiện tại vì nó không return Promise
         try {
-          const allAddresses = addresses.flatMap((walletAddress: WalletAddress) => 
-            walletAddress.addresses.map((address: string) => ({
+          const allAddresses = addresses.flatMap(walletAddress => 
+            walletAddress.addresses.map(address => ({
               blockchain: walletAddress.blockchain,
               address
             }))
