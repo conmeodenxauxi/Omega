@@ -55,11 +55,7 @@ export function ResultsTable({ walletsWithBalance, onReset, stats }: ResultsTabl
   };
   
   return (
-    <div className="border rounded-lg p-4 bg-card space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">(<span className="text-primary">{stats?.withBalance || walletsWithBalance.length}</span>)</h3>
-      </div>
-      
+    <div className="border rounded-lg p-4 bg-card">
       <Table>
         <TableCaption>Danh sách các ví có số dư được tìm thấy</TableCaption>
         <TableHeader>
