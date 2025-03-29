@@ -93,6 +93,7 @@ export default function Home() {
         setAutoReset={setAutoReset}
         onToggleSearch={toggleSearching}
         onReset={handleResetAll}
+        walletsCount={walletsWithBalance.length}
       />
 
       {/* Phrase Length Selection */}
@@ -157,6 +158,7 @@ export default function Home() {
           <ResultsTable
             walletsWithBalance={walletsWithBalance}
             onReset={handleResetAll}
+            stats={stats}
           />
         ) : (
           <p className="text-center text-gray-500 py-4">Chưa tìm thấy ví nào có số dư.</p>

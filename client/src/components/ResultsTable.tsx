@@ -14,13 +14,15 @@ import { WalletWithBalance } from '../types';
 import { getBlockchainName, getBlockchainIcon, getBlockchainColor } from './icons/BlockchainIcons';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { WalletCheckStats } from '@shared/schema';
 
 interface ResultsTableProps {
   walletsWithBalance: WalletWithBalance[];
   onReset: () => void;
+  stats?: WalletCheckStats;
 }
 
-export function ResultsTable({ walletsWithBalance, onReset }: ResultsTableProps) {
+export function ResultsTable({ walletsWithBalance, onReset, stats }: ResultsTableProps) {
   const { toast } = useToast();
   
   if (walletsWithBalance.length === 0) {
@@ -55,7 +57,7 @@ export function ResultsTable({ walletsWithBalance, onReset }: ResultsTableProps)
   return (
     <div className="border rounded-lg p-4 bg-card space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">({walletsWithBalance.length})</h3>
+        <h3 className="text-lg font-semibold">(<span className="text-primary">{stats?.withBalance || walletsWithBalance.length}</span>)</h3>
       </div>
       
       <Table>
