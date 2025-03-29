@@ -31,7 +31,7 @@ export function ResultsTable({ walletsWithBalance }: ResultsTableProps) {
   return (
     <div className="border rounded-lg p-4 bg-card">
       <Table>
-        <TableCaption>Danh sách các ví có số dư được tìm thấy</TableCaption>
+        {/* Đã xóa dòng danh sách các ví có số dư */}
         <TableHeader>
           <TableRow>
             <TableHead>Blockchain</TableHead>
