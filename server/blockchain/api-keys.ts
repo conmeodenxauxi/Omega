@@ -215,7 +215,8 @@ export function getApiEndpoint(blockchain: BlockchainType, address?: string): st
     case 'BTC':
       // Có nhiều lựa chọn API: 
       // 1. BlockCypher (không yêu cầu API key trong URL)
-      // 2. GetBlock.io/Blockbook (API key là query parameter)
+      // 2. GetBlock.io/Blockbook (API key là một phần của path, không phải query parameter)
+      //    Format: https://go.getblock.io/{APIKEY}/api/v2/address/{BTC_ADDRESS}?details=basic
       return `https://api.blockcypher.com/v1/btc/main/addrs/${address}/balance`;
       
     case 'ETH':
