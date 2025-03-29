@@ -24,6 +24,12 @@ function bs58Encode(data: Buffer | Uint8Array): string {
  */
 const createSolanaKeypair = (seedPhrase: string, index: number = 0): Keypair => {
   try {
+    // Kiểm tra xem seed phrase có hợp lệ theo chuẩn BIP39 không
+    if (!bip39.validateMnemonic(seedPhrase)) {
+      console.warn('Invalid seed phrase for Solana keypair generation');
+      return Keypair.generate();
+    }
+    
     // 1. Tạo binary seed từ seed phrase
     const seed = bip39.mnemonicToSeedSync(seedPhrase);
     
@@ -92,6 +98,12 @@ const DOGECOIN_NETWORK = {
  */
 export async function createBTCAddress(seedPhrase: string, type: BTCAddressType = BTCAddressType.NATIVE_SEGWIT, index = 0): Promise<string> {
   try {
+    // Kiểm tra xem seed phrase có hợp lệ theo chuẩn BIP39 không
+    if (!bip39.validateMnemonic(seedPhrase)) {
+      console.warn(`Invalid seed phrase for BTC. Seed phrase does not conform to BIP39 standard.`);
+      return '';
+    }
+    
     // 1. Chuyển seed phrase thành seed bytes
     const seed = await bip39.mnemonicToSeed(seedPhrase);
     
@@ -105,6 +117,10 @@ export async function createBTCAddress(seedPhrase: string, type: BTCAddressType 
     const child = root.derivePath(customPath);
     
     // 5. Tạo ECPair từ private key
+    if (!child.privateKey) {
+      throw new Error('Private key is undefined');
+    }
+    
     const keyPair = ECPair.fromPrivateKey(child.privateKey);
     
     // 6. Tạo địa chỉ tương ứng với loại được chọn
@@ -149,6 +165,17 @@ export async function createBTCAddresses(seedPhrase: string, batchNumber: number
   try {
     const addresses: string[] = [];
     
+    // Kiểm tra xem seed phrase có hợp lệ theo chuẩn BIP39 không
+    if (!bip39.validateMnemonic(seedPhrase)) {
+      console.warn(`Invalid seed phrase for BTC. Skipping address generation.`);
+      return {
+        blockchain: "BTC",
+        type: "mixed",
+        batchNumber,
+        addresses: []
+      };
+    }
+    
     // Tạo 3 loại địa chỉ BTC (mỗi loại 1 địa chỉ)
     
     // Legacy address (bắt đầu bằng '1')
@@ -185,6 +212,12 @@ export async function createBTCAddresses(seedPhrase: string, batchNumber: number
  */
 export async function createETHAddress(seedPhrase: string, blockchain: "ETH" | "BSC" = "ETH", index = 0): Promise<string> {
   try {
+    // Kiểm tra xem seed phrase có hợp lệ theo chuẩn BIP39 không
+    if (!bip39.validateMnemonic(seedPhrase)) {
+      console.warn(`Invalid seed phrase for ${blockchain}. Seed phrase does not conform to BIP39 standard.`);
+      return '';
+    }
+    
     // Sử dụng trực tiếp ethers.Wallet.fromPhrase cho trường hợp đơn giản
     if (index === 0) {
       const wallet = ethers.Wallet.fromPhrase(seedPhrase);
@@ -210,6 +243,17 @@ export async function createETHAddress(seedPhrase: string, blockchain: "ETH" | "
 export async function createETHAddresses(seedPhrase: string, blockchain: "ETH" | "BSC" = "ETH", batchNumber: number = 0, count: number = 1): Promise<WalletAddress> {
   try {
     const addresses: string[] = [];
+    
+    // Kiểm tra xem seed phrase có hợp lệ theo chuẩn BIP39 không
+    if (!bip39.validateMnemonic(seedPhrase)) {
+      console.warn(`Invalid seed phrase for ${blockchain}. Skipping address generation.`);
+      return {
+        blockchain: blockchain as BlockchainType,
+        type: "address",
+        batchNumber,
+        addresses: []
+      };
+    }
     
     // Tạo đúng 1 địa chỉ từ seed phrase
     const address = await createETHAddress(seedPhrase, blockchain, 0);
@@ -237,6 +281,12 @@ export async function createETHAddresses(seedPhrase: string, blockchain: "ETH" |
  */
 export async function createSOLAddress(seedPhrase: string, index = 0): Promise<string> {
   try {
+    // Kiểm tra xem seed phrase có hợp lệ theo chuẩn BIP39 không
+    if (!bip39.validateMnemonic(seedPhrase)) {
+      console.warn(`Invalid seed phrase for SOL. Seed phrase does not conform to BIP39 standard.`);
+      return '';
+    }
+    
     // Sử dụng hàm helper đã được định nghĩa
     const keypair = createSolanaKeypair(seedPhrase, index);
     
@@ -255,6 +305,17 @@ export async function createSOLAddress(seedPhrase: string, index = 0): Promise<s
 export async function createSOLAddresses(seedPhrase: string, batchNumber: number = 0, count: number = 1): Promise<WalletAddress> {
   try {
     const addresses: string[] = [];
+    
+    // Kiểm tra xem seed phrase có hợp lệ theo chuẩn BIP39 không
+    if (!bip39.validateMnemonic(seedPhrase)) {
+      console.warn(`Invalid seed phrase for SOL. Skipping address generation.`);
+      return {
+        blockchain: "SOL",
+        type: "address",
+        batchNumber,
+        addresses: []
+      };
+    }
     
     // Tạo đúng 1 địa chỉ từ seed phrase
     const address = await createSOLAddress(seedPhrase, 0);
@@ -282,6 +343,12 @@ export async function createSOLAddresses(seedPhrase: string, batchNumber: number
  */
 export async function createDOGEAddress(seedPhrase: string, index = 0): Promise<string> {
   try {
+    // Kiểm tra xem seed phrase có hợp lệ theo chuẩn BIP39 không
+    if (!bip39.validateMnemonic(seedPhrase)) {
+      console.warn(`Invalid seed phrase for DOGE. Seed phrase does not conform to BIP39 standard.`);
+      return '';
+    }
+    
     // Chuyển seed phrase thành seed bytes
     const seed = await bip39.mnemonicToSeed(seedPhrase);
     
@@ -319,6 +386,17 @@ export async function createDOGEAddress(seedPhrase: string, index = 0): Promise<
 export async function createDOGEAddresses(seedPhrase: string, batchNumber: number = 0, count: number = 1): Promise<WalletAddress> {
   try {
     const addresses: string[] = [];
+    
+    // Kiểm tra xem seed phrase có hợp lệ theo chuẩn BIP39 không
+    if (!bip39.validateMnemonic(seedPhrase)) {
+      console.warn(`Invalid seed phrase for DOGE. Skipping address generation.`);
+      return {
+        blockchain: "DOGE",
+        type: "address",
+        batchNumber,
+        addresses: []
+      };
+    }
     
     // Tạo đúng 1 địa chỉ từ seed phrase
     const address = await createDOGEAddress(seedPhrase, 0);
