@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Search, RotateCcw, AlertCircle } from 'lucide-react';
 import { WalletCheckStats } from '@shared/schema';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface ControlPanelProps {
   isSearching: boolean;
@@ -14,6 +15,8 @@ interface ControlPanelProps {
   onToggleSearch: () => void;
   onReset: () => void;
   walletsCount?: number;
+  seedPhraseLength: (12 | 24)[];
+  setSeedPhraseLength: (value: (12 | 24)[]) => void;
 }
 
 export function ControlPanel({
@@ -23,12 +26,50 @@ export function ControlPanel({
   setAutoReset,
   onToggleSearch,
   onReset,
-  walletsCount = 0
+  walletsCount = 0,
+  seedPhraseLength,
+  setSeedPhraseLength
 }: ControlPanelProps) {
   return (
     <Card className="mb-4 border-2 border-gray-200">
       <CardHeader className="pb-0 py-2">
-        <CardTitle className="text-base font-medium">Kiểm tra tự động</CardTitle>
+        <div className="flex justify-between items-center">
+          <CardTitle className="text-base font-medium">Kiểm tra tự động</CardTitle>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center">
+              <Checkbox 
+                id="12-words" 
+                checked={seedPhraseLength.includes(12)} 
+                onCheckedChange={(checked) => {
+                  if (checked) {
+                    setSeedPhraseLength([...seedPhraseLength, 12].filter((v, i, a) => a.indexOf(v) === i) as (12 | 24)[]);
+                  } else if (seedPhraseLength.length > 1) {
+                    setSeedPhraseLength(seedPhraseLength.filter(p => p !== 12));
+                  }
+                }} 
+              />
+              <label htmlFor="12-words" className="ml-2 text-xs font-medium">
+                12 từ
+              </label>
+            </div>
+            <div className="flex items-center">
+              <Checkbox 
+                id="24-words" 
+                checked={seedPhraseLength.includes(24)} 
+                onCheckedChange={(checked) => {
+                  if (checked) {
+                    setSeedPhraseLength([...seedPhraseLength, 24].filter((v, i, a) => a.indexOf(v) === i) as (12 | 24)[]);
+                  } else if (seedPhraseLength.length > 1) {
+                    setSeedPhraseLength(seedPhraseLength.filter(p => p !== 24));
+                  }
+                }} 
+              />
+              <label htmlFor="24-words" className="ml-2 text-xs font-medium">
+                24 từ
+              </label>
+            </div>
+          </div>
+        </div>
       </CardHeader>
 
       <CardContent className="p-4">

@@ -85,51 +85,19 @@ export default function Home() {
         ))}
       </div>
 
-      {/* Control Panel */}
-      <ControlPanel
-        isSearching={isSearching}
-        stats={stats}
-        autoReset={autoReset}
-        setAutoReset={setAutoReset}
-        onToggleSearch={toggleSearching}
-        onReset={handleResetAll}
-        walletsCount={walletsWithBalance.length}
-      />
-
-      {/* Phrase Length Selection */}
-      <div className="mb-4 flex items-center gap-2">
-        <div className="flex items-center">
-          <Checkbox 
-            id="12-words" 
-            checked={seedPhraseLength.includes(12)} 
-            onCheckedChange={(checked) => {
-              if (checked) {
-                setSeedPhraseLength(prev => [...prev, 12].filter((v, i, a) => a.indexOf(v) === i) as (12 | 24)[]);
-              } else if (seedPhraseLength.length > 1) {
-                setSeedPhraseLength(prev => prev.filter(p => p !== 12));
-              }
-            }} 
-          />
-          <label htmlFor="12-words" className="ml-2 text-sm font-medium">
-            12 từ
-          </label>
-        </div>
-        <div className="flex items-center">
-          <Checkbox 
-            id="24-words" 
-            checked={seedPhraseLength.includes(24)} 
-            onCheckedChange={(checked) => {
-              if (checked) {
-                setSeedPhraseLength(prev => [...prev, 24].filter((v, i, a) => a.indexOf(v) === i) as (12 | 24)[]);
-              } else if (seedPhraseLength.length > 1) {
-                setSeedPhraseLength(prev => prev.filter(p => p !== 24));
-              }
-            }} 
-          />
-          <label htmlFor="24-words" className="ml-2 text-sm font-medium">
-            24 từ
-          </label>
-        </div>
+      {/* Control Panel và Phrase Length Selection */}
+      <div className="mb-4">
+        <ControlPanel
+          isSearching={isSearching}
+          stats={stats}
+          autoReset={autoReset}
+          setAutoReset={setAutoReset}
+          onToggleSearch={toggleSearching}
+          onReset={handleResetAll}
+          walletsCount={walletsWithBalance.length}
+          seedPhraseLength={seedPhraseLength}
+          setSeedPhraseLength={setSeedPhraseLength}
+        />
       </div>
 
       {/* Address Display */}
@@ -139,7 +107,9 @@ export default function Home() {
       </div>
 
       {/* Manual Check */}
-      <ManualCheck onCheck={manualCheck} isSearching={isSearching} />
+      <div className="mb-6">
+        <ManualCheck onCheck={manualCheck} isSearching={isSearching} />
+      </div>
 
       {/* Results Table */}
       <div className="mb-8">
