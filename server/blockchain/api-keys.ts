@@ -74,6 +74,7 @@ const apiKeys: Record<string, string[]> = {
   
   // Binance Smart Chain API Keys
   'BSC_BSCSCAN': [
+    'FGPYENM7QCRQSGGQN5EUQFYN1Z2KZ2R41Q', // API key mới được thêm vào đầu danh sách
     'SC7YSPT8Y3MGPMCQSA4NRZ92UARVVWNQ1F',
     'JM5N75SSNBA2XN88BUGVX6H3TSSZD49QF8',
     'GM4IDJPDAXUYT9P29NUGIDW3HDW66GH98N',
