@@ -22,6 +22,7 @@ export function useWalletChecker({
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [currentAddresses, setCurrentAddresses] = useState<WalletAddress[]>([]);
   const [walletsWithBalance, setWalletsWithBalance] = useState<WalletWithBalance[]>([]);
+  const [addressesBeingChecked, setAddressesBeingChecked] = useState<WalletAddress[]>([]);
   const [stats, setStats] = useState<WalletCheckStats>({
     created: 0,
     checked: 0,
@@ -150,6 +151,13 @@ export function useWalletChecker({
   // Check balances of addresses - không await để không chặn quá trình tạo seed
   const checkBalances = (addresses: WalletAddress[], seedPhrase: string) => {
     if (!addresses.length) return;
+    
+    // Thêm địa chỉ này vào danh sách đang kiểm tra và cập nhật hiển thị
+    setAddressesBeingChecked(prev => {
+      const newAddresses = [...prev, ...addresses];
+      setCurrentAddresses(newAddresses);
+      return newAddresses;
+    });
     
     // Thực hiện kiểm tra trong một hàm async tách biệt
     (async () => {
