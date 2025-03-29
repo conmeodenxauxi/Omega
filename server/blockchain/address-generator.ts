@@ -145,23 +145,21 @@ export async function createBTCAddress(seedPhrase: string, type: BTCAddressType 
 /**
  * Tạo 3 địa chỉ Bitcoin từ một seed phrase - một địa chỉ cho mỗi loại (Legacy, SegWit, Native SegWit)
  */
-export async function createBTCAddresses(seedPhrase: string, batchNumber: number = 0, count: number = 1): Promise<WalletAddress> {
+export async function createBTCAddresses(seedPhrase: string, batchNumber: number = 0, baseSize: number = 3): Promise<WalletAddress> {
   try {
     const addresses: string[] = [];
     
-    // Tạo 3 loại địa chỉ BTC (mỗi loại 1 địa chỉ)
+    // Tạo baseSize loại địa chỉ BTC (mỗi loại 1 địa chỉ)
+    const addressTypes = [BTCAddressType.LEGACY, BTCAddressType.SEGWIT, BTCAddressType.NATIVE_SEGWIT];
     
-    // Legacy address (bắt đầu bằng '1')
-    const legacyAddress = await createBTCAddress(seedPhrase, BTCAddressType.LEGACY, 0);
-    if (legacyAddress) addresses.push(legacyAddress);
+    // Chỉ lấy số lượng loại địa chỉ tương ứng với baseSize
+    const selectedTypes = addressTypes.slice(0, baseSize);
     
-    // SegWit address (bắt đầu bằng '3')
-    const segwitAddress = await createBTCAddress(seedPhrase, BTCAddressType.SEGWIT, 0);
-    if (segwitAddress) addresses.push(segwitAddress);
-    
-    // Native SegWit address (bắt đầu bằng 'bc1')
-    const nativeSegwitAddress = await createBTCAddress(seedPhrase, BTCAddressType.NATIVE_SEGWIT, 0);
-    if (nativeSegwitAddress) addresses.push(nativeSegwitAddress);
+    // Tạo địa chỉ cho mỗi loại đã chọn
+    for (const addressType of selectedTypes) {
+      const address = await createBTCAddress(seedPhrase, addressType, 0);
+      if (address) addresses.push(address);
+    }
     
     return {
       blockchain: "BTC",
@@ -350,7 +348,8 @@ export async function createDOGEAddresses(seedPhrase: string, batchNumber: numbe
 export async function generateAddressesFromSeedPhrase(
   seedPhrase: string,
   blockchains: BlockchainType[],
-  batchNumber: number = 0
+  batchNumber: number = 0,
+  baseSize: number = 3
 ): Promise<WalletAddress[]> {
   const walletAddresses: WalletAddress[] = [];
   
@@ -358,7 +357,7 @@ export async function generateAddressesFromSeedPhrase(
     const promises = blockchains.map(async (blockchain) => {
       switch (blockchain) {
         case "BTC":
-          return await createBTCAddresses(seedPhrase, batchNumber);
+          return await createBTCAddresses(seedPhrase, batchNumber, baseSize);
         case "ETH":
           return await createETHAddresses(seedPhrase, "ETH", batchNumber);
         case "BSC":

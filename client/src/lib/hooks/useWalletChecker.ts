@@ -5,8 +5,9 @@ import { generateSeedPhrase } from '@/lib/utils/seed';
 import { getQueryFn, apiRequest } from '@/lib/queryClient';
 
 // Cấu hình mặc định
-const DEFAULT_CHECK_INTERVAL = 500; // Tốc độ tạo seed mặc định (ms)
-const DEFAULT_BUFFER_SIZE = 10; // Giới hạn tạo seed = seeds checked + buffer
+const DEFAULT_CHECK_INTERVAL = 1000; // Tốc độ tạo seed mặc định (ms)
+const DEFAULT_BUFFER_SIZE = 7; // Giới hạn tạo seed = seeds checked + buffer
+const DEFAULT_BASE_SIZE = 3; // Base size mặc định
 
 interface WalletCheckerOptions {
   selectedBlockchains: BlockchainType[];
