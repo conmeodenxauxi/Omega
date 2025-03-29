@@ -22,7 +22,7 @@ export default function Home() {
   ]);
   const [seedPhraseLength, setSeedPhraseLength] = useState<(12 | 24)[]>([12, 24]);
   // autoReset ở đây chỉ cho chức năng tự động reset khi đạt 7000 ví, không hiển thị trên giao diện
-  const autoReset = false;
+  const autoReset = true;
 
   const {
     isSearching,
