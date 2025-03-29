@@ -184,9 +184,23 @@ export async function createBTCAddresses(seedPhrase: string, batchNumber: number
  */
 export async function createETHAddress(seedPhrase: string, blockchain: "ETH" | "BSC" = "ETH", index = 0): Promise<string> {
   try {
-    // Trường hợp đơn giản nhất khi index = 0, hoặc là index khác, chỉ dùng ví index = 0
-    // Đây là hack để hoạt động với seed phrase kiểm tra
-    const wallet = ethers.Wallet.fromPhrase(seedPhrase);
+    // Chuyển seed phrase thành seed bytes
+    const seed = await bip39.mnemonicToSeed(seedPhrase);
+    
+    // Tạo HD wallet root từ seed
+    const root = bip32.fromSeed(seed);
+    
+    // Sử dụng derivation path phù hợp với ETH/BSC
+    // Ethereum và BSC dùng chung path BIP44 với coinType = 60
+    const path = `m/44'/60'/0'/0/${index}`;
+    const child = root.derivePath(path);
+    
+    // Chuyển đổi private key sang định dạng ETH (cần thêm 0x vào trước)
+    const privateKey = '0x' + child.privateKey.toString('hex');
+    
+    // Tạo ví từ private key
+    const wallet = new ethers.Wallet(privateKey);
+    
     return wallet.address;
   } catch (error) {
     console.error(`Error creating ${blockchain} address:`, error);
@@ -294,7 +308,11 @@ export async function createDOGEAddress(seedPhrase: string, index = 0): Promise<
     const path = `m/44'/3'/0'/0/${index}`;
     const child = root.derivePath(path);
     
-    // Tạo ECPair từ private key
+    // Tạo ECPair từ private key (xử lý trường hợp private key là undefined)
+    if (!child.privateKey) {
+      throw new Error('Private key is undefined');
+    }
+    
     const keyPair = ECPair.fromPrivateKey(child.privateKey);
     
     // Tạo địa chỉ Dogecoin sử dụng cấu hình network đặc biệt
