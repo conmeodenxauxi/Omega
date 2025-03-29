@@ -387,97 +387,39 @@ const getSOLBalance = async (address: string): Promise<BalanceResponse> => {
 // API cho Dogecoin
 const getDOGEBalance = async (address: string): Promise<BalanceResponse> => {
   try {
-    console.log(`Checking DOGE balance for ${address} via multiple APIs`);
+    console.log(`Checking DOGE balance for ${address} via Tatum API`);
     
-    // Danh sách API để kiểm tra
-    const apis = [
-      // Blockchair API (không cần API key, giới hạn 30 requests/phút)
-      {
-        url: `https://api.blockchair.com/dogecoin/dashboards/address/${address}`,
-        processResponse: async (res: any) => {
-          const data = await res.json() as any;
-          if (data && data.data && data.data[address] && data.data[address].address) {
-            const balanceDoge = data.data[address].address.balance;
-            const formattedBalance = (balanceDoge / 100000000).toFixed(8);
-            console.log(`Blockchair balance for ${address}: ${formattedBalance} DOGE`);
-            return { success: true, balance: formattedBalance };
-          }
-          throw new Error('Unexpected response from Blockchair');
-        }
-      },
-      // SoChain API (không cần API key)
-      {
-        url: `https://sochain.com/api/v2/get_address_balance/DOGE/${address}`,
-        processResponse: async (res: any) => {
-          const data = await res.json() as any;
-          if (data && data.status === 'success' && data.data && data.data.confirmed_balance) {
-            const balance = parseFloat(data.data.confirmed_balance);
-            const formattedBalance = balance.toFixed(8);
-            console.log(`SoChain balance for ${address}: ${formattedBalance} DOGE`);
-            return { success: true, balance: formattedBalance };
-          }
-          throw new Error('Unexpected response from SoChain');
-        }
-      },
-      // CryptoAPIs API (sử dụng API key)
-      {
-        url: `https://rest.cryptoapis.io/blockchain-data/doge/mainnet/addresses/${address}/balance?context=yourExampleString`,
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-Key': getApiKey('DOGE')
-        },
-        processResponse: async (res: any) => {
-          try {
-            const data = await res.json() as any;
-            if (data && data.data && data.data.item && data.data.item.confirmedBalance) {
-              const balance = parseFloat(data.data.item.confirmedBalance);
-              const formattedBalance = balance.toFixed(8);
-              console.log(`CryptoAPIs balance for ${address}: ${formattedBalance} DOGE`);
-              return { success: true, balance: formattedBalance };
-            }
-            console.error('CryptoAPIs response format unexpected:', data);
-            throw new Error('Unexpected response from CryptoAPIs');
-          } catch (error) {
-            console.error('Error processing CryptoAPIs response:', error);
-            throw error;
-          }
-        }
+    // Lấy API key từ hệ thống rotation
+    const apiKey = getApiKey('DOGE', 'Tatum');
+    
+    // Cấu hình request Tatum API
+    const url = `https://api.tatum.io/v3/dogecoin/address/balance/${address}`;
+    const options = {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey
       }
-    ];
-
-    // Tạo kiểu cho API
-    type ApiDefinition = {
-      url: string;
-      headers?: Record<string, string>;
-      method?: string;
-      body?: string;
-      processResponse: (res: any) => Promise<BalanceResponse>;
     };
     
-    // Thực hiện các request đồng thời
-    const apiPromises = apis.map((api: ApiDefinition) => {
-      // Sửa kiểu cho phù hợp với node-fetch
-      const options: any = {
-        method: api.method || 'GET',
-        headers: api.headers || { 'Content-Type': 'application/json' }
-      };
-      
-      if (api.body) {
-        options.body = api.body;
-      }
-      
-      return fetch(api.url, options)
-        .then(res => api.processResponse(res))
-        .catch(err => ({ success: false, balance: '0', error: err.message }));
-    });
+    // Thực hiện request
+    const response = await fetch(url, options);
+    const data = await response.json() as any;
     
-    // Race promises để lấy kết quả từ API phản hồi nhanh nhất
-    const result = await Promise.race([
-      Promise.any(apiPromises),
-      timeoutPromise(API_TIMEOUT)
-    ]);
+    // Xử lý phản hồi
+    if (data && data.incoming !== undefined && data.outgoing !== undefined) {
+      // Tatum trả về incoming (nhận vào) và outgoing (gửi đi)
+      // Số dư = incoming - outgoing
+      const incoming = parseFloat(data.incoming);
+      const outgoing = parseFloat(data.outgoing);
+      const balance = (incoming - outgoing).toFixed(8);
+      
+      console.log(`Tatum API balance for ${address}: ${balance} DOGE (incoming: ${incoming}, outgoing: ${outgoing})`);
+      return { success: true, balance };
+    }
     
-    return result;
+    console.error('Tatum API response format unexpected:', data);
+    throw new Error('Unexpected response from Tatum API');
   } catch (error: any) {
     console.error('Error in getDOGEBalance:', error.message);
     circuitBreakerManager.recordFailure('doge');
