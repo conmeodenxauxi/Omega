@@ -57,8 +57,18 @@ export default function Home() {
   return (
     <div className="max-w-lg mx-auto p-4 min-h-screen">
       {/* Header */}
-      <header className="mb-4">
+      <header className="mb-4 flex justify-between items-center">
         <h1 className="text-xl font-bold">Tim Ví Web3 có Số Dư</h1>
+        <div className="flex items-center">
+          <Checkbox 
+            id="auto-reset" 
+            checked={autoReset} 
+            onCheckedChange={(checked) => setAutoReset(!!checked)} 
+          />
+          <label htmlFor="auto-reset" className="ml-2 text-sm font-medium">
+            Tự động reset
+          </label>
+        </div>
       </header>
 
       {/* Blockchain Selection */}
@@ -73,18 +83,6 @@ export default function Home() {
             }
           />
         ))}
-      </div>
-
-      {/* Auto-reset Checkbox */}
-      <div className="flex items-center mb-4">
-        <Checkbox 
-          id="auto-reset" 
-          checked={autoReset} 
-          onCheckedChange={(checked) => setAutoReset(!!checked)} 
-        />
-        <label htmlFor="auto-reset" className="ml-2 text-sm font-medium">
-          Tự động reset
-        </label>
       </div>
 
       {/* Control Panel */}
