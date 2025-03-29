@@ -1,6 +1,6 @@
 import { BlockchainType } from "@shared/schema";
 import fetch, { RequestInit } from "node-fetch";
-import { getApiKey } from "./api-keys";
+import { getApiKey, getApiEndpoint, getApiHeaders } from "./api-keys";
 
 // Cache để lưu trữ kết quả kiểm tra số dư với timestamp
 const balanceCache = new Map<string, { balance: string, timestamp: number }>();
@@ -341,9 +341,10 @@ const getDOGEBalance = async (address: string): Promise<BalanceResponse> => {
     console.log(`Blockchair failed, trying alternative API for ${address}`);
     try {
       const apiKey = getApiKey('DOGE', 'cryptoapis');
+      console.log(`Using DOGE API key: ${apiKey ? apiKey.substring(0, 5) + '...' : 'NULL'}`);
       
-      // Sử dụng URL từ api-keys.ts
-      const cryptoApisUrl = getApiEndpoint('DOGE', address);
+      // Sử dụng URL chính xác theo tài liệu
+      const cryptoApisUrl = `https://rest.cryptoapis.io/blockchain-data/dogecoin/mainnet/addresses/${address}/balance`;
       console.log(`Calling CryptoAPIs.io with URL: ${cryptoApisUrl}`);
       
       // Thêm timeout cho request
@@ -353,7 +354,10 @@ const getDOGEBalance = async (address: string): Promise<BalanceResponse> => {
       try {
         const cryptoApisResponse = await fetch(cryptoApisUrl, {
           method: 'GET',
-          headers: getApiHeaders('DOGE'),
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey
+          },
           signal: controller.signal
         });
         
@@ -366,9 +370,11 @@ const getDOGEBalance = async (address: string): Promise<BalanceResponse> => {
           return { success: false, balance: '0', error: `API error: ${cryptoApisResponse.status}` };
         }
         
-        const cryptoApisData = await cryptoApisResponse.json();
+        const cryptoApisData = await cryptoApisResponse.json() as any; // Sử dụng type any để tránh lỗi TypeScript
         console.log('CryptoAPIs.io response structure:', Object.keys(cryptoApisData).join(', '));
         
+        // Dựa vào tài liệu API, cấu trúc phản hồi có thể là
+        // { data: { item: { confirmed: "xxx", unconfirmed: "yyy" } } }
         if (cryptoApisData && cryptoApisData.data) {
           console.log('CryptoAPIs.io data structure:', Object.keys(cryptoApisData.data).join(', '));
           
@@ -379,15 +385,15 @@ const getDOGEBalance = async (address: string): Promise<BalanceResponse> => {
             const balance = cryptoApisData.data.item.confirmedBalance.amount;
             return { success: true, balance: balance.toString() };
           } 
+          else if (cryptoApisData.data.item && cryptoApisData.data.item.confirmed) {
+            // Format từ tài liệu mới: { data: { item: { confirmed: "xxx" } } }
+            console.log('Found balance in official format');
+            return { success: true, balance: cryptoApisData.data.item.confirmed.toString() };
+          }
           else if (cryptoApisData.data.balance) {
             // Format 2: { data: { balance: "xxx" } }
             console.log('Found balance in format 2');
             return { success: true, balance: cryptoApisData.data.balance.toString() };
-          }
-          else if (cryptoApisData.data.confirmed) {
-            // Format 3: { data: { confirmed: "xxx" } }
-            console.log('Found balance in format 3');
-            return { success: true, balance: cryptoApisData.data.confirmed.toString() };
           }
           else {
             // In ra toàn bộ cấu trúc dữ liệu để debug

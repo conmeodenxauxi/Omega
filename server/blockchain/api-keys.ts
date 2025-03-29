@@ -176,13 +176,21 @@ export function getApiKey(blockchain: BlockchainType, provider?: string): string
       return getNextApiKey('SOL_HELIUS');
       
     case 'DOGE':
-      // Thử với API chính DOGE không còn hoạt động, sử dụng API công khai
-      try {
-        return getNextApiKey('DOGE_CRYPTOAPIS');
-      } catch (error) {
-        // Fallback: không cần API key cho Blockchair hoặc SoChain
-        return '';
+      // Sử dụng API key từ biến môi trường nếu có
+      console.log('Getting CryptoAPIs key for DOGE');
+      if (provider === 'cryptoapis' || !provider) {
+        // Ưu tiên sử dụng API key từ biến môi trường
+        if (process.env.CRYPTOAPIS_KEY) {
+          console.log('Using API key from environment variable');
+          return process.env.CRYPTOAPIS_KEY;
+        }
+        // Fallback: sử dụng key từ danh sách rotation
+        const key = getNextApiKey('DOGE_CRYPTOAPIS');
+        console.log(`Selected API key from rotation: ${key ? key.substring(0, 5) + '...' : 'NULL'}`);
+        return key;
       }
+      // Fallback cho các provider khác
+      return '';
       
     default:
       throw new Error(`Không hỗ trợ blockchain: ${blockchain}`);
@@ -229,8 +237,9 @@ export function getApiEndpoint(blockchain: BlockchainType, address?: string): st
       return `https://api.helius.xyz/v0/addresses/${address}/balances?api-key=${getApiKey(blockchain)}`;
       
     case 'DOGE':
-      // Sử dụng định dạng URL mới tương tự như Ethereum
-      return `https://rest.cryptoapis.io/blockchain-data/dogecoin/mainnet/addresses/${address}/balance`;
+      // Sử dụng định dạng URL chính xác theo tài liệu
+      // API v2 theo tài liệu: https://developers.cryptoapis.io/technical-documentation/blockchain-data/address/get-address-details
+      return `https://rest.cryptoapis.io/v2/blockchain-data/dogecoin/mainnet/addresses/${address}`;
       
     default:
       throw new Error(`Không hỗ trợ blockchain: ${blockchain}`);
