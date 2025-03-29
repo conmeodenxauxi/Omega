@@ -16,32 +16,31 @@ function bs58Encode(data: Buffer | Uint8Array): string {
 }
 
 // Tạo Solana keypair từ seed
-const createSolanaKeypair = (seedBytes: Buffer, index: number) => {
+const createSolanaKeypair = (seedPhrase: string, index: number) => {
   try {
-    // Dùng path theo tiêu chuẩn Solana 
+    // 1. Tạo seed từ cụm từ ghi nhớ (mnemonic) sử dụng mnemonicToSeedSync()
+    const seed = bip39.mnemonicToSeedSync(seedPhrase);
+    
+    // 2. Sử dụng đường dẫn dẫn xuất (derivation path) chuẩn của Phantom Wallet
+    // Thay đổi index theo yêu cầu
     const path = `m/44'/501'/${index}'/0'`;
     
-    // Chuyển đổi seed bytes thành hex string để sử dụng với derivePath
-    const seedHex = seedBytes.toString('hex');
+    // 3. Tạo seed dẫn xuất bằng cách áp dụng đường dẫn vào seed gốc
+    const derivedSeed = ed25519HdKey.derivePath(path, seed.toString('hex'));
     
-    // Tạo derived key từ seed và path
-    const derivedKey = ed25519HdKey.derivePath(path, seedHex);
-    if (!derivedKey || !derivedKey.key) {
+    if (!derivedSeed || !derivedSeed.key) {
       throw new Error('Failed to derive Solana key');
     }
     
-    // Sử dụng 32 bytes đầu tiên của derived key để tạo keypair
-    const keyPairSeed = new Uint8Array(derivedKey.key.slice(0, 32));
-    
-    // Tạo keypair mới từ seed bytes
-    const keyPair = nacl.sign.keyPair.fromSeed(keyPairSeed);
+    // 4. Tạo cặp khóa (keypair) từ seed dẫn xuất (lấy 32 bytes đầu tiên)
+    const keyPair = nacl.sign.keyPair.fromSeed(
+      Uint8Array.from(derivedSeed.key.slice(0, 32))
+    );
     
     return keyPair;
   } catch (error) {
     console.error('Error creating Solana keypair:', error);
-    
-    // Fallback: dùng seed phrase để tạo địa chỉ ngẫu nhiên nếu cách chính thức không hoạt động
-    return nacl.sign.keyPair();
+    throw error;
   }
 };
 
@@ -184,24 +183,18 @@ export async function createBTCAddresses(seedPhrase: string, batchNumber: number
  */
 export async function createETHAddress(seedPhrase: string, blockchain: "ETH" | "BSC" = "ETH", index = 0): Promise<string> {
   try {
-    // Chuyển seed phrase thành seed bytes
-    const seed = await bip39.mnemonicToSeed(seedPhrase);
+    // Sử dụng trực tiếp ethers.Wallet.fromPhrase cho trường hợp đơn giản
+    if (index === 0) {
+      const wallet = ethers.Wallet.fromPhrase(seedPhrase);
+      return wallet.address;
+    }
     
-    // Tạo HD wallet root từ seed
-    const root = bip32.fromSeed(seed);
-    
-    // Sử dụng derivation path phù hợp với ETH/BSC
-    // Ethereum và BSC dùng chung path BIP44 với coinType = 60
+    // Cho index > 0, tạo một HDNode từ ethers
+    const hdNode = ethers.HDNodeWallet.fromPhrase(seedPhrase);
     const path = `m/44'/60'/0'/0/${index}`;
-    const child = root.derivePath(path);
+    const derivedNode = hdNode.derivePath(path.substring(2)); // bỏ đi "m/" vì đã là root
     
-    // Chuyển đổi private key sang định dạng ETH (cần thêm 0x vào trước)
-    const privateKey = '0x' + child.privateKey.toString('hex');
-    
-    // Tạo ví từ private key
-    const wallet = new ethers.Wallet(privateKey);
-    
-    return wallet.address;
+    return derivedNode.address;
   } catch (error) {
     console.error(`Error creating ${blockchain} address:`, error);
     return '';
@@ -245,11 +238,8 @@ export async function createETHAddresses(seedPhrase: string, blockchain: "ETH" |
  */
 export async function createSOLAddress(seedPhrase: string, index = 0): Promise<string> {
   try {
-    // Chuyển seed phrase thành seed bytes
-    const seed = await bip39.mnemonicToSeed(seedPhrase);
-    
     // Sử dụng hàm helper đã được định nghĩa
-    const keypair = createSolanaKeypair(seed, index);
+    const keypair = createSolanaKeypair(seedPhrase, index);
     
     // Chuyển đổi public key thành chuỗi base58
     const address = bs58Encode(Buffer.from(keypair.publicKey));
