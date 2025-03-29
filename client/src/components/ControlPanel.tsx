@@ -27,33 +27,33 @@ export function ControlPanel({
     <Card className="mb-4">
 
       <CardContent className="p-4">
-        <div className="flex items-center gap-2">
+        <div className="grid grid-cols-4 gap-2">
           <Button 
             onClick={onToggleSearch} 
-            className="h-14 w-14 p-0 flex-shrink-0"
+            className="h-14 flex items-center justify-center"
             variant={isSearching ? "destructive" : "default"}
-            size="icon"
           >
             {isSearching ? (
-              <Loader2 className="h-6 w-6 animate-spin" />
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Dừng
+              </>
             ) : (
-              <Search className="h-6 w-6" />
+              "Bắt đầu"
             )}
           </Button>
           
-          <div className="grid grid-cols-3 gap-2 flex-grow">
-            <div className="flex flex-col items-center p-2 bg-muted rounded">
-              <span className="text-xs text-muted-foreground">Đã tạo</span>
-              <span className="text-lg font-bold">{stats.created}</span>
-            </div>
-            <div className="flex flex-col items-center p-2 bg-muted rounded">
-              <span className="text-xs text-muted-foreground">Đã kiểm tra</span>
-              <span className="text-lg font-bold">{stats.checked}</span>
-            </div>
-            <div className="flex flex-col items-center p-2 bg-primary/10 rounded">
-              <span className="text-xs text-primary/80">Tìm thấy</span>
-              <span className="text-lg font-bold text-primary">{stats.withBalance}</span>
-            </div>
+          <div className="flex flex-col items-center p-2 bg-muted rounded">
+            <span className="text-xs text-muted-foreground">Đã tạo</span>
+            <span className="text-lg font-bold">{stats.created}</span>
+          </div>
+          <div className="flex flex-col items-center p-2 bg-muted rounded">
+            <span className="text-xs text-muted-foreground">Đã kiểm tra</span>
+            <span className="text-lg font-bold">{stats.checked}</span>
+          </div>
+          <div className="flex flex-col items-center p-2 bg-primary/10 rounded">
+            <span className="text-xs text-primary/80">Tìm thấy</span>
+            <span className="text-lg font-bold text-primary">{stats.withBalance}</span>
           </div>
         </div>
       </CardContent>
