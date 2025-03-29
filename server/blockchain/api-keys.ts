@@ -213,6 +213,7 @@ export function hasApiKey(blockchain: BlockchainType, provider?: string): boolea
 export function getApiEndpoint(blockchain: BlockchainType, address?: string): string {
   switch (blockchain) {
     case 'BTC':
+      // Có hai lựa chọn API: BlockCypher (không yêu cầu API key trong URL) và GetBlock (API key có trong URL)
       return `https://api.blockcypher.com/v1/btc/main/addrs/${address}/balance`;
       
     case 'ETH':

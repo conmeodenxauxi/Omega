@@ -137,21 +137,26 @@ const getBTCBalance = async (address: string): Promise<BalanceResponse> => {
       },
       // GetBlock.io API - Blockbook (REST)
       {
-        url: `https://btc.getblock.io/mainnet/api/v2/address/${address}`,
+        url: `https://go.getblock.io/${getApiKey('BTC', 'getblock')}/api/v2/address/${address}?details=basic`,
         headers: {
-          'x-api-key': getApiKey('BTC', 'getblock'),
           'Content-Type': 'application/json'
         },
         method: 'GET',
         processResponse: async (res: any) => {
-          const data = await res.json() as any;
-          if (data && data.balance) {
-            const balanceSats = parseInt(data.balance);
-            const balanceBTC = (balanceSats / 100000000).toFixed(8);
-            console.log(`GetBlock.io (Blockbook) balance for ${address}: ${balanceBTC} BTC`);
-            return { success: true, balance: balanceBTC };
+          try {
+            const data = await res.json() as any;
+            if (data && data.balance) {
+              const balanceSats = parseInt(data.balance);
+              const balanceBTC = (balanceSats / 100000000).toFixed(8);
+              console.log(`GetBlock.io (Blockbook) balance for ${address}: ${balanceBTC} BTC`);
+              return { success: true, balance: balanceBTC };
+            }
+            console.error('GetBlock.io response format unexpected:', data);
+            throw new Error('Unexpected response from GetBlock.io Blockbook API');
+          } catch (error) {
+            console.error('Error processing GetBlock.io response:', error);
+            throw error;
           }
-          throw new Error('Unexpected response from GetBlock.io Blockbook API');
         }
       },
       // BlockCypher API
