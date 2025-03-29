@@ -1,17 +1,32 @@
 /**
  * API Keys cho việc tương tác với các blockchain khác nhau
- * Sử dụng rotation pattern để tránh rate limit
+ * Sử dụng rotation pattern thông minh để tránh rate limit
  */
 
 import { BlockchainType } from '@shared/schema';
 
-// Interface cho API key store
-interface ApiKeyStore {
-  [key: string]: string[];
+/**
+ * Đại diện cho một API endpoint và key cấu hình
+ */
+export interface ApiEndpoint {
+  name: string;
+  type: 'public' | 'private';
+  url: string;
+  headers?: Record<string, string>;
+  method?: string;
+  body?: any;
+  needsApiKey?: boolean;
+  requiresAuth?: boolean;
+  formatUrl?: (address: string, apiKey?: string) => string;
+  formatHeaders?: (apiKey?: string) => Record<string, string>;
+  formatBody?: (address: string, apiKey?: string) => any;
+  callCount: number;
 }
 
-// Lưu trữ API keys theo blockchain
-const apiKeys: ApiKeyStore = {
+/**
+ * Lưu trữ API keys theo blockchain và provider
+ */
+const apiKeys: Record<string, string[]> = {
   // Bitcoin API keys
   'BTC_BLOCKCYPHER': [
     'bcb10430b01a484c88cd0dede458ab5c',
@@ -129,8 +144,201 @@ const apiKeys: ApiKeyStore = {
   ]
 };
 
-// Quản lý API key index hiện tại cho rotation
-const currentIndexMap: {[key: string]: number} = {};
+/**
+ * Tạo và lưu trữ các API endpoint cho tất cả các blockchain
+ */
+const blockchainEndpoints: Record<BlockchainType, ApiEndpoint[]> = {
+  'BTC': [
+    // Public API (không cần API key)
+    {
+      name: 'BlockCypher Public',
+      type: 'public',
+      url: '',
+      formatUrl: (address) => `https://api.blockcypher.com/v1/btc/main/addrs/${address}/balance`,
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      needsApiKey: false,
+      callCount: 0
+    },
+    // Blockchair Public API
+    {
+      name: 'Blockchair',
+      type: 'public',
+      url: '',
+      formatUrl: (address) => `https://api.blockchair.com/bitcoin/dashboards/address/${address}`,
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      needsApiKey: false,
+      callCount: 0
+    },
+    // BlockCypher API với key
+    {
+      name: 'BlockCypher',
+      type: 'private',
+      url: '',
+      formatUrl: (address, apiKey) => `https://api.blockcypher.com/v1/btc/main/addrs/${address}/balance?token=${apiKey}`,
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      needsApiKey: true,
+      callCount: 0
+    },
+    // GetBlock API 
+    {
+      name: 'GetBlock',
+      type: 'private',
+      url: '',
+      formatUrl: (address, apiKey) => `https://go.getblock.io/${apiKey}/api/v2/address/${address}?details=basic`,
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      needsApiKey: true,
+      callCount: 0
+    }
+  ],
+  'ETH': [
+    // Public API (Etherscan без ключа - ограниченное количество запросов)
+    {
+      name: 'Etherscan Public',
+      type: 'public',
+      url: '',
+      formatUrl: (address) => `https://api.etherscan.io/api?module=account&action=balance&address=${address}&tag=latest`,
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      needsApiKey: false,
+      callCount: 0
+    },
+    // Etherscan с API key
+    {
+      name: 'Etherscan',
+      type: 'private',
+      url: '',
+      formatUrl: (address, apiKey) => `https://api.etherscan.io/api?module=account&action=balance&address=${address}&tag=latest&apikey=${apiKey}`,
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      needsApiKey: true,
+      callCount: 0
+    }
+  ],
+  'BSC': [
+    // Public API
+    {
+      name: 'BSCScan Public',
+      type: 'public',
+      url: '',
+      formatUrl: (address) => `https://api.bscscan.com/api?module=account&action=balance&address=${address}&tag=latest`,
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      needsApiKey: false,
+      callCount: 0
+    },
+    // BSCScan с API key
+    {
+      name: 'BSCScan',
+      type: 'private',
+      url: '',
+      formatUrl: (address, apiKey) => `https://api.bscscan.com/api?module=account&action=balance&address=${address}&tag=latest&apikey=${apiKey}`,
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      needsApiKey: true,
+      callCount: 0
+    }
+  ],
+  'SOL': [
+    // Public RPC API
+    {
+      name: 'Solana RPC',
+      type: 'public',
+      url: 'https://api.mainnet-beta.solana.com',
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      formatBody: (address) => {
+        return JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'getBalance',
+          params: [address]
+        });
+      },
+      needsApiKey: false,
+      callCount: 0
+    },
+    // Helius API
+    {
+      name: 'Helius',
+      type: 'private',
+      url: '',
+      formatUrl: (address, apiKey) => `https://api.helius.xyz/v0/addresses/${address}/balances?api-key=${apiKey}`,
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      needsApiKey: true,
+      callCount: 0
+    }
+  ],
+  'DOGE': [
+    // Public APIs
+    {
+      name: 'Blockchair',
+      type: 'public',
+      url: '',
+      formatUrl: (address) => `https://api.blockchair.com/dogecoin/dashboards/address/${address}`,
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      needsApiKey: false,
+      callCount: 0
+    },
+    {
+      name: 'SoChain',
+      type: 'public',
+      url: '',
+      formatUrl: (address) => `https://sochain.com/api/v2/get_address_balance/DOGE/${address}`,
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      needsApiKey: false,
+      callCount: 0
+    },
+    // CryptoAPIs
+    {
+      name: 'CryptoAPIs',
+      type: 'private',
+      url: '',
+      formatUrl: (address) => `https://rest.cryptoapis.io/blockchain-data/doge/mainnet/addresses/${address}/balance?context=yourExampleString`,
+      formatHeaders: (apiKey) => ({
+        'Content-Type': 'application/json',
+        'X-API-Key': apiKey || ''
+      }),
+      method: 'GET',
+      needsApiKey: true,
+      callCount: 0
+    }
+  ]
+};
+
+// Lưu trữ index hiện tại của từng provider
+const apiKeyIndices: Record<string, number> = {};
+
+/**
+ * Lấy ApiEndpoint tiếp theo theo chiến lược xoay vòng thông minh
+ * @param blockchain Loại blockchain
+ * @returns ApiEndpoint được chọn
+ */
+export function getNextEndpoint(blockchain: BlockchainType): ApiEndpoint {
+  const endpoints = blockchainEndpoints[blockchain];
+  if (!endpoints || endpoints.length === 0) {
+    throw new Error(`Không có endpoint nào cho blockchain: ${blockchain}`);
+  }
+
+  // Sắp xếp endpoints theo số lần gọi, ưu tiên endpoint ít được sử dụng nhất
+  endpoints.sort((a, b) => a.callCount - b.callCount);
+  
+  // Lấy endpoint có số lần gọi ít nhất
+  const endpoint = endpoints[0];
+  
+  // Tăng số lần gọi
+  endpoint.callCount++;
+  
+  console.log(`Đã chọn endpoint ${endpoint.name} cho ${blockchain} (đã gọi ${endpoint.callCount} lần)`);
+  
+  return endpoint;
+}
 
 /**
  * Lấy API key tiếp theo từ danh sách rotation
@@ -143,119 +351,184 @@ export function getNextApiKey(provider: string): string {
   }
   
   // Khởi tạo index nếu chưa tồn tại
-  if (currentIndexMap[provider] === undefined) {
-    currentIndexMap[provider] = 0;
+  if (apiKeyIndices[provider] === undefined) {
+    apiKeyIndices[provider] = 0;
   } else {
     // Tăng index và reset nếu vượt quá array length
-    currentIndexMap[provider] = (currentIndexMap[provider] + 1) % apiKeys[provider].length;
+    apiKeyIndices[provider] = (apiKeyIndices[provider] + 1) % apiKeys[provider].length;
   }
   
-  return apiKeys[provider][currentIndexMap[provider]];
+  return apiKeys[provider][apiKeyIndices[provider]];
 }
 
 /**
- * Lấy API key cho blockchain và provider tương ứng
+ * Lấy API key cho endpoint và provider tương ứng
  * @param blockchain Loại blockchain
- * @param provider Nhà cung cấp API (tùy chọn)
- * @returns API key
+ * @param endpoint API endpoint cần key
+ * @returns API key hoặc rỗng nếu không cần key
  */
-export function getApiKey(blockchain: BlockchainType, provider?: string): string {
-  switch (blockchain) {
-    case 'BTC':
-      return provider === 'getblock' 
-        ? getNextApiKey('BTC_GETBLOCK')
-        : getNextApiKey('BTC_BLOCKCYPHER');
-      
-    case 'ETH':
-      return getNextApiKey('ETH_ETHERSCAN');
-      
-    case 'BSC':
-      return getNextApiKey('BSC_BSCSCAN');
-      
-    case 'SOL':
-      return getNextApiKey('SOL_HELIUS');
-      
-    case 'DOGE':
-      // Thử với API chính DOGE không còn hoạt động, sử dụng API công khai
-      try {
-        return getNextApiKey('DOGE_CRYPTOAPIS');
-      } catch (error) {
-        // Fallback: không cần API key cho Blockchair hoặc SoChain
-        return '';
+export function getApiKey(blockchain: BlockchainType, endpointName?: string): string {
+  if (!endpointName) {
+    // Lấy endpoint tiếp theo theo chiến lược xoay vòng
+    const endpoint = getNextEndpoint(blockchain);
+    endpointName = endpoint.name;
+  }
+  
+  // Xác định provider dựa trên tên endpoint
+  let provider: string | undefined;
+  
+  switch (endpointName) {
+    case 'BlockCypher':
+      provider = 'BTC_BLOCKCYPHER';
+      break;
+    case 'GetBlock':
+      provider = 'BTC_GETBLOCK';
+      break;
+    case 'Etherscan':
+      provider = 'ETH_ETHERSCAN';
+      break;
+    case 'BSCScan':
+      provider = 'BSC_BSCSCAN';
+      break;
+    case 'Helius':
+      provider = 'SOL_HELIUS';
+      break;
+    case 'CryptoAPIs':
+      provider = 'DOGE_CRYPTOAPIS';
+      break;
+    default:
+      // Endpoint công khai không cần API key
+      return '';
+  }
+  
+  return getNextApiKey(provider);
+}
+
+/**
+ * Chuẩn bị URL và headers cho API request
+ * @param blockchain Loại blockchain
+ * @param address Địa chỉ ví
+ * @returns {url, headers, method, body} cho API request
+ */
+export function prepareApiRequest(blockchain: BlockchainType, address: string): { 
+  url: string, 
+  headers: Record<string, string>,
+  method: string,
+  body?: string 
+} {
+  // Lấy endpoint tiếp theo theo chiến lược xoay vòng
+  const endpoint = getNextEndpoint(blockchain);
+  
+  let apiKey = '';
+  if (endpoint.needsApiKey) {
+    // Xác định provider từ tên endpoint
+    apiKey = getApiKey(blockchain, endpoint.name);
+  }
+  
+  // Chuẩn bị URL
+  const url = endpoint.formatUrl 
+    ? endpoint.formatUrl(address, apiKey) 
+    : endpoint.url;
+  
+  // Chuẩn bị headers
+  const headers = endpoint.formatHeaders 
+    ? endpoint.formatHeaders(apiKey) 
+    : endpoint.headers || { 'Content-Type': 'application/json' };
+  
+  // Chuẩn bị body nếu cần
+  const body = endpoint.formatBody 
+    ? endpoint.formatBody(address, apiKey) 
+    : undefined;
+  
+  return { 
+    url, 
+    headers, 
+    method: endpoint.method || 'GET',
+    body
+  };
+}
+
+/**
+ * Lấy tất cả các cấu hình API cho blockchain
+ * @param blockchain Loại blockchain
+ * @param address Địa chỉ ví
+ * @returns Mảng các cấu hình API
+ */
+export function getAllApiConfigs(blockchain: BlockchainType, address: string): Array<{
+  name: string;
+  url: string;
+  headers: Record<string, string>;
+  method: string;
+  body?: string;
+}> {
+  const endpoints = blockchainEndpoints[blockchain];
+  
+  return endpoints.map(endpoint => {
+    let apiKey = '';
+    if (endpoint.needsApiKey) {
+      // Nếu endpoint yêu cầu API key, lấy key tiếp theo
+      switch (endpoint.name) {
+        case 'BlockCypher':
+          apiKey = getNextApiKey('BTC_BLOCKCYPHER');
+          break;
+        case 'GetBlock':
+          apiKey = getNextApiKey('BTC_GETBLOCK');
+          break;
+        case 'Etherscan':
+          apiKey = getNextApiKey('ETH_ETHERSCAN');
+          break;
+        case 'BSCScan':
+          apiKey = getNextApiKey('BSC_BSCSCAN');
+          break;
+        case 'Helius':
+          apiKey = getNextApiKey('SOL_HELIUS');
+          break;
+        case 'CryptoAPIs':
+          apiKey = getNextApiKey('DOGE_CRYPTOAPIS');
+          break;
       }
-      
-    default:
-      throw new Error(`Không hỗ trợ blockchain: ${blockchain}`);
-  }
+    }
+    
+    // Chuẩn bị URL
+    const url = endpoint.formatUrl 
+      ? endpoint.formatUrl(address, apiKey) 
+      : endpoint.url;
+    
+    // Chuẩn bị headers
+    const headers = endpoint.formatHeaders 
+      ? endpoint.formatHeaders(apiKey) 
+      : endpoint.headers || { 'Content-Type': 'application/json' };
+    
+    // Chuẩn bị body nếu cần
+    const body = endpoint.formatBody 
+      ? endpoint.formatBody(address, apiKey) 
+      : undefined;
+    
+    // Tăng số lần gọi khi tạo cấu hình
+    endpoint.callCount++;
+    
+    return {
+      name: endpoint.name,
+      url,
+      headers,
+      method: endpoint.method || 'GET',
+      body: body ? JSON.stringify(body) : undefined
+    };
+  });
 }
 
 /**
- * Kiểm tra API key có tồn tại cho blockchain và provider
+ * Lấy các config API để sử dụng trong API request
  * @param blockchain Loại blockchain
- * @param provider Provider (tùy chọn)
- * @returns boolean
+ * @param address Địa chỉ ví
+ * @returns Mảng các cấu hình API
  */
-export function hasApiKey(blockchain: BlockchainType, provider?: string): boolean {
-  try {
-    getApiKey(blockchain, provider);
-    return true;
-  } catch (error) {
-    return false;
-  }
-}
-
-/**
- * Lấy endpoint URL cho blockchain tương ứng
- * @param blockchain Loại blockchain
- * @param address Địa chỉ ví (tùy chọn)
- * @returns URL endpoint
- */
-export function getApiEndpoint(blockchain: BlockchainType, address?: string): string {
-  switch (blockchain) {
-    case 'BTC':
-      // Có nhiều lựa chọn API: 
-      // 1. BlockCypher (không yêu cầu API key trong URL)
-      // 2. GetBlock.io/Blockbook (API key là một phần của path, không phải query parameter)
-      //    Format: https://go.getblock.io/{APIKEY}/api/v2/address/{BTC_ADDRESS}?details=basic
-      return `https://api.blockcypher.com/v1/btc/main/addrs/${address}/balance`;
-      
-    case 'ETH':
-      return `https://api.etherscan.io/api?module=account&action=balance&address=${address}&tag=latest&apikey=${getApiKey(blockchain)}`;
-      
-    case 'BSC':
-      return `https://api.bscscan.com/api?module=account&action=balance&address=${address}&tag=latest&apikey=${getApiKey(blockchain)}`;
-      
-    case 'SOL':
-      return `https://api.helius.xyz/v0/addresses/${address}/balances?api-key=${getApiKey(blockchain)}`;
-      
-    case 'DOGE':
-      return `https://rest.cryptoapis.io/blockchain-data/doge/mainnet/addresses/${address}/balance?context=yourExampleString`;
-      
-    default:
-      throw new Error(`Không hỗ trợ blockchain: ${blockchain}`);
-  }
-}
-
-/**
- * Lấy header cần thiết cho API request
- * @param blockchain Loại blockchain
- * @returns Record<string, string> Headers
- */
-export function getApiHeaders(blockchain: BlockchainType): Record<string, string> {
-  switch (blockchain) {
-    case 'DOGE':
-      return {
-        'Content-Type': 'application/json',
-        'X-API-Key': getApiKey(blockchain)
-      };
-      
-    case 'BTC':
-    case 'ETH':
-    case 'BSC':
-    case 'SOL':
-    default:
-      return {
-        'Content-Type': 'application/json'
-      };
-  }
+export function getApiConfigs(blockchain: BlockchainType, address: string): Array<{
+  name: string;
+  url: string;
+  headers: Record<string, string>;
+  method: string;
+  body?: string;
+}> {
+  return getAllApiConfigs(blockchain, address);
 }

@@ -2,7 +2,8 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import * as addressGenerator from "./blockchain/address-generator";
-import { checkBalance, getCachedBalance, setCachedBalance } from "./blockchain/api";
+import { getCachedBalance, setCachedBalance } from "./blockchain/api";
+import { checkBalanceWithSmartRotation as checkBalance } from "./blockchain/api-smart-rotation";
 import { BlockchainType, blockchainSchema, seedPhraseSchema, wallets, BalanceCheckResult, WalletAddress } from "@shared/schema";
 import { z } from "zod";
 
