@@ -337,15 +337,56 @@ const getDOGEBalance = async (address: string): Promise<BalanceResponse> => {
       return { success: true, balance: (balanceDoge / 100000000).toString() };
     }
     
-    // Nếu Blockchair thất bại, thử với DogeChain.info.xyz (API công khai thay thế)
+    // Thử với CryptoAPIs.io (cần API key)
     console.log(`Blockchair failed, trying alternative API for ${address}`);
+    const apiKey = getApiKey('DOGE', 'cryptoapis');
+    const cryptoApisUrl = `https://rest.cryptoapis.io/addresses-latest/utxo/dogecoin/mainnet/${address}/balance`;
+    
+    const cryptoApisResponse = await fetch(cryptoApisUrl, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey
+      }
+    });
+    
+    const cryptoApisData = await cryptoApisResponse.json() as any;
+    
+    if (cryptoApisData && cryptoApisData.data && cryptoApisData.data.item && cryptoApisData.data.item.confirmedBalance) {
+      console.log(`CryptoAPIs.io balance for ${address}:`, cryptoApisData.data.item);
+      const balanceAmount = cryptoApisData.data.item.confirmedBalance.amount;
+      const balanceUnit = cryptoApisData.data.item.confirmedBalance.unit; // Thường là 'DOGE'
+      return { success: true, balance: balanceAmount.toString() };
+    }
+    
+    // Nếu CryptoAPIs.io thất bại, thử với SoChain
+    console.log(`CryptoAPIs.io failed, trying SoChain for ${address}`);
     const altUrl = `https://sochain.com/api/v2/get_address_balance/DOGE/${address}`;
     
-    const altResponse = await fetch(altUrl);
-    const altData = await altResponse.json() as any;
+    try {
+      const altResponse = await fetch(altUrl);
+      const altData = await altResponse.json() as any;
+      
+      if (altData && altData.status === 'success' && altData.data && altData.data.confirmed_balance) {
+        return { success: true, balance: altData.data.confirmed_balance.toString() };
+      }
+    } catch (error) {
+      console.log(`SoChain API failed: ${error.message}`);
+    }
     
-    if (altData && altData.status === 'success' && altData.data && altData.data.confirmed_balance) {
-      return { success: true, balance: altData.data.confirmed_balance.toString() };
+    // Nếu SoChain thất bại, thử với BTC.com (họ hỗ trợ nhiều loại tiền điện tử)
+    console.log(`Trying alternative API (DogeChain) for ${address}`);
+    try {
+      const dogeChainUrl = `https://dogechain.info/api/v1/address/balance/${address}`;
+      const dogeChainResponse = await fetch(dogeChainUrl);
+      const dogeChainData = await dogeChainResponse.json() as any;
+      
+      if (dogeChainData && dogeChainData.success === 1 && dogeChainData.balance !== undefined) {
+        console.log(`DogeChain.info balance for ${address}: ${dogeChainData.balance}`);
+        return { success: true, balance: dogeChainData.balance.toString() };
+      }
+    } catch (error) {
+      console.log(`DogeChain.info API failed: ${error.message}`);
     }
     
     throw new Error('Failed to get DOGE balance from available APIs');
