@@ -433,25 +433,56 @@ export async function generateAddressesFromSeedPhrase(
   const walletAddresses: WalletAddress[] = [];
   
   try {
-    const promises = blockchains.map(async (blockchain) => {
-      switch (blockchain) {
-        case "BTC":
-          return await createBTCAddresses(seedPhrase, batchNumber);
-        case "ETH":
-          return await createETHAddresses(seedPhrase, "ETH", batchNumber);
-        case "BSC":
-          return await createETHAddresses(seedPhrase, "BSC", batchNumber);
-        case "SOL":
-          return await createSOLAddresses(seedPhrase, batchNumber);
-        case "DOGE":
-          return await createDOGEAddresses(seedPhrase, batchNumber);
-        default:
-          throw new Error(`Unsupported blockchain type: ${blockchain}`);
-      }
-    });
+    // Kiểm tra seed phrase trước khi xử lý
+    if (!seedPhrase || seedPhrase.trim() === '') {
+      console.error('Empty seed phrase provided');
+      return walletAddresses;
+    }
     
-    const results = await Promise.all(promises);
-    return results.filter(wallet => wallet.addresses.length > 0);
+    // Kiểm tra xem có blockchain nào được chọn không
+    if (!blockchains || blockchains.length === 0) {
+      console.error('No blockchains selected');
+      return walletAddresses;
+    }
+    
+    console.log(`Generating addresses for ${blockchains.join(', ')}`);
+    
+    // Xử lý từng blockchain một, với xử lý lỗi riêng biệt
+    for (const blockchain of blockchains) {
+      try {
+        let walletAddress: WalletAddress;
+        
+        switch (blockchain) {
+          case "BTC":
+            walletAddress = await createBTCAddresses(seedPhrase, batchNumber);
+            break;
+          case "ETH":
+            walletAddress = await createETHAddresses(seedPhrase, "ETH", batchNumber);
+            break;
+          case "BSC":
+            walletAddress = await createETHAddresses(seedPhrase, "BSC", batchNumber);
+            break;
+          case "SOL":
+            walletAddress = await createSOLAddresses(seedPhrase, batchNumber);
+            break;
+          case "DOGE":
+            walletAddress = await createDOGEAddresses(seedPhrase, batchNumber);
+            break;
+          default:
+            console.warn(`Unsupported blockchain type: ${blockchain}`);
+            continue;
+        }
+        
+        if (walletAddress && walletAddress.addresses.length > 0) {
+          walletAddresses.push(walletAddress);
+        }
+      } catch (err) {
+        console.error(`Error generating addresses for ${blockchain}:`, err);
+        // Tiếp tục với blockchain tiếp theo
+      }
+    }
+    
+    return walletAddresses;
   } catch (error) {
     console.error('Error generating addresses from seed phrase:', error);
     return walletAddresses;

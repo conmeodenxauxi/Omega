@@ -115,6 +115,13 @@ export function useWalletChecker({
       }
     } catch (error) {
       console.error('Error generating and checking seed phrase:', error);
+      // Hiển thị thông báo lỗi chi tiết hơn
+      if (error instanceof Error) {
+        console.error('Error details:', error.message);
+        console.error('Stack trace:', error.stack);
+      } else {
+        console.error('Unknown error type:', typeof error);
+      }
     }
     
     // Kiểm tra lại trạng thái sau khi hoàn thành tất cả xử lý (sử dụng ref)
