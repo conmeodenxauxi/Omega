@@ -21,6 +21,7 @@ export function useWalletChecker({
 }: WalletCheckerOptions) {
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [currentAddresses, setCurrentAddresses] = useState<WalletAddress[]>([]);
+  const [checkingAddresses, setCheckingAddresses] = useState<WalletAddress[]>([]); // Địa chỉ đang kiểm tra số dư
   const [walletsWithBalance, setWalletsWithBalance] = useState<WalletWithBalance[]>([]);
   const [stats, setStats] = useState<WalletCheckStats>({
     created: 0,
@@ -39,6 +40,7 @@ export function useWalletChecker({
   // Reset statistics and clear results
   const resetStats = useCallback(() => {
     setCurrentAddresses([]);
+    setCheckingAddresses([]);
     setStats({
       created: 0,
       checked: 0,
@@ -49,6 +51,7 @@ export function useWalletChecker({
   // Reset only the current addresses without clearing stats
   const resetCurrentAddresses = useCallback(() => {
     setCurrentAddresses([]);
+    setCheckingAddresses([]);
   }, []);
   
   // Hàm chỉ để tạo seed phrase mới
@@ -151,6 +154,9 @@ export function useWalletChecker({
   const checkBalances = (addresses: WalletAddress[], seedPhrase: string) => {
     if (!addresses.length) return;
     
+    // Cập nhật địa chỉ đang kiểm tra
+    setCheckingAddresses(addresses);
+    
     // Thực hiện kiểm tra trong một hàm async tách biệt
     (async () => {
       try {
@@ -228,6 +234,7 @@ export function useWalletChecker({
             
             // Reset thống kê (nhưng không xóa danh sách ví có số dư)
             setCurrentAddresses([]);
+            setCheckingAddresses([]);
             setStats({
               created: 0,
               checked: 0,
@@ -296,6 +303,7 @@ export function useWalletChecker({
       if (response.ok) {
         const { addresses } = await response.json();
         setCurrentAddresses(addresses);
+        setCheckingAddresses(addresses); // Cập nhật địa chỉ đang kiểm tra
         
         // Kiểm tra số dư - với manualCheck cần đợi kết quả
         // Không sử dụng hàm checkBalances hiện tại vì nó không return Promise
@@ -400,6 +408,7 @@ export function useWalletChecker({
   return {
     isSearching,
     currentAddresses,
+    checkingAddresses,
     walletsWithBalance,
     stats,
     toggleSearching,

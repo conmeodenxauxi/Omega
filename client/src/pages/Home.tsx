@@ -26,6 +26,7 @@ export default function Home() {
   const {
     isSearching,
     currentAddresses,
+    checkingAddresses,
     walletsWithBalance,
     stats,
     toggleSearching,
@@ -103,7 +104,7 @@ export default function Home() {
       {/* Address Display */}
       <div className="mb-6 p-4 bg-gray-100 rounded-md min-h-[400px] max-w-[600px] mx-auto border-2 border-gray-200">
         <h2 className="font-medium mb-2">Địa chỉ ví đang kiểm tra:</h2>
-        <AddressDisplay addresses={currentAddresses} />
+        <AddressDisplay addresses={checkingAddresses} />
       </div>
 
       {/* Manual Check */}
