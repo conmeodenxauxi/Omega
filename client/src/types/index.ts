@@ -1,5 +1,5 @@
-import { BlockchainType } from "@shared/schema";
-import { LucideIcon } from "lucide-react";
+import { BlockchainType } from '@shared/schema';
+import { LucideIcon } from 'lucide-react';
 
 /**
  * Địa chỉ ví trên một blockchain

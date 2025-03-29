@@ -1,10 +1,10 @@
-import { useState, useCallback, useEffect, useRef } from "react";
-import { BlockchainType } from "@shared/schema";
-import { generateSeedPhrase, validateSeedPhrase } from "@/lib/utils/seed";
-import { generateAddressesFromSeed, checkBalances } from "@/lib/utils/wallet";
-import { WalletAddress, WalletCheckStats, WalletWithBalance } from "@/types";
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { BlockchainType } from '@shared/schema';
+import { WalletAddress, WalletWithBalance, WalletCheckStats } from '@/types';
+import { createSeedPhrase } from '@/lib/utils/seedPhraseGenerator';
+import { getQueryFn, apiRequest } from '@/lib/queryClient';
 
-interface UseWalletCheckerProps {
+interface WalletCheckerOptions {
   selectedBlockchains: BlockchainType[];
   seedPhraseLength: (12 | 24)[];
   autoReset: boolean;
@@ -13,128 +13,219 @@ interface UseWalletCheckerProps {
 export function useWalletChecker({
   selectedBlockchains,
   seedPhraseLength,
-  autoReset,
-}: UseWalletCheckerProps) {
-  const [isSearching, setIsSearching] = useState(false);
+  autoReset
+}: WalletCheckerOptions) {
+  const [isSearching, setIsSearching] = useState<boolean>(false);
   const [currentAddresses, setCurrentAddresses] = useState<WalletAddress[]>([]);
   const [walletsWithBalance, setWalletsWithBalance] = useState<WalletWithBalance[]>([]);
   const [stats, setStats] = useState<WalletCheckStats>({
     created: 0,
     checked: 0,
-    withBalance: 0,
+    withBalance: 0
   });
-  const searchIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
+  
+  const currentSeedPhrase = useRef<string>('');
+  const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Reset statistics and clear results
   const resetStats = useCallback(() => {
+    setCurrentAddresses([]);
     setStats({
       created: 0,
       checked: 0,
-      withBalance: 0,
+      withBalance: 0
     });
+  }, []);
+  
+  // Reset only the current addresses without clearing stats
+  const resetCurrentAddresses = useCallback(() => {
     setCurrentAddresses([]);
   }, []);
-
-  const stopSearching = useCallback(() => {
-    if (searchIntervalRef.current) {
-      clearInterval(searchIntervalRef.current);
-      searchIntervalRef.current = null;
-    }
-    setIsSearching(false);
-  }, []);
-
-  const checkSeedPhrase = useCallback(async (seedPhrase: string) => {
-    if (!validateSeedPhrase(seedPhrase)) {
-      return false;
-    }
-
+  
+  // Generate a new seed phrase and check balances
+  const generateAndCheck = useCallback(async () => {
+    if (!isSearching || selectedBlockchains.length === 0) return;
+    
     try {
-      // Generate addresses for the provided seed phrase
-      const addresses = await generateAddressesFromSeed(
-        seedPhrase,
-        selectedBlockchains
-      );
+      // Choose random from selected seed phrase lengths
+      const randomIndex = Math.floor(Math.random() * seedPhraseLength.length);
+      const wordCount = seedPhraseLength[randomIndex];
       
-      setCurrentAddresses(addresses);
-      setStats(prev => ({
-        ...prev,
-        created: prev.created + 1,
-      }));
+      // Generate new seed phrase
+      const seedPhrase = createSeedPhrase(wordCount);
+      currentSeedPhrase.current = seedPhrase;
       
-      // Check balances for the generated addresses
-      const walletsWithBalanceResult = await checkBalances(addresses);
+      // Reset current addresses
+      resetCurrentAddresses();
       
-      setStats(prev => ({
-        ...prev,
-        checked: prev.checked + 1,
-      }));
+      // Generate addresses for selected blockchains
+      const response = await apiRequest('/api/generate-addresses', {
+        method: 'POST',
+        body: JSON.stringify({
+          seedPhrase,
+          blockchains: selectedBlockchains
+        })
+      });
       
-      // If we found wallets with balance, add them to our list
-      if (walletsWithBalanceResult.length > 0) {
-        setWalletsWithBalance(prev => [...prev, ...walletsWithBalanceResult]);
+      if (response.ok) {
+        const { addresses } = await response.json();
+        setCurrentAddresses(addresses);
+        
+        // Update stats
         setStats(prev => ({
           ...prev,
-          withBalance: prev.withBalance + walletsWithBalanceResult.length,
+          created: prev.created + 1
         }));
         
-        // If auto-reset is enabled, reset stats when we find a wallet with balance
-        if (autoReset) {
-          resetStats();
-        }
-        
-        return true;
+        // Check balances of generated addresses
+        await checkBalances(addresses, seedPhrase);
       }
-      
-      return false;
     } catch (error) {
-      console.error("Error checking seed phrase:", error);
-      return false;
+      console.error('Error generating and checking seed phrase:', error);
     }
-  }, [selectedBlockchains, autoReset, resetStats]);
-
-  const startSearching = useCallback(() => {
-    setIsSearching(true);
     
-    // Start the search interval
-    searchIntervalRef.current = setInterval(() => {
-      // Randomly pick between 12 and 24 words based on user preference
-      const wordCount = seedPhraseLength[Math.floor(Math.random() * seedPhraseLength.length)];
-      const newSeedPhrase = generateSeedPhrase(wordCount);
-      
-      checkSeedPhrase(newSeedPhrase);
-    }, 1000); // 1 second interval for demo, adjust as needed
-  }, [seedPhraseLength, checkSeedPhrase]);
-
-  const toggleSearching = useCallback(() => {
+    // Schedule next check if still searching
     if (isSearching) {
-      stopSearching();
-    } else {
-      startSearching();
+      searchTimerRef.current = setTimeout(generateAndCheck, 2000);
     }
-  }, [isSearching, startSearching, stopSearching]);
-
+  }, [isSearching, selectedBlockchains, seedPhraseLength, resetCurrentAddresses]);
+  
+  // Check balances of addresses
+  const checkBalances = async (addresses: WalletAddress[], seedPhrase: string) => {
+    if (!addresses.length) return;
+    
+    try {
+      // Chuẩn bị dữ liệu gửi đi
+      const allAddresses = addresses.flatMap(walletAddress => 
+        walletAddress.addresses.map(address => ({
+          blockchain: walletAddress.blockchain,
+          address
+        }))
+      );
+      
+      // Gửi yêu cầu kiểm tra số dư
+      const response = await apiRequest('/api/check-balances', {
+        method: 'POST',
+        body: JSON.stringify({ addresses: allAddresses })
+      });
+      
+      if (response.ok) {
+        const { results } = await response.json();
+        
+        // Cập nhật số lượng địa chỉ đã kiểm tra
+        setStats(prev => ({
+          ...prev,
+          checked: prev.checked + allAddresses.length
+        }));
+        
+        // Lọc các địa chỉ có số dư
+        const addressesWithBalance = results.filter((result: any) => result.hasBalance);
+        
+        if (addressesWithBalance.length > 0) {
+          // Thêm vào danh sách ví có số dư
+          const newWallets = addressesWithBalance.map((result: any) => ({
+            blockchain: result.blockchain,
+            address: result.address,
+            balance: result.balance,
+            seedPhrase
+          }));
+          
+          setWalletsWithBalance(prev => [...prev, ...newWallets]);
+          
+          // Cập nhật số lượng ví có số dư
+          setStats(prev => ({
+            ...prev,
+            withBalance: prev.withBalance + newWallets.length
+          }));
+          
+          // Nếu chế độ tự động reset, reset lại thống kê
+          if (autoReset) {
+            resetStats();
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error checking balances:', error);
+    }
+  };
+  
+  // Bắt đầu hoặc dừng quá trình tìm kiếm
+  const toggleSearching = useCallback(() => {
+    setIsSearching(prev => !prev);
+  }, []);
+  
+  // Kiểm tra thủ công một seed phrase
   const manualCheck = useCallback(async (seedPhrase: string) => {
-    if (!validateSeedPhrase(seedPhrase)) {
-      return { success: false, message: "Invalid seed phrase" };
+    try {
+      // Nếu đang tìm kiếm tự động, không cho phép kiểm tra thủ công
+      if (isSearching) {
+        return {
+          success: false,
+          message: 'Vui lòng dừng tìm kiếm tự động trước khi kiểm tra thủ công'
+        };
+      }
+      
+      // Lưu seed phrase hiện tại
+      currentSeedPhrase.current = seedPhrase;
+      
+      // Reset địa chỉ hiện tại
+      resetCurrentAddresses();
+      
+      // Tạo địa chỉ từ seed phrase
+      const response = await apiRequest('/api/generate-addresses', {
+        method: 'POST',
+        body: JSON.stringify({
+          seedPhrase,
+          blockchains: selectedBlockchains
+        })
+      });
+      
+      if (response.ok) {
+        const { addresses } = await response.json();
+        setCurrentAddresses(addresses);
+        
+        // Kiểm tra số dư
+        await checkBalances(addresses, seedPhrase);
+        
+        return {
+          success: true,
+          message: 'Kiểm tra thành công'
+        };
+      } else {
+        return {
+          success: false,
+          message: 'Lỗi khi tạo địa chỉ từ seed phrase'
+        };
+      }
+    } catch (error) {
+      console.error('Error in manual check:', error);
+      return {
+        success: false,
+        message: 'Có lỗi xảy ra khi kiểm tra'
+      };
+    }
+  }, [isSearching, selectedBlockchains, resetCurrentAddresses]);
+  
+  // Effect để bắt đầu hoặc dừng quá trình tìm kiếm
+  useEffect(() => {
+    if (isSearching) {
+      generateAndCheck();
+    } else {
+      // Clear timer if stopping
+      if (searchTimerRef.current) {
+        clearTimeout(searchTimerRef.current);
+        searchTimerRef.current = null;
+      }
     }
     
-    const success = await checkSeedPhrase(seedPhrase);
-    return { 
-      success, 
-      message: success 
-        ? "Tìm thấy ví có số dư" 
-        : "Không tìm thấy ví nào có số dư" 
-    };
-  }, [checkSeedPhrase]);
-
-  // Clean up interval on unmount
-  useEffect(() => {
+    // Cleanup on unmount
     return () => {
-      if (searchIntervalRef.current) {
-        clearInterval(searchIntervalRef.current);
+      if (searchTimerRef.current) {
+        clearTimeout(searchTimerRef.current);
       }
     };
-  }, []);
-
+  }, [isSearching, generateAndCheck]);
+  
   return {
     isSearching,
     currentAddresses,
@@ -143,5 +234,6 @@ export function useWalletChecker({
     toggleSearching,
     resetStats,
     manualCheck,
+    currentSeedPhrase: currentSeedPhrase.current
   };
 }

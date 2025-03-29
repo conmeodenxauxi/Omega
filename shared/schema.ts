@@ -66,6 +66,7 @@ export interface BalanceCheckResult {
   address: string;
   balance: string;
   hasBalance: boolean;
+  blockchain: BlockchainType;
 }
 
 // Định nghĩa kiểu dữ liệu cho ví có số dư

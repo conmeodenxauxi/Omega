@@ -4,16 +4,15 @@ import { ethers } from 'ethers';
 import { BIP32Factory } from 'bip32';
 import * as ecc from 'tiny-secp256k1';
 import * as nacl from 'tweetnacl';
-import * as bs58 from 'bs58';
+import bs58 from 'bs58';
 import * as ed25519HdKey from "ed25519-hd-key";
 import { WalletAddress, BlockchainType } from "@shared/schema";
 
-// Chỉnh sửa để phù hợp với kiểu dữ liệu
-// @ts-ignore 
-bs58.encode = (data: Buffer | Uint8Array): string => {
+// Hàm helper encode/decode bs58
+function bs58Encode(data: Buffer | Uint8Array): string {
   const buffer = Buffer.isBuffer(data) ? data : Buffer.from(data);
-  return require('bs58').encode(buffer);
-};
+  return bs58.default.encode(buffer);
+}
 
 // Đơn giản hóa để giảm lỗi kiểu dữ liệu
 const createSolanaKeypair = (seedBytes: Buffer, index: number) => {
@@ -219,8 +218,7 @@ export async function createSOLAddress(seedPhrase: string, index = 0): Promise<s
     const keypair = createSolanaKeypair(seed, index);
     
     // Chuyển đổi public key thành chuỗi base58
-    // @ts-ignore: Bỏ qua lỗi kiểu dữ liệu
-    const address = bs58.encode(Buffer.from(keypair.publicKey));
+    const address = bs58Encode(Buffer.from(keypair.publicKey));
     
     return address;
   } catch (error) {

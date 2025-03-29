@@ -32,7 +32,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         blockchains
       );
 
-      return res.json(addresses);
+      return res.json({ addresses });
     } catch (error) {
       console.error("Error generating addresses:", error);
       return res.status(500).json({
@@ -50,11 +50,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         addresses: z.array(
           z.object({
             blockchain: blockchainSchema,
-            batchNumber: z.number(),
-            addresses: z.array(z.string()),
-            type: z.string().optional(),
+            address: z.string(),
           })
         ),
+        seedPhrase: z.string().optional(),
       });
 
       const validationResult = schema.safeParse(req.body);
@@ -65,52 +64,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const { addresses } = validationResult.data;
-      const walletsWithBalance = [];
+      const { addresses, seedPhrase } = validationResult.data;
+      const results: BalanceCheckResult[] = [];
 
       // Check balances for all addresses
-      for (const addressGroup of addresses) {
-        const { blockchain, addresses: addressList } = addressGroup;
+      for (const addressData of addresses) {
+        const { blockchain, address } = addressData;
 
-        for (const address of addressList) {
+        try {
           // Check if we already have a cached balance
           const cachedBalance = getCachedBalance(blockchain, address);
           
-          if (cachedBalance) {
-            // If balance > 0, add to result
-            if (parseFloat(cachedBalance) > 0) {
-              walletsWithBalance.push({
-                blockchain,
-                address,
-                balance: cachedBalance,
-                seedPhrase: req.body.seedPhrase || "Unknown",
-              });
-            }
-            continue;
+          let balance;
+          if (cachedBalance !== null) {
+            balance = cachedBalance;
+          } else {
+            // Check balance from APIs
+            balance = await checkBalance(blockchain, address);
+            // Cache the result
+            setCachedBalance(blockchain, address, balance);
           }
 
-          // Check balance from APIs
-          const balance = await checkBalance(blockchain, address);
+          const hasBalance = parseFloat(balance) > 0;
+          results.push({
+            address,
+            balance,
+            hasBalance,
+            blockchain
+          });
 
-          // Cache the result
-          setCachedBalance(blockchain, address, balance);
-
-          // If balance > 0, add to result
-          if (parseFloat(balance) > 0) {
-            walletsWithBalance.push({
-              blockchain,
-              address,
-              balance,
-              seedPhrase: req.body.seedPhrase || "Unknown",
-            });
-            
-            // Save to database if we have a balance > 0
+          // If balance > 0 and we have a seed phrase, save to database
+          if (hasBalance && seedPhrase) {
             try {
               await storage.createWallet({
                 blockchain,
                 address,
                 balance,
-                seedPhrase: req.body.seedPhrase || "Unknown",
+                seedPhrase: seedPhrase,
                 path: "",
                 metadata: {},
               });
@@ -119,10 +109,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
               // Continue even if DB save fails
             }
           }
+        } catch (error) {
+          console.error(`Error checking balance for ${blockchain} address ${address}:`, error);
+          results.push({
+            address,
+            balance: "0",
+            hasBalance: false,
+            blockchain
+          });
         }
       }
 
-      return res.json(walletsWithBalance);
+      return res.json({ results });
     } catch (error) {
       console.error("Error checking balances:", error);
       return res.status(500).json({
@@ -136,7 +134,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/wallets-with-balance", async (req: Request, res: Response) => {
     try {
       const walletsWithBalance = await storage.getWalletsWithBalance();
-      return res.json(walletsWithBalance);
+      return res.json({ wallets: walletsWithBalance });
     } catch (error) {
       console.error("Error fetching wallets:", error);
       return res.status(500).json({
