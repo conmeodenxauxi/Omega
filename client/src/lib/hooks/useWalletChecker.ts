@@ -60,7 +60,7 @@ export function useWalletChecker({
       const wordCount = seedPhraseLength[randomIndex];
       
       // Generate new seed phrase
-      const seedPhrase = generateSeedPhrase(wordCount);
+      const seedPhrase = await generateSeedPhrase(wordCount);
       currentSeedPhrase.current = seedPhrase;
       
       // Reset current addresses

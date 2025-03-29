@@ -2,12 +2,23 @@
 // We'll implement this on the frontend so we can generate seed phrases client-side
 // Import Buffer polyfill first to avoid "Buffer is not defined" error
 import '@/lib/polyfill/buffer';
-import * as bip39 from 'bip39';
+
+// Lazy loading của bip39 để cải thiện thời gian khởi động
+let bip39Module: typeof import('bip39') | null = null;
+
+// Hàm helper để load bip39 module khi cần
+async function getBip39() {
+  if (!bip39Module) {
+    bip39Module = await import('bip39');
+  }
+  return bip39Module;
+}
 
 /**
  * Generate a random mnemonic seed phrase with the specified word count
  */
-export function generateSeedPhrase(wordCount: 12 | 24): string {
+export async function generateSeedPhrase(wordCount: 12 | 24): Promise<string> {
+  const bip39 = await getBip39();
   const strength = wordCount === 24 ? 256 : 128;
   return bip39.generateMnemonic(strength);
 }
@@ -15,14 +26,16 @@ export function generateSeedPhrase(wordCount: 12 | 24): string {
 /**
  * Validate a mnemonic seed phrase
  */
-export function validateSeedPhrase(mnemonic: string): boolean {
+export async function validateSeedPhrase(mnemonic: string): Promise<boolean> {
+  const bip39 = await getBip39();
   return bip39.validateMnemonic(mnemonic);
 }
 
 /**
  * Get seed buffer from mnemonic for wallet derivation
  */
-export function mnemonicToSeed(mnemonic: string): Promise<Buffer> {
+export async function mnemonicToSeed(mnemonic: string): Promise<Buffer> {
+  const bip39 = await getBip39();
   return bip39.mnemonicToSeed(mnemonic);
 }
 
