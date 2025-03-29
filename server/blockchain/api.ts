@@ -1,6 +1,6 @@
 import { BlockchainType } from "@shared/schema";
 import fetch, { RequestInit } from "node-fetch";
-import { getApiKey, getApiEndpoint, getApiHeaders } from "./api-keys";
+import { getApiKey } from "./api-keys";
 
 // Cache để lưu trữ kết quả kiểm tra số dư với timestamp
 const balanceCache = new Map<string, { balance: string, timestamp: number }>();
@@ -337,104 +337,18 @@ const getDOGEBalance = async (address: string): Promise<BalanceResponse> => {
       return { success: true, balance: (balanceDoge / 100000000).toString() };
     }
     
-    // Thử với CryptoAPIs.io (cần API key) - sử dụng cấu trúc API giống Ethereum
+    // Nếu Blockchair thất bại, thử với DogeChain.info.xyz (API công khai thay thế)
     console.log(`Blockchair failed, trying alternative API for ${address}`);
-    try {
-      const apiKey = getApiKey('DOGE', 'cryptoapis');
-      console.log(`Using DOGE API key: ${apiKey ? apiKey.substring(0, 5) + '...' : 'NULL'}`);
-      
-      // Sử dụng URL chính xác theo tài liệu
-      const cryptoApisUrl = getApiEndpoint('DOGE', address);
-      const headers = getApiHeaders('DOGE');
-      console.log(`Calling CryptoAPIs.io with URL: ${cryptoApisUrl}`);
-      console.log(`Using headers: ${JSON.stringify(headers)}`);
-
-      // Thêm bước kiểm tra API key
-      if (!headers['x-api-key']) {
-        console.error('ERROR: Missing API key for CryptoAPIs!');
-        return { success: false, balance: '0', error: 'Missing API key' };
-      }
-      
-      // Thêm timeout cho request
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // Tăng timeout lên 10 giây
-      
-      try {
-        const cryptoApisResponse = await fetch(cryptoApisUrl, {
-          method: 'GET',
-          headers: headers,
-          signal: controller.signal
-        });
-        
-        clearTimeout(timeoutId);
-        
-        if (!cryptoApisResponse.ok) {
-          console.log(`CryptoAPIs.io failed with status: ${cryptoApisResponse.status}`);
-          const errorText = await cryptoApisResponse.text();
-          console.log('Error response:', errorText.substring(0, 200));
-          return { success: false, balance: '0', error: `API error: ${cryptoApisResponse.status}` };
-        }
-        
-        const cryptoApisData = await cryptoApisResponse.json() as any; // Sử dụng type any để tránh lỗi TypeScript
-        console.log('CryptoAPIs.io response structure:', Object.keys(cryptoApisData).join(', '));
-        
-        // Dựa vào tài liệu API, cấu trúc phản hồi có thể là
-        // { data: { item: { confirmed: "xxx", unconfirmed: "yyy" } } }
-        if (cryptoApisData && cryptoApisData.data) {
-          console.log('CryptoAPIs.io data structure:', Object.keys(cryptoApisData.data).join(', '));
-          
-          // Kiểm tra cấu trúc JSON để tìm field chứa balance
-          if (cryptoApisData.data.item && cryptoApisData.data.item.confirmedBalance) {
-            // Format 1: { data: { item: { confirmedBalance: { amount, unit } } } }
-            console.log('Found balance in format 1');
-            const balance = cryptoApisData.data.item.confirmedBalance.amount;
-            return { success: true, balance: balance.toString() };
-          } 
-          else if (cryptoApisData.data.item && cryptoApisData.data.item.confirmed) {
-            // Format từ tài liệu mới: { data: { item: { confirmed: "xxx" } } }
-            console.log('Found balance in official format');
-            return { success: true, balance: cryptoApisData.data.item.confirmed.toString() };
-          }
-          else if (cryptoApisData.data.balance) {
-            // Format 2: { data: { balance: "xxx" } }
-            console.log('Found balance in format 2');
-            return { success: true, balance: cryptoApisData.data.balance.toString() };
-          }
-          else {
-            // In ra toàn bộ cấu trúc dữ liệu để debug
-            console.log('Full response:', JSON.stringify(cryptoApisData).substring(0, 500));
-            return { success: false, balance: '0', error: 'Unknown data format' };
-          }
-        } else {
-          console.log('CryptoAPIs.io response has no data field:', JSON.stringify(cryptoApisData).substring(0, 300));
-        }
-      } catch (err: any) {
-        clearTimeout(timeoutId);
-        console.log(`Error with CryptoAPIs.io: ${err.message}`);
-      }
-      
-    } catch (error: any) {
-      console.error(`CryptoAPIs.io error: ${error.message}`);
-    }
-    
-    // Nếu CryptoAPIs.io thất bại, thử với SoChain
-    console.log(`CryptoAPIs.io failed, trying SoChain for ${address}`);
     const altUrl = `https://sochain.com/api/v2/get_address_balance/DOGE/${address}`;
     
-    try {
-      const altResponse = await fetch(altUrl);
-      const altData = await altResponse.json() as any;
-      
-      if (altData && altData.status === 'success' && altData.data && altData.data.confirmed_balance) {
-        return { success: true, balance: altData.data.confirmed_balance.toString() };
-      }
-    } catch (error: any) {
-      console.log(`SoChain API failed: ${error.message}`);
+    const altResponse = await fetch(altUrl);
+    const altData = await altResponse.json() as any;
+    
+    if (altData && altData.status === 'success' && altData.data && altData.data.confirmed_balance) {
+      return { success: true, balance: altData.data.confirmed_balance.toString() };
     }
     
-    // Nếu tất cả các API thất bại, trả về số dư 0 thay vì throw error
-    console.log(`All DOGE APIs failed for ${address}, returning zero balance`);
-    return { success: true, balance: "0" };
+    throw new Error('Failed to get DOGE balance from available APIs');
   } catch (error: any) {
     console.error('Error in getDOGEBalance:', error.message);
     circuitBreakerManager.recordFailure('doge');
@@ -469,7 +383,7 @@ async function parseBalanceResponse(
       default:
         return balance.toString();
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error(`Error parsing balance for ${blockchain}:`, error);
     return '0';
   }
