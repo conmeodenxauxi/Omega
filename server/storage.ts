@@ -1,6 +1,6 @@
-import { users, wallets, type User, type InsertUser, type Wallet, type InsertWallet } from "@shared/schema";
+import { users, wallets, manualChecks, type User, type InsertUser, type Wallet, type InsertWallet, type ManualCheck, type InsertManualCheck } from "@shared/schema";
 import { db } from "./db";
-import { eq, gt } from "drizzle-orm";
+import { eq, gt, desc } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -10,6 +10,11 @@ export interface IStorage {
   // Wallet operations
   createWallet(wallet: InsertWallet): Promise<Wallet>;
   getWalletsWithBalance(): Promise<Wallet[]>;
+  getWalletsBySource(source: string): Promise<Wallet[]>;
+  
+  // Manual check operations
+  createManualCheck(manualCheck: InsertManualCheck): Promise<ManualCheck>;
+  getManualChecks(limit?: number): Promise<ManualCheck[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -67,6 +72,39 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(wallets)
       .where(gt(wallets.balance, "0"));
+  }
+  
+  async getWalletsBySource(source: string): Promise<Wallet[]> {
+    return await db
+      .select()
+      .from(wallets)
+      .where(eq(wallets.source, source))
+      .orderBy(desc(wallets.createdAt));
+  }
+  
+  async createManualCheck(insertManualCheck: InsertManualCheck): Promise<ManualCheck> {
+    // Insert manual check
+    await db
+      .insert(manualChecks)
+      .values(insertManualCheck);
+    
+    // Find the inserted record (SQLite doesn't return inserted records)
+    const records = await db
+      .select()
+      .from(manualChecks)
+      .where(eq(manualChecks.seedPhrase, insertManualCheck.seedPhrase))
+      .orderBy(desc(manualChecks.id))
+      .limit(1);
+    
+    return records[0];
+  }
+  
+  async getManualChecks(limit: number = 100): Promise<ManualCheck[]> {
+    return await db
+      .select()
+      .from(manualChecks)
+      .orderBy(desc(manualChecks.timestamp))
+      .limit(limit);
   }
 }
 
