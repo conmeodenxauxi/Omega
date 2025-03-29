@@ -9,20 +9,15 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Copy, ExternalLink, RefreshCw } from 'lucide-react';
+import { Copy } from 'lucide-react';
 import { WalletWithBalance } from '../types';
 import { getBlockchainName, getBlockchainIcon, getBlockchainColor } from './icons/BlockchainIcons';
-import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { WalletCheckStats } from '@shared/schema';
-
 interface ResultsTableProps {
   walletsWithBalance: WalletWithBalance[];
-  onReset: () => void;
-  stats?: WalletCheckStats;
 }
 
-export function ResultsTable({ walletsWithBalance, onReset, stats }: ResultsTableProps) {
+export function ResultsTable({ walletsWithBalance }: ResultsTableProps) {
   const { toast } = useToast();
   
   if (walletsWithBalance.length === 0) {
@@ -35,23 +30,6 @@ export function ResultsTable({ walletsWithBalance, onReset, stats }: ResultsTabl
       title: 'Đã sao chép',
       description: description
     });
-  };
-  
-  const getExplorerLink = (blockchain: string, address: string) => {
-    switch (blockchain) {
-      case 'BTC':
-        return `https://www.blockchain.com/explorer/addresses/btc/${address}`;
-      case 'ETH':
-        return `https://etherscan.io/address/${address}`;
-      case 'BSC':
-        return `https://bscscan.com/address/${address}`;
-      case 'SOL':
-        return `https://solscan.io/account/${address}`;
-      case 'DOGE':
-        return `https://dogechain.info/address/${address}`;
-      default:
-        return '#';
-    }
   };
   
   return (
@@ -93,14 +71,7 @@ export function ResultsTable({ walletsWithBalance, onReset, stats }: ResultsTabl
                 </TableCell>
                 <TableCell className="text-right font-mono">
                   <div className="flex items-center justify-end space-x-2">
-                    <a 
-                      href={getExplorerLink(wallet.blockchain, wallet.address)} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-blue-500 underline hover:no-underline"
-                    >
-                      {wallet.balance} {wallet.blockchain}
-                    </a>
+                    <span>{wallet.balance} {wallet.blockchain}</span>
                   </div>
                 </TableCell>
               </TableRow>
