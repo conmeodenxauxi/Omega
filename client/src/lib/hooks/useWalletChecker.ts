@@ -4,6 +4,10 @@ import { WalletAddress, WalletWithBalance, WalletCheckStats } from '@/types';
 import { generateSeedPhrase } from '@/lib/utils/seed';
 import { getQueryFn, apiRequest } from '@/lib/queryClient';
 
+// Cấu hình mặc định
+const DEFAULT_CHECK_INTERVAL = 500; // Tốc độ tạo seed mặc định (ms)
+const DEFAULT_BUFFER_SIZE = 10; // Giới hạn tạo seed = seeds checked + buffer
+
 interface WalletCheckerOptions {
   selectedBlockchains: BlockchainType[];
   seedPhraseLength: (12 | 24)[];
@@ -49,6 +53,25 @@ export function useWalletChecker({
     // Sử dụng giá trị từ ref thay vì closure value
     if (!isSearchingRef.current || selectedBlockchains.length === 0) {
       console.log("Không bắt đầu tìm kiếm: isSearchingRef =", isSearchingRef.current, ", selectedBlockchains =", selectedBlockchains.length);
+      return;
+    }
+    
+    // Kiểm tra giới hạn tạo seed: số lượng tạo ra = số lượng kiểm tra + buffer
+    if (stats.created > stats.checked + DEFAULT_BUFFER_SIZE) {
+      console.log(`Đã đạt giới hạn tạo seed (${stats.created} > ${stats.checked} + ${DEFAULT_BUFFER_SIZE}), đợi kiểm tra hoàn tất.`);
+      
+      // Đặt lịch kiểm tra lại sau khoảng thời gian mặc định
+      if (searchTimerRef.current) {
+        clearTimeout(searchTimerRef.current);
+      }
+      
+      searchTimerRef.current = setTimeout(() => {
+        console.log("Timer chờ kiểm tra số dư kích hoạt - kiểm tra lại trạng thái", isSearchingRef.current);
+        if (isSearchingRef.current) {
+          generateAndCheck();
+        }
+      }, DEFAULT_CHECK_INTERVAL);
+      
       return;
     }
     
@@ -126,7 +149,7 @@ export function useWalletChecker({
         } else {
           console.log("Timer kích hoạt nhưng đã dừng tìm kiếm");
         }
-      }, 2000);
+      }, DEFAULT_CHECK_INTERVAL);
     } else {
       console.log("Đã dừng tìm kiếm - không lên lịch tiếp theo");
     }
