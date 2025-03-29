@@ -36,7 +36,7 @@ export function AddressDisplay({ addresses }: AddressDisplayProps) {
               return (
                 <div 
                   key={`${blockchain}`}
-                  className="border rounded-md p-2 h-[120px]"
+                  className="border rounded-md p-2 h-[150px]"
                 >
                   <div className="flex items-center space-x-2 mb-1">
                     <Icon className={`h-4 w-4 ${colorClass}`} />
@@ -44,19 +44,19 @@ export function AddressDisplay({ addresses }: AddressDisplayProps) {
                     <span className="text-xs text-muted-foreground">(3 dạng)</span>
                   </div>
                   
-                  <div className="space-y-1">
+                  <div className="grid grid-rows-3 gap-1 h-[110px]">
                     {btcTypes.map((addressType, index) => {
                       const address = walletAddress?.addresses[index] || '';
                       
                       return (
                         <div 
                           key={`BTC-${addressType}`}
-                          className="flex items-center gap-2"
+                          className="flex items-center gap-2 h-[32px]"
                         >
-                          <div className="flex items-center min-w-[100px]">
+                          <div className="flex items-center min-w-[100px] w-[100px] shrink-0">
                             <span className="text-xs font-medium">{addressType}:</span>
                           </div>
-                          <div className="p-1 bg-muted rounded-md flex-1 overflow-hidden min-h-[28px] max-w-[250px]">
+                          <div className="p-1 bg-muted rounded-md flex-1 overflow-hidden h-[28px] w-[200px]">
                             {address ? (
                               <code className="text-xs font-mono w-full inline-block truncate">
                                 {address}
@@ -81,13 +81,13 @@ export function AddressDisplay({ addresses }: AddressDisplayProps) {
                 key={`${blockchain}`}
                 className="border rounded-md p-2 h-[45px]"
               >
-                <div className="flex items-center">
-                  <div className="flex items-center min-w-[100px] mr-2">
+                <div className="flex items-center h-[30px]">
+                  <div className="flex items-center min-w-[100px] w-[100px] shrink-0 mr-2">
                     <Icon className={`h-4 w-4 ${colorClass} mr-2`} />
                     <span className="font-medium">{blockchainName}</span>
                   </div>
                   
-                  <div className="p-1 bg-muted rounded-md flex-1 overflow-hidden min-h-[28px] max-w-[250px]">
+                  <div className="p-1 bg-muted rounded-md flex-1 overflow-hidden h-[28px] w-[200px]">
                     {walletAddress?.addresses[0] ? (
                       <code className="text-xs font-mono w-full inline-block truncate">
                         {walletAddress.addresses[0]}
