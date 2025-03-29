@@ -27,6 +27,9 @@ export function ControlPanel({
 }: ControlPanelProps) {
   return (
     <Card className="mb-4">
+      <CardHeader className="pb-0 py-2">
+        <CardTitle className="text-base font-medium">Kiểm tra tự động</CardTitle>
+      </CardHeader>
 
       <CardContent className="p-4">
         <div className="grid grid-cols-4 gap-2">
