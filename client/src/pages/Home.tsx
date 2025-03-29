@@ -58,7 +58,7 @@ export default function Home() {
     <div className="max-w-lg mx-auto p-4 min-h-screen">
       {/* Header */}
       <header className="mb-4 flex justify-between items-center">
-        <h1 className="text-xl font-bold">Tim Ví Web3 có Số Dư</h1>
+        <h1 className="text-xl font-bold">Ví web3 có số dư</h1>
         <div className="flex items-center">
           <Checkbox 
             id="auto-reset" 
