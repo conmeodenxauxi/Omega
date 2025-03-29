@@ -91,16 +91,7 @@ export function ResultsTable({ walletsWithBalance, onReset }: ResultsTableProps)
                   </div>
                 </TableCell>
                 <TableCell className="text-right font-mono">
-                  <div className="flex items-center justify-end space-x-2">
-                    <a 
-                      href={getExplorerLink(wallet.blockchain, wallet.address)} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-blue-500 underline hover:no-underline"
-                    >
-                      {wallet.balance} {wallet.blockchain}
-                    </a>
-                  </div>
+                  {wallet.balance} {wallet.blockchain}
                 </TableCell>
               </TableRow>
             );
