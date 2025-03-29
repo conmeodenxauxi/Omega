@@ -25,28 +25,33 @@ function fetchWithTimeout(url: string, options: any, timeout = TIMEOUT_MS) {
 
 // Các RPC public mới cho Dogecoin
 const newDogeEndpoints = [
-  // Nownodes.io BTC API được áp dụng cho DOGE (thử nghiệm)
+  // Nownodes API với endpoint chính xác
   {
-    name: 'Nownodes BTC for DOGE',
+    name: 'Nownodes DOGE Balance V2',
     type: 'private',
     url: '',
-    formatUrl: (address: string) => `https://btc.nownodes.io/api/v2/address/${address}?api_key=4eea1226-2f22-44af-9a91-5c61f2c82a9d`,
+    formatUrl: (address: string) => `https://doge.nownodes.io/v2/doge/balance/${address}`,
     method: 'GET',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 
+      'Content-Type': 'application/json',
+      'api-key': '4eea1226-2f22-44af-9a91-5c61f2c82a9d',
+      'accept': 'application/json'
+    },
     needsApiKey: true,
     callCount: 0
   },
   
-  // Nownodes.io API cho Dogecoin (cách khác)
+  // Thử nghiệm với URL khác từ Nownodes
   {
-    name: 'Nownodes Alt DOGE', 
+    name: 'Nownodes DOGE Info',
     type: 'private',
     url: '',
-    formatUrl: (address: string) => `https://api.nownodes.io/v1/doge/address/${address}`,
+    formatUrl: (address: string) => `https://doge.nownodes.io/v2/doge/address/${address}`,
     method: 'GET',
     headers: { 
       'Content-Type': 'application/json',
-      'api-key': '4eea1226-2f22-44af-9a91-5c61f2c82a9d'
+      'api-key': '4eea1226-2f22-44af-9a91-5c61f2c82a9d',
+      'accept': 'application/json'
     },
     needsApiKey: true,
     callCount: 0

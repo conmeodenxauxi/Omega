@@ -1,0 +1,112 @@
+/**
+ * API Keys cho việc tương tác với các blockchain khác nhau
+ * Sử dụng rotation pattern thông minh để tránh rate limit
+ */
+
+import { BlockchainType } from '@shared/schema';
+
+/**
+ * Đại diện cho một API endpoint và key cấu hình
+ */
+export interface ApiEndpoint {
+  name: string;
+  type: 'public' | 'private';
+  url: string;
+  headers?: Record<string, string>;
+  method?: string;
+  body?: any;
+  needsApiKey?: boolean;
+  requiresAuth?: boolean;
+  formatUrl?: (address: string, apiKey?: string) => string;
+  formatHeaders?: (apiKey?: string) => Record<string, string>;
+  formatBody?: (address: string, apiKey?: string) => any;
+  callCount: number;
+}
+
+/**
+ * Lưu trữ API keys theo blockchain và provider
+ */
+const apiKeys: Record<string, string[]> = {
+  // Bitcoin API keys
+  'BTC_BLOCKCYPHER': [
+    'bcb10430b01a484c88cd0dede458ab5c',
+    '11fe78d84a02463a98a5b031b74d42ce',
+    '40f6118885b14579a8a9b192e362b95f',
+    '20cfac708c3840aeaf1be8e8e979d309',
+    'f35a08e245d14504a8b8d291fa37586e',
+    '1d75a4d512044057b766ca70fe544492',
+    '40996bd34dd944788dd3bcff1e8d57b2',
+    '2da2cc4c71d94ca79b18bf98a8040612',
+    'ec575f3135e94d54b105de10c92109c0'
+  ],
+  
+  // Getblock.io keys for Bitcoin
+  'BTC_GETBLOCK': [
+    'ebbee62f37eb4c89b0acc200e831dcad',
+    '053fa1bf9c9643b09e912a0d06795fb7',
+    '6ac4cccd0b7047f0be735acbb6064d5f',
+    '0c7f9c191e62464b881018686e181494',
+    'c9ed0e0e38474b758aca48a07606be3f',
+    '4ce3dd86a29443fdacc7f09f0ff647ca',
+    'a2273958b2eb418fbcdd59fa660662a8',
+    '24d6f87cf4a24bf590214f369987430a',
+    '32b592a03ca2485cb132a65a30c4dd91',
+    'ad68799ec77f4c8eab47606b675711c3',
+    '2ec865b2ff584ed4b0694440d0b8da56',
+    '827fb2a6584343298d63cc88f9ff4c8f',
+    'baae205eee014a09b259d279a4675a2d',
+    '565dc71644c540198119e0182d3ecb69',
+    'e79207eb887d44139303b8de38301b3e',
+    'be0fdc9e04254a9fbd1dc2844cdeb208'
+  ],
+  
+  // Ethereum API Keys
+  'ETH_ETHERSCAN': [
+    '6HR4FUXUD5FH36DDKTK9TA3B5WKWR44YP7',
+    'HPMEDCEEEA7E6J88PG9M537WEQKG4KCCB5',
+    'K1M8UDC11K6S1V7VEQ935EJ7FEE4HPM2NU',
+    'IXJ5QWRMTS7PN6VWZBPYB5JU2NXF4E2VTN',
+    'VRQ3TVXNRCRRATUWSWIESHT4KGU2QR4GH4',
+    '2GQ4QNFWYIZZCESJ3D25DBDG7PYHQPGEW2',
+    'RNGF5FWH61KIVIESQHKKTA1NFUHRVPQCX6',
+    'XE1PPFNEFWF4QMRIF969ITHBXXSFPBRKDR'
+  ],
+  
+  // Binance Smart Chain API Keys
+  'BSC_BSCSCAN': [
+    'SC7YSPT8Y3MGPMCQSA4NRZ92UARVVWNQ1F',
+    'JM5N75SSNBA2XN88BUGVX6H3TSSZD49QF8',
+    'GM4IDJPDAXUYT9P29NUGIDW3HDW66GH98N',
+    'KUNAHVNV814NTCQSXS4DW5WX3CAWAAKGDC',
+    'C9IDICZE45MKSUE4IKGAKZ2RDIXUJGXB9P',
+    'T8FNJ8M7TCQ4AIRPPMS2GWZBBY96YCQRKT',
+    'BA3KWB3GSXJW3G33FC75RVE6C1HYY81JR7',
+    'KXTPQ38KJ4GEW4TEUVY36RZHPHRUKDVJJD'
+  ],
+  
+  // Solana API Keys (Helius)
+  'SOL_HELIUS': [
+    'f4b8bccc-ad42-4379-83aa-12037a668596',
+    '4634a127-8c86-4f9f-b293-f089744ca86e',
+    '6d5a7770-ef7a-4f6f-b24a-3b64a0ac6e24',
+    'a3e52c63-33f2-485e-a3e0-932fb1f085cd',
+    '12e936a0-b725-4266-8900-10b0a79f0dd4',
+    'f4cd2a56-6331-4932-9132-d952b5580eac',
+    '32025dc0-9eaa-40bc-b8c3-c9a8cf61aa27',
+    '0afb8bd5-9ae6-4fc3-ad24-6a5665eb3431',
+    '12282f04-2a6c-4c28-8c97-7015f6738d4a',
+    'fec6c5c0-e0e1-4e2b-9e6e-1045b43b57c3',
+    '105edf5f-5c01-414d-beb9-031f47031430',
+    'c5ebef03-3ad4-4db9-ae81-6e495e6b16fd',
+    '5a87ad8b-ed4b-4dac-ab1d-be7aed7fd46a',
+    'dc8d3765-7ba1-420f-bc4e-a3bbfd612491',
+    '85121755-53e0-42b2-b70e-efeee8bf9576',
+    'b3c82ea9-5a04-4688-9efc-e960b24b3e07',
+    'd4077d9b-8183-4708-90e7-6d64449dd09e',
+    '88a214e2-b5b9-45eb-803d-2f3c6ab5aa50',
+    '3bcac472-0eb9-4404-8d20-bb25ca9dadc8',
+    'c9fe92c4-6d56-4f0c-8c3f-99ccf9685d7c'
+  ],
+  
+  // Dogecoin API Keys (Cryptoapis.io)
+  'DOGE_CRYPTOAPIS': [
