@@ -27,16 +27,22 @@ const apiKeys: ApiKeyStore = {
   
   // Getblock.io keys for Bitcoin
   'BTC_GETBLOCK': [
-    '002d2daeb5cb4a4e85caeb38ed8ca486',
-    '0b12889cb8a34662a1b6ed05574a3550',
-    '1ec50b876ca1407388aa997abf3214f5',
-    '2d62a0c06120487fa5e9e7a970ef5383',
-    '1ce06538c6f041b498e31d3334f83f2c',
-    'e743c997f13141af864ac113fe8f4267',
-    'a0a7cf303bf14318b3bb76eca580ffd1',
-    'f9a2fedccfec4ef5a8d8b8e37a0bb8c2',
-    '50d8155d6d9646c0a409971096004ebd',
-    '9db16d06c0ec4040ba1034118adc4d2b'
+    'ebbee62f37eb4c89b0acc200e831dcad',
+    '053fa1bf9c9643b09e912a0d06795fb7',
+    '6ac4cccd0b7047f0be735acbb6064d5f',
+    '0c7f9c191e62464b881018686e181494',
+    'c9ed0e0e38474b758aca48a07606be3f',
+    '4ce3dd86a29443fdacc7f09f0ff647ca',
+    'a2273958b2eb418fbcdd59fa660662a8',
+    '24d6f87cf4a24bf590214f369987430a',
+    '32b592a03ca2485cb132a65a30c4dd91',
+    'ad68799ec77f4c8eab47606b675711c3',
+    '2ec865b2ff584ed4b0694440d0b8da56',
+    '827fb2a6584343298d63cc88f9ff4c8f',
+    'baae205eee014a09b259d279a4675a2d',
+    '565dc71644c540198119e0182d3ecb69',
+    'e79207eb887d44139303b8de38301b3e',
+    'be0fdc9e04254a9fbd1dc2844cdeb208'
   ],
   
   // Ethereum API Keys
@@ -170,7 +176,13 @@ export function getApiKey(blockchain: BlockchainType, provider?: string): string
       return getNextApiKey('SOL_HELIUS');
       
     case 'DOGE':
-      return getNextApiKey('DOGE_CRYPTOAPIS');
+      // Thử với API chính DOGE không còn hoạt động, sử dụng API công khai
+      try {
+        return getNextApiKey('DOGE_CRYPTOAPIS');
+      } catch (error) {
+        // Fallback: không cần API key cho Blockchair hoặc SoChain
+        return '';
+      }
       
     default:
       throw new Error(`Không hỗ trợ blockchain: ${blockchain}`);

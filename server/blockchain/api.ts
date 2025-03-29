@@ -1,5 +1,5 @@
 import { BlockchainType } from "@shared/schema";
-import fetch from "node-fetch";
+import fetch, { RequestInit } from "node-fetch";
 import { getApiKey } from "./api-keys";
 
 // Cache để lưu trữ kết quả kiểm tra số dư với timestamp
@@ -70,6 +70,8 @@ interface BalanceResponse {
 // API cho Bitcoin
 const getBTCBalance = async (address: string): Promise<BalanceResponse> => {
   try {
+    console.log(`Checking BTC balance for ${address} via multiple APIs`);
+    
     // Danh sách API để kiểm tra
     const apis = [
       // Blockchain.info
@@ -81,6 +83,7 @@ const getBTCBalance = async (address: string): Promise<BalanceResponse> => {
             const balanceSats = data[address].final_balance;
             // Chuyển đổi từ satoshi sang BTC (1 BTC = 100,000,000 satoshi)
             const balanceBTC = (balanceSats / 100000000).toFixed(8);
+            console.log(`Blockchain.info balance for ${address}: ${balanceBTC} BTC`);
             return { success: true, balance: balanceBTC };
           }
           throw new Error('Unexpected response from Blockchain.info');
@@ -96,6 +99,7 @@ const getBTCBalance = async (address: string): Promise<BalanceResponse> => {
             const spent = data.chain_stats.spent_txo_sum;
             const balanceSats = funded - spent;
             const balanceBTC = (balanceSats / 100000000).toFixed(8);
+            console.log(`Blockstream balance for ${address}: ${balanceBTC} BTC`);
             return { success: true, balance: balanceBTC };
           }
           throw new Error('Unexpected response from Blockstream');
@@ -111,9 +115,71 @@ const getBTCBalance = async (address: string): Promise<BalanceResponse> => {
             const spent = data.chain_stats.spent_txo_sum;
             const balanceSats = funded - spent;
             const balanceBTC = (balanceSats / 100000000).toFixed(8);
+            console.log(`Mempool balance for ${address}: ${balanceBTC} BTC`);
             return { success: true, balance: balanceBTC };
           }
           throw new Error('Unexpected response from Mempool');
+        }
+      },
+      // Blockchair API
+      {
+        url: `https://api.blockchair.com/bitcoin/dashboards/address/${address}`,
+        processResponse: async (res: any) => {
+          const data = await res.json() as any;
+          if (data && data.data && data.data[address] && data.data[address].address) {
+            const balanceSats = data.data[address].address.balance;
+            const balanceBTC = (balanceSats / 100000000).toFixed(8);
+            console.log(`Blockchair balance for ${address}: ${balanceBTC} BTC`);
+            return { success: true, balance: balanceBTC };
+          }
+          throw new Error('Unexpected response from Blockchair');
+        }
+      },
+      // GetBlock.io API - Blockbook (REST)
+      {
+        url: `https://btc.getblock.io/mainnet/api/v2/address/${address}`,
+        headers: {
+          'x-api-key': getApiKey('BTC', 'getblock'),
+          'Content-Type': 'application/json'
+        },
+        method: 'GET',
+        processResponse: async (res: any) => {
+          const data = await res.json() as any;
+          if (data && data.balance) {
+            const balanceSats = parseInt(data.balance);
+            const balanceBTC = (balanceSats / 100000000).toFixed(8);
+            console.log(`GetBlock.io (Blockbook) balance for ${address}: ${balanceBTC} BTC`);
+            return { success: true, balance: balanceBTC };
+          }
+          throw new Error('Unexpected response from GetBlock.io Blockbook API');
+        }
+      },
+      // BlockCypher API
+      {
+        url: `https://api.blockcypher.com/v1/btc/main/addrs/${address}/balance`,
+        processResponse: async (res: any) => {
+          const data = await res.json() as any;
+          if (data && typeof data.balance === 'number') {
+            const balanceSats = data.balance;
+            const balanceBTC = (balanceSats / 100000000).toFixed(8);
+            console.log(`BlockCypher balance for ${address}: ${balanceBTC} BTC`);
+            return { success: true, balance: balanceBTC };
+          }
+          throw new Error('Unexpected response from BlockCypher');
+        }
+      },
+      // SoChain API
+      {
+        url: `https://sochain.com/api/v2/get_address_balance/BTC/${address}`,
+        processResponse: async (res: any) => {
+          const data = await res.json() as any;
+          if (data && data.status === 'success' && data.data && data.data.confirmed_balance) {
+            const balance = parseFloat(data.data.confirmed_balance);
+            const balanceBTC = balance.toFixed(8);
+            console.log(`SoChain balance for ${address}: ${balanceBTC} BTC`);
+            return { success: true, balance: balanceBTC };
+          }
+          throw new Error('Unexpected response from SoChain');
         }
       }
     ];
@@ -121,12 +187,25 @@ const getBTCBalance = async (address: string): Promise<BalanceResponse> => {
     // Tạo kiểu cho API
     type ApiDefinition = {
       url: string;
+      headers?: Record<string, string>;
+      method?: string;
+      body?: string;
       processResponse: (res: any) => Promise<BalanceResponse>;
     };
 
     // Thực hiện các request đồng thời
     const apiPromises = apis.map((api: ApiDefinition) => {
-      return fetch(api.url)
+      // Sửa kiểu cho phù hợp với node-fetch
+      const options: any = {
+        method: api.method || 'GET',
+        headers: api.headers || { 'Content-Type': 'application/json' }
+      };
+      
+      if (api.body) {
+        options.body = api.body;
+      }
+      
+      return fetch(api.url, options)
         .then(res => api.processResponse(res))
         .catch(err => ({ success: false, balance: '0', error: err.message }));
     });
@@ -241,18 +320,32 @@ const getSOLBalance = async (address: string): Promise<BalanceResponse> => {
 // API cho Dogecoin
 const getDOGEBalance = async (address: string): Promise<BalanceResponse> => {
   try {
-    // DOGE API (Sử dụng API công khai)
-    const dogeApiUrl = `https://dogechain.info/api/v1/address/balance/${address}`;
+    // Thử với Blockchair API (không cần API key, giới hạn 30 requests/phút) 
+    const blockchairUrl = `https://api.blockchair.com/dogecoin/dashboards/address/${address}`;
     
-    const response = await fetch(dogeApiUrl);
+    console.log(`Checking DOGE balance for ${address} via Blockchair`);
+    const response = await fetch(blockchairUrl);
     const data = await response.json() as any;
     
-    if (data.success === 1 && data.balance) {
-      return { success: true, balance: data.balance.toString() };
+    if (data && data.data && data.data[address] && data.data[address].address) {
+      const balanceDoge = data.data[address].address.balance;
+      return { success: true, balance: (balanceDoge / 100000000).toString() };
     }
     
-    throw new Error('Failed to get DOGE balance from dogechain.info');
+    // Nếu Blockchair thất bại, thử với DogeChain.info.xyz (API công khai thay thế)
+    console.log(`Blockchair failed, trying alternative API for ${address}`);
+    const altUrl = `https://sochain.com/api/v2/get_address_balance/DOGE/${address}`;
+    
+    const altResponse = await fetch(altUrl);
+    const altData = await altResponse.json() as any;
+    
+    if (altData && altData.status === 'success' && altData.data && altData.data.confirmed_balance) {
+      return { success: true, balance: altData.data.confirmed_balance.toString() };
+    }
+    
+    throw new Error('Failed to get DOGE balance from available APIs');
   } catch (error: any) {
+    console.error('Error in getDOGEBalance:', error.message);
     circuitBreakerManager.recordFailure('doge');
     return { success: false, balance: '0', error: error.message };
   }
