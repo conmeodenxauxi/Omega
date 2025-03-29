@@ -1,1 +1,0 @@
-  'DOGE_CRYPTOAPIS': [\n    process.env.CRYPTOAPIS_API_KEY || '2cc480292ad73e22db79168c3981fc1063640846'\n  ],

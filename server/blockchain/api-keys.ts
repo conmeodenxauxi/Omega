@@ -110,14 +110,44 @@ const apiKeys: Record<string, string[]> = {
   
   // Dogecoin API Keys (Cryptoapis.io)
   'DOGE_CRYPTOAPIS': [
-    process.env.CRYPTOAPIS_API_KEY || '2cc480292ad73e22db79168c3981fc1063640846'
+    '2cc480292ad73e22db79168c3981fc1063640846',
+    'f325c94f37645a29b031e9d03fd7f17e775ce6b5',
+    'afccc4af98acc32ec64deec50674741a64eb8daf',
+    '07b9c6ed0579e59735560835bc8fc5db9966edfd',
+    'accc04da9b1d39a2f9b5dc1ff64a2e8409225c28',
+    '9054fc47b1e99099821c8e159ff83f5137544b59',
+    'df39de20267a0514f1a9afdabfd8568ab38eda70',
+    '39d6dbf7acbd9775ffc455726d494b8085dcfbb1',
+    '9b92bc908818b6d89da8b171b0c68d9382970775',
+    'ec39e5960fb38091a2458f21314fba3c8dc6981d',
+    '398346886406923578e0d25625870fd7732947b6',
+    'b4a1294319c6df5ee99f0c2b27841b0d10ed7073',
+    '356f6e5e8c8164e8014b89776944fc34e7d6c6a3',
+    '0255a022afc8f069f578bc18814e4da7eed8d257',
+    '1922ebdb34e326f16399f4f1bca447e887133c66',
+    'fe1b3b78a71d2e6e91945391b6e63fb150868154',
+    '6d65f6db8c9b95c879d48dd485a37e402b7b1cf2',
+    '76e66decd99da2a5b7990105442cfe1e38791320',
+    'b98522605fb9f6b54efd6af0ba88cdffc58a4875',
+    'dfd67ca24de0e52dfeae91844731a183ec5ab253',
+    '488e2503cedaa795de0f5fcbb51e856ddb9c0f5e',
+    '21a93c4767da395e2d2aef3252bb9b47533d3c5d',
+    'ee0638974c33442ade72a1e3b95c65da7aa04f81',
+    '4c1d0c38ba5071278e41f5b4b3b38b2f3035746c',
+    '450bed527dc728e5ea7c9afe3753d7eaf4c810a8',
+    'c20c061c10a657dbb165f174908f55c6d7ff141e',
+    '19ddcc0c7f60d8991aa23ac16624ba954832d0c2',
+    'bf5533bfc7e1a54f884dc7ab139884be885aed08',
+    '795d5d2924e3ac26d4c24aa90263d575ad583778',
+    '535de95dcf44dd2c2f62ad82d708202aa320c400',
+    'bb697766f501dc61e081e975524eb5dac705b522'
   ]
 };
 
 /**
  * Tạo và lưu trữ các API endpoint cho tất cả các blockchain
  */
-export const blockchainEndpoints: Record<BlockchainType, ApiEndpoint[]> = {
+const blockchainEndpoints: Record<BlockchainType, ApiEndpoint[]> = {
   'BTC': [
     // Public API (không cần API key)
     {
@@ -265,96 +295,18 @@ export const blockchainEndpoints: Record<BlockchainType, ApiEndpoint[]> = {
       needsApiKey: false,
       callCount: 0
     },
-    // Thêm các RPC Public cho Dogecoin
-    {
-      name: 'DogeChain',
-      type: 'public',
-      url: '',
-      formatUrl: (address) => `https://dogechain.info/api/v1/address/balance/${address}`,
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-      needsApiKey: false,
-      callCount: 0
-    },
-    {
-      name: 'BlockCypher DOGE',
-      type: 'public',
-      url: '',
-      formatUrl: (address) => `https://api.blockcypher.com/v1/doge/main/addrs/${address}/balance`,
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-      needsApiKey: false,
-      callCount: 0
-    },
-    {
-      name: 'Chain.so',
-      type: 'public',
-      url: '',
-      formatUrl: (address) => `https://chain.so/api/v2/get_address_balance/DOGE/${address}`,
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-      needsApiKey: false,
-      callCount: 0
-    },
-    // DOGE RPC Servers
-    {
-      name: 'DOGE-RPC-1',
-      type: 'public',
-      url: 'https://dogecoin.tokenview.io/api/address/tokenbalance/doge/',
-      formatUrl: (address) => `https://dogecoin.tokenview.io/api/address/tokenbalance/doge/${address}`,
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-      needsApiKey: false,
-      callCount: 0
-    },
-    {
-      name: 'DOGE-RPC-2',
-      type: 'public',
-      url: '',
-      formatUrl: (address) => `https://api.blockindex.net/api/dogecoin/address/${address}`,
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-      needsApiKey: false,
-      callCount: 0
-    },
-    // CryptoAPIs - đường dẫn chính xác dựa trên tài liệu API
+    // CryptoAPIs
     {
       name: 'CryptoAPIs',
       type: 'private',
       url: '',
-      formatUrl: (address) => `https://rest.cryptoapis.io/v2/blockchain-data/dogecoin/mainnet/addresses/${address}/balance`,
+      formatUrl: (address) => `https://rest.cryptoapis.io/blockchain-data/doge/mainnet/addresses/${address}/balance?context=yourExampleString`,
       formatHeaders: (apiKey) => ({
         'Content-Type': 'application/json',
         'X-API-Key': apiKey || ''
       }),
       method: 'GET',
       needsApiKey: true,
-      callCount: 0
-    },
-    // Nownodes API cho Dogecoin
-    {
-      name: 'Nownodes',
-      type: 'private',
-      url: '',
-      formatUrl: (address) => `https://doge-mainnet.nownodes.io/api/v2/address/${address}`,
-      formatHeaders: (apiKey) => ({
-        'Content-Type': 'application/json',
-        'api-key': '4eea1226-2f22-44af-9a91-5c61f2c82a9d',
-        'Accept': 'application/json'
-      }),
-      method: 'GET',
-      needsApiKey: true,
-      callCount: 0
-    },
-    // Thêm BlockCypher cho Dogecoin
-    {
-      name: 'BlockCypherDOGE',
-      type: 'public',
-      url: '',
-      formatUrl: (address) => `https://api.blockcypher.com/v1/doge/main/addrs/${address}/balance`,
-      headers: { 'Content-Type': 'application/json' },
-      method: 'GET',
-      needsApiKey: false,
       callCount: 0
     }
   ]
