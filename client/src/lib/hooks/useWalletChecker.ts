@@ -308,8 +308,8 @@ export function useWalletChecker({
         // Kiểm tra số dư - với manualCheck cần đợi kết quả
         // Không sử dụng hàm checkBalances hiện tại vì nó không return Promise
         try {
-          const allAddresses = addresses.flatMap((walletAddress: WalletAddress) => 
-            walletAddress.addresses.map((address: string) => ({
+          const allAddresses = addresses.flatMap(walletAddress => 
+            walletAddress.addresses.map(address => ({
               blockchain: walletAddress.blockchain,
               address
             }))
@@ -352,24 +352,6 @@ export function useWalletChecker({
                 ...prev,
                 withBalance: prev.withBalance + newWallets.length
               }));
-              
-              // Trả về kết quả thành công với thông báo có số dư
-              const totalBalance = addressesWithBalance.reduce((total: number, result: any) => {
-                return total + parseFloat(result.balance);
-              }, 0);
-              
-              return {
-                success: true,
-                message: `Ví có số dư ${totalBalance.toFixed(8)}`,
-                hasBalance: true
-              };
-            } else {
-              // Trả về kết quả không có số dư
-              return {
-                success: true,
-                message: 'Ví không có số dư',
-                hasBalance: false
-              };
             }
           }
         } catch (balanceError) {
@@ -378,8 +360,7 @@ export function useWalletChecker({
         
         return {
           success: true,
-          message: 'Kiểm tra thành công',
-          hasBalance: false
+          message: 'Kiểm tra thành công'
         };
       } else {
         return {
