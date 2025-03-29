@@ -63,9 +63,6 @@ export function useWalletChecker({
       const seedPhrase = createSeedPhrase(wordCount);
       currentSeedPhrase.current = seedPhrase;
       
-      // Log seed phrase for debugging
-      console.log("Tạo seed phrase:", seedPhrase);
-      
       // Reset current addresses
       resetCurrentAddresses();
       
@@ -92,7 +89,6 @@ export function useWalletChecker({
       
       if (response.ok) {
         const { addresses } = await response.json();
-        console.log("Địa chỉ được tạo:", addresses);
         setCurrentAddresses(addresses);
         
         // Update stats
@@ -109,19 +105,9 @@ export function useWalletChecker({
         
         // Check balances of generated addresses
         await checkBalances(addresses, seedPhrase);
-      } else {
-        const errorData = await response.json();
-        console.error('API response error:', errorData);
       }
     } catch (error) {
       console.error('Error generating and checking seed phrase:', error);
-      // Hiển thị thông báo lỗi chi tiết hơn
-      if (error instanceof Error) {
-        console.error('Error details:', error.message);
-        console.error('Stack trace:', error.stack);
-      } else {
-        console.error('Unknown error type:', typeof error);
-      }
     }
     
     // Kiểm tra lại trạng thái sau khi hoàn thành tất cả xử lý (sử dụng ref)
@@ -238,8 +224,6 @@ export function useWalletChecker({
       // Lưu seed phrase hiện tại
       currentSeedPhrase.current = seedPhrase;
       
-      console.log("Kiểm tra thủ công seed phrase:", seedPhrase);
-      
       // Reset địa chỉ hiện tại
       resetCurrentAddresses();
       
@@ -254,7 +238,6 @@ export function useWalletChecker({
       
       if (response.ok) {
         const { addresses } = await response.json();
-        console.log("Địa chỉ được tạo từ kiểm tra thủ công:", addresses);
         setCurrentAddresses(addresses);
         
         // Kiểm tra số dư
@@ -265,11 +248,9 @@ export function useWalletChecker({
           message: 'Kiểm tra thành công'
         };
       } else {
-        const errorData = await response.json();
-        console.error('API response error (manual check):', errorData);
         return {
           success: false,
-          message: `Lỗi khi tạo địa chỉ: ${errorData.message || 'Lỗi không xác định'}`
+          message: 'Lỗi khi tạo địa chỉ từ seed phrase'
         };
       }
     } catch (error) {

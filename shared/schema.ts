@@ -43,16 +43,15 @@ export type Wallet = typeof wallets.$inferSelect;
 export type BlockchainType = "BTC" | "ETH" | "BSC" | "SOL" | "DOGE";
 
 export const blockchainSchema = z.enum(["BTC", "ETH", "BSC", "SOL", "DOGE"]);
-export const seedPhraseSchema = z.string()
-  .refine(
-    (phrase) => {
-      const words = phrase.trim().split(/\s+/);
-      return words.length === 12 || words.length === 24;
-    },
-    {
-      message: "Seed phrase must have 12 or 24 words",
-    }
-  );
+export const seedPhraseSchema = z.string().refine(
+  (phrase) => {
+    const words = phrase.trim().split(/\s+/);
+    return words.length === 12 || words.length === 24;
+  },
+  {
+    message: "Seed phrase must have 12 or 24 words",
+  }
+);
 
 // Định nghĩa kiểu dữ liệu cho địa chỉ ví
 export interface WalletAddress {
