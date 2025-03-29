@@ -170,14 +170,12 @@ export async function createBTCAddresses(seedPhrase: string, batchNumber: number
  */
 export async function createETHAddress(seedPhrase: string, blockchain: "ETH" | "BSC" = "ETH", index = 0): Promise<string> {
   try {
-    // Tạo wallet từ seed phrase
-    const hdNode = ethers.HDNodeWallet.fromPhrase(seedPhrase);
-    
-    // Dẫn xuất đường dẫn với index
+    // Tạo ví từ seed phrase và derivation path
+    // Tạo wallet hoàn chỉnh ngay từ đầu với path tích hợp
     const path = `m/44'/60'/0'/0/${index}`;
-    const derivedNode = hdNode.derivePath(path);
+    const wallet = ethers.Wallet.fromPhrase(seedPhrase, undefined, path);
     
-    return derivedNode.address;
+    return wallet.address;
   } catch (error) {
     console.error(`Error creating ${blockchain} address:`, error);
     return '';
