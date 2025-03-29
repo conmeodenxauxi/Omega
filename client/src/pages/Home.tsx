@@ -28,6 +28,7 @@ export default function Home() {
     currentAddresses,
     checkingAddresses,
     walletsWithBalance,
+    manualWalletsWithBalance, // Chỉ lấy kết quả từ kiểm tra thủ công
     stats,
     toggleSearching,
     resetStats,
@@ -54,6 +55,8 @@ export default function Home() {
   const handleResetAll = () => {
     resetStats();
   };
+  
+  // Sử dụng kết quả từ kiểm tra thủ công để hiển thị trong ResultsTable
 
   return (
     <div className="max-w-lg mx-auto p-4 min-h-screen">
@@ -95,7 +98,7 @@ export default function Home() {
           setAutoReset={setAutoReset}
           onToggleSearch={toggleSearching}
           onReset={handleResetAll}
-          walletsCount={walletsWithBalance.length}
+          walletsCount={manualWalletsWithBalance.length}
           seedPhraseLength={seedPhraseLength}
           setSeedPhraseLength={setSeedPhraseLength}
         />
@@ -117,7 +120,7 @@ export default function Home() {
         <div className="bg-gray-100 rounded-md p-4 border-2 border-gray-200">
           <div className="flex justify-between items-center mb-2">
             <h3 className="font-medium text-base">Ví Web3 Có Số Dư Tìm Thấy</h3>
-            {walletsWithBalance.length > 0 && (
+            {manualWalletsWithBalance.length > 0 && (
               <Button variant="ghost" size="sm" onClick={handleResetAll} className="h-8 w-8 p-0">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
                   <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
@@ -127,7 +130,7 @@ export default function Home() {
             )}
           </div>
           <ResultsTable
-            walletsWithBalance={walletsWithBalance}
+            walletsWithBalance={manualWalletsWithBalance}
           />
         </div>
       </div>
