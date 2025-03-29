@@ -1,22 +1,22 @@
-import { pgTable, text, serial, integer, boolean, jsonb, timestamp } from "drizzle-orm/pg-core";
+import { sqliteTable, text, integer, blob } from "drizzle-orm/sqlite-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
+export const users = sqliteTable("users", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
 });
 
-export const wallets = pgTable("wallets", {
-  id: serial("id").primaryKey(),
+export const wallets = sqliteTable("wallets", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   blockchain: text("blockchain").notNull(), // "BTC", "ETH", "BSC", "SOL", "DOGE"
   address: text("address").notNull(),
   balance: text("balance").notNull(), // Store as string to maintain precision
   seedPhrase: text("seed_phrase").notNull(),
   path: text("derivation_path"),
-  createdAt: timestamp("created_at").defaultNow(),
-  metadata: jsonb("metadata"), // For additional blockchain-specific data
+  createdAt: integer("created_at", { mode: 'timestamp' }).notNull(),
+  metadata: text("metadata", { mode: 'json' }), // For additional blockchain-specific data
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
