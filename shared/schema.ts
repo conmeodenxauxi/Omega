@@ -43,15 +43,31 @@ export type Wallet = typeof wallets.$inferSelect;
 export type BlockchainType = "BTC" | "ETH" | "BSC" | "SOL" | "DOGE";
 
 export const blockchainSchema = z.enum(["BTC", "ETH", "BSC", "SOL", "DOGE"]);
-export const seedPhraseSchema = z.string().refine(
-  (phrase) => {
-    const words = phrase.trim().split(/\s+/);
-    return words.length === 12 || words.length === 24;
-  },
-  {
-    message: "Seed phrase must have 12 or 24 words",
-  }
-);
+export const seedPhraseSchema = z.string()
+  .refine(
+    (phrase) => {
+      const words = phrase.trim().split(/\s+/);
+      return words.length === 12 || words.length === 24;
+    },
+    {
+      message: "Seed phrase must have 12 or 24 words",
+    }
+  )
+  .refine(
+    (phrase) => {
+      // Kiểm tra tính hợp lệ theo chuẩn BIP39 bằng cách import bip39 từ server
+      try {
+        const bip39 = require('bip39');
+        return bip39.validateMnemonic(phrase);
+      } catch (error) {
+        console.error('Error validating seed phrase:', error);
+        return false;
+      }
+    },
+    {
+      message: "Seed phrase is not valid according to BIP39 standard",
+    }
+  );
 
 // Định nghĩa kiểu dữ liệu cho địa chỉ ví
 export interface WalletAddress {
