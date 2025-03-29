@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { CogIcon, FileTextIcon } from "lucide-react";
+import { Check, RefreshCw, SearchIcon } from "lucide-react";
 import { BlockchainType } from "@shared/schema";
 import { CryptoCheckbox } from "@/components/CryptoCheckbox";
 import { ControlPanel } from "@/components/ControlPanel";
@@ -8,6 +8,9 @@ import { AddressDisplay } from "@/components/AddressDisplay";
 import { ManualCheck } from "@/components/ManualCheck";
 import { ResultsTable } from "@/components/ResultsTable";
 import { useWalletChecker } from "@/lib/hooks/useWalletChecker";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 
 export default function Home() {
   const [selectedBlockchains, setSelectedBlockchains] = useState<BlockchainType[]>([
@@ -54,16 +57,8 @@ export default function Home() {
   return (
     <div className="max-w-lg mx-auto p-4 min-h-screen">
       {/* Header */}
-      <header className="flex items-center justify-between mb-4">
-        <div className="flex items-center">
-          <button className="mr-2 text-slate-500 hover:text-slate-700">
-            <CogIcon className="h-5 w-5" />
-          </button>
-          <h1 className="text-xl font-bold">Tìm Ví Web3 có Số Dư</h1>
-        </div>
-        <button className="text-slate-500 hover:text-slate-700">
-          <FileTextIcon className="h-5 w-5" />
-        </button>
+      <header className="mb-4">
+        <h1 className="text-xl font-bold">Tim Ví Web3 có Số Dư</h1>
       </header>
 
       {/* Blockchain Selection */}
@@ -80,33 +75,98 @@ export default function Home() {
         ))}
       </div>
 
-      {/* Control Panel */}
-      <ControlPanel
-        isSearching={isSearching}
-        stats={stats}
-        autoReset={autoReset}
-        setAutoReset={setAutoReset}
-        onToggleSearch={toggleSearching}
-        onReset={handleResetAll}
-      />
+      {/* Auto-reset Checkbox */}
+      <div className="flex items-center mb-4">
+        <Checkbox 
+          id="auto-reset" 
+          checked={autoReset} 
+          onCheckedChange={(checked) => setAutoReset(!!checked)} 
+        />
+        <label htmlFor="auto-reset" className="ml-2 text-sm font-medium">
+          Tự động reset
+        </label>
+      </div>
+
+      {/* Start Button */}
+      <div className="mb-4">
+        <Button 
+          onClick={toggleSearching}
+          className="bg-slate-900 text-white hover:bg-slate-800 w-full sm:w-auto"
+          disabled={isSearching}
+        >
+          {isSearching ? "Dừng lại" : "Bắt đầu"}
+        </Button>
+
+        {/* Stats */}
+        <div className="flex justify-center mt-2 text-sm">
+          <div className="mr-8">
+            <span className="text-gray-500">Đã tạo:</span>
+            <span className="font-bold ml-1">{stats.created}</span>
+          </div>
+          <div>
+            <span className="text-gray-500">Đã kiểm tra:</span>
+            <span className="font-bold ml-1">{stats.checked}</span>
+          </div>
+        </div>
+      </div>
 
       {/* Phrase Length Selection */}
-      <PhraseLengthSelector
-        selected={seedPhraseLength}
-        onChange={setSeedPhraseLength}
-      />
+      <div className="mb-4 flex items-center gap-2">
+        <div className="flex items-center">
+          <Checkbox 
+            id="12-words" 
+            checked={seedPhraseLength.includes(12)} 
+            onCheckedChange={(checked) => {
+              if (checked) {
+                setSeedPhraseLength(prev => [...prev, 12].filter((v, i, a) => a.indexOf(v) === i) as (12 | 24)[]);
+              } else if (seedPhraseLength.length > 1) {
+                setSeedPhraseLength(prev => prev.filter(p => p !== 12));
+              }
+            }} 
+          />
+          <label htmlFor="12-words" className="ml-2 text-sm font-medium">
+            12 từ
+          </label>
+        </div>
+        <div className="flex items-center">
+          <Checkbox 
+            id="24-words" 
+            checked={seedPhraseLength.includes(24)} 
+            onCheckedChange={(checked) => {
+              if (checked) {
+                setSeedPhraseLength(prev => [...prev, 24].filter((v, i, a) => a.indexOf(v) === i) as (12 | 24)[]);
+              } else if (seedPhraseLength.length > 1) {
+                setSeedPhraseLength(prev => prev.filter(p => p !== 24));
+              }
+            }} 
+          />
+          <label htmlFor="24-words" className="ml-2 text-sm font-medium">
+            24 từ
+          </label>
+        </div>
+      </div>
 
       {/* Address Display */}
-      <AddressDisplay addresses={currentAddresses} />
+      <div className="mb-6 p-4 bg-gray-100 rounded-md">
+        <h2 className="font-medium mb-2">Địa chỉ ví đang kiểm tra:</h2>
+        <AddressDisplay addresses={currentAddresses} />
+      </div>
 
       {/* Manual Check */}
       <ManualCheck onCheck={manualCheck} isSearching={isSearching} />
 
       {/* Results Table */}
-      <ResultsTable
-        walletsWithBalance={walletsWithBalance}
-        onReset={handleResetAll}
-      />
+      <div className="mb-8">
+        <h3 className="font-medium mb-2">Ví Web3 Có Số Dư Tìm Thấy</h3>
+        {walletsWithBalance.length > 0 ? (
+          <ResultsTable
+            walletsWithBalance={walletsWithBalance}
+            onReset={handleResetAll}
+          />
+        ) : (
+          <p className="text-center text-gray-500 py-4">Chưa tìm thấy ví nào có số dư.</p>
+        )}
+      </div>
     </div>
   );
 }

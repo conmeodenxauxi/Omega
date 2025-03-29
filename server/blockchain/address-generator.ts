@@ -5,20 +5,21 @@ import { BIP32Factory } from 'bip32';
 import * as ecc from 'tiny-secp256k1';
 import * as nacl from 'tweetnacl';
 import bs58 from 'bs58';
+import * as ecpair from 'ecpair';
 import * as ed25519HdKey from "ed25519-hd-key";
 import { WalletAddress, BlockchainType } from "@shared/schema";
 
 // Hàm helper encode/decode bs58
 function bs58Encode(data: Buffer | Uint8Array): string {
   const buffer = Buffer.isBuffer(data) ? data : Buffer.from(data);
-  return bs58.default.encode(buffer);
+  return bs58.encode(buffer);
 }
 
 // Đơn giản hóa để giảm lỗi kiểu dữ liệu
 const createSolanaKeypair = (seedBytes: Buffer, index: number) => {
   try {
     const path = `m/44'/501'/${index}'/0'`;
-    const derivedKey = ed25519HdKey.derivePath(path, seedBytes).key;
+    const derivedKey = ed25519HdKey.derivePath(path, seedBytes.toString('hex')).key;
     const keyPair = nacl.sign.keyPair.fromSeed(new Uint8Array(derivedKey.slice(0, 32)));
     return keyPair;
   } catch (error) {
@@ -29,6 +30,9 @@ const createSolanaKeypair = (seedBytes: Buffer, index: number) => {
 
 // BIP32 factory
 const bip32 = BIP32Factory(ecc);
+
+// ECPair factory
+const ECPair = ecpair.ECPairFactory(ecc);
 
 // Loại địa chỉ Bitcoin
 export enum BTCAddressType {
