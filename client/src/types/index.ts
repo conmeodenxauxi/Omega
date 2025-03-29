@@ -19,7 +19,6 @@ export interface WalletWithBalance {
   address: string;
   balance: string;
   seedPhrase: string;
-  source?: 'manual' | 'auto'; // Nguồn của ví: kiểm tra thủ công hoặc tự động
 }
 
 /**

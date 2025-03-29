@@ -28,14 +28,6 @@ export function ResultsTable({ walletsWithBalance }: ResultsTableProps) {
     });
   };
   
-  // Lọc ra chỉ các ví từ kiểm tra thủ công (source = 'manual')
-  // Nếu không có source, vẫn hiển thị (để tương thích với dữ liệu cũ)
-  console.log('Tất cả ví có số dư:', walletsWithBalance);
-  const manualWalletsWithBalance = walletsWithBalance.filter(
-    wallet => !wallet.source || wallet.source === 'manual'
-  );
-  console.log('Ví từ kiểm tra thủ công:', manualWalletsWithBalance);
-  
   return (
     <div className="border rounded-lg p-4 bg-card">
       <Table>
@@ -48,8 +40,8 @@ export function ResultsTable({ walletsWithBalance }: ResultsTableProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {manualWalletsWithBalance.length > 0 ? (
-            manualWalletsWithBalance.map((wallet, index) => {
+          {walletsWithBalance.length > 0 ? (
+            walletsWithBalance.map((wallet, index) => {
               const Icon = getBlockchainIcon(wallet.blockchain);
               const colorClass = getBlockchainColor(wallet.blockchain);
               

