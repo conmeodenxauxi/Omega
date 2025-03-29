@@ -8,6 +8,7 @@ import bs58 from 'bs58';
 import * as ecpair from 'ecpair';
 import * as ed25519HdKey from "ed25519-hd-key";
 import { WalletAddress, BlockchainType } from "@shared/schema";
+import { Keypair } from '@solana/web3.js';
 
 // Hàm helper encode/decode bs58
 function bs58Encode(data: Buffer | Uint8Array): string {
@@ -15,35 +16,37 @@ function bs58Encode(data: Buffer | Uint8Array): string {
   return bs58.encode(buffer);
 }
 
-// Tạo Solana keypair từ seed phrase - sử dụng cách tiếp cận đơn giản hơn
-const createSolanaKeypair = (seedPhrase: string, index: number): nacl.SignKeyPair => {
+/**
+ * Tạo Solana keypair từ seed phrase theo chuẩn Solana BIP44
+ * @param seedPhrase Seed phrase để tạo địa chỉ
+ * @param index Index của địa chỉ (theo đường dẫn)
+ * @returns Solana Keypair
+ */
+const createSolanaKeypair = (seedPhrase: string, index: number = 0): Keypair => {
   try {
-    // 1. Tạo seed từ cụm từ ghi nhớ (mnemonic) sử dụng mnemonicToSeedSync() 
+    // 1. Tạo binary seed từ seed phrase
     const seed = bip39.mnemonicToSeedSync(seedPhrase);
     
-    // 2. Sử dụng đường dẫn dẫn xuất (derivation path) chuẩn của Phantom Wallet
-    // Theo chuẩn BIP44 cho Solana có coin type 501
+    // 2. Tạo đường dẫn dẫn xuất (derivation path) cho Solana
+    // Sử dụng chuẩn BIP44 với coin type 501 cho Solana
     const path = `m/44'/501'/${index}'/0'`;
     
-    // 3. Chuyển đổi seed thành định dạng hex string
-    const seedHex = seed.toString('hex');
+    // 3. Chuyển đổi seed thành hex string và lấy private key theo đường dẫn
+    const derivedResult = ed25519HdKey.derivePath(path, seed.toString('hex'));
     
-    // 4. Tạo seed dẫn xuất bằng cách áp dụng đường dẫn vào seed gốc
-    const { key } = ed25519HdKey.derivePath(path, seedHex);
-    
-    if (!key) {
+    if (!derivedResult || !derivedResult.key) {
       throw new Error('Failed to derive Solana key');
     }
     
-    // 5. Sử dụng 32 bytes đầu tiên để tạo keypair
-    const seedBytes = key.slice(0, 32);
+    // 4. Sử dụng 32 bytes đầu tiên từ key làm private key
+    const privateKey = derivedResult.key.slice(0, 32);
     
-    // 6. Tạo một nacl keypair từ seed bytes
-    return nacl.sign.keyPair.fromSeed(Uint8Array.from(seedBytes));
+    // 5. Tạo Solana keypair từ private key
+    return Keypair.fromSeed(Uint8Array.from(privateKey));
   } catch (error) {
     console.error('Error creating Solana keypair:', error);
-    // Fallback để đảm bảo ứng dụng không bị crash
-    return nacl.sign.keyPair();
+    // Trả về một keypair ngẫu nhiên để tránh crash ứng dụng
+    return Keypair.generate();
   }
 };
 
@@ -237,10 +240,8 @@ export async function createSOLAddress(seedPhrase: string, index = 0): Promise<s
     // Sử dụng hàm helper đã được định nghĩa
     const keypair = createSolanaKeypair(seedPhrase, index);
     
-    // Chuyển đổi public key thành chuỗi base58
-    const address = bs58Encode(Buffer.from(keypair.publicKey));
-    
-    return address;
+    // Lấy trực tiếp địa chỉ Solana từ keypair thông qua publicKey.toBase58()
+    return keypair.publicKey.toBase58();
   } catch (error) {
     console.error('Error creating SOL address:', error);
     return '';
@@ -344,8 +345,7 @@ export async function createDOGEAddresses(seedPhrase: string, batchNumber: numbe
  * Tạo địa chỉ trên các blockchain từ seed phrase
  * Mỗi blockchain sẽ được tạo số lượng địa chỉ khác nhau:
  * - BTC: 3 địa chỉ (legacy, segwit, native segwit)
- * - ETH, BSC, DOGE: mỗi loại 1 địa chỉ
- * - SOL: 1 địa chỉ (tạm thời vô hiệu hóa vì lỗi)
+ * - ETH, BSC, DOGE, SOL: mỗi loại 1 địa chỉ
  */
 export async function generateAddressesFromSeedPhrase(
   seedPhrase: string,
@@ -355,10 +355,7 @@ export async function generateAddressesFromSeedPhrase(
   const walletAddresses: WalletAddress[] = [];
   
   try {
-    // Tạm thời loại bỏ Solana để tránh lỗi trong quá trình phát triển
-    const filteredBlockchains = blockchains.filter(bc => bc !== "SOL");
-    
-    const promises = filteredBlockchains.map(async (blockchain) => {
+    const promises = blockchains.map(async (blockchain) => {
       switch (blockchain) {
         case "BTC":
           return await createBTCAddresses(seedPhrase, batchNumber);
@@ -366,6 +363,8 @@ export async function generateAddressesFromSeedPhrase(
           return await createETHAddresses(seedPhrase, "ETH", batchNumber);
         case "BSC":
           return await createETHAddresses(seedPhrase, "BSC", batchNumber);
+        case "SOL":
+          return await createSOLAddresses(seedPhrase, batchNumber);
         case "DOGE":
           return await createDOGEAddresses(seedPhrase, batchNumber);
         default:
