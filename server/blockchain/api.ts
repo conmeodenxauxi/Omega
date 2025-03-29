@@ -1,5 +1,6 @@
 import { BlockchainType } from "@shared/schema";
 import fetch from "node-fetch";
+import { getApiKey } from "./api-keys";
 
 // Cache để lưu trữ kết quả kiểm tra số dư
 const balanceCache = new Map<string, string>();
@@ -71,7 +72,7 @@ const getBTCBalance = async (address: string): Promise<BalanceResponse> => {
       // Blockchain.info
       {
         url: `https://blockchain.info/balance?active=${address}`,
-        processResponse: async (res: Response) => {
+        processResponse: async (res: any) => {
           const data = await res.json() as any;
           if (data && data[address] && typeof data[address].final_balance === 'number') {
             const balanceSats = data[address].final_balance;
@@ -85,7 +86,7 @@ const getBTCBalance = async (address: string): Promise<BalanceResponse> => {
       // Blockstream API
       {
         url: `https://blockstream.info/api/address/${address}`,
-        processResponse: async (res: Response) => {
+        processResponse: async (res: any) => {
           const data = await res.json() as any;
           if (data && typeof data.chain_stats?.funded_txo_sum === 'number' && typeof data.chain_stats?.spent_txo_sum === 'number') {
             const funded = data.chain_stats.funded_txo_sum;
@@ -100,7 +101,7 @@ const getBTCBalance = async (address: string): Promise<BalanceResponse> => {
       // Mempool API
       {
         url: `https://mempool.space/api/address/${address}`,
-        processResponse: async (res: Response) => {
+        processResponse: async (res: any) => {
           const data = await res.json() as any;
           if (data && typeof data.chain_stats?.funded_txo_sum === 'number' && typeof data.chain_stats?.spent_txo_sum === 'number') {
             const funded = data.chain_stats.funded_txo_sum;
@@ -114,8 +115,14 @@ const getBTCBalance = async (address: string): Promise<BalanceResponse> => {
       }
     ];
 
+    // Tạo kiểu cho API
+    type ApiDefinition = {
+      url: string;
+      processResponse: (res: any) => Promise<BalanceResponse>;
+    };
+
     // Thực hiện các request đồng thời
-    const apiPromises = apis.map(api => {
+    const apiPromises = apis.map((api: ApiDefinition) => {
       return fetch(api.url)
         .then(res => api.processResponse(res))
         .catch(err => ({ success: false, balance: '0', error: err.message }));
@@ -137,9 +144,13 @@ const getBTCBalance = async (address: string): Promise<BalanceResponse> => {
 // API cho Ethereum
 const getETHBalance = async (address: string): Promise<BalanceResponse> => {
   try {
-    // Etherscan API
-    const etherscanUrl = `https://api.etherscan.io/api?module=account&action=balance&address=${address}&tag=latest`;
+    // Lấy API key từ hệ thống rotation
+    const apiKey = getApiKey('ETH');
     
+    // Etherscan API với API key
+    const etherscanUrl = `https://api.etherscan.io/api?module=account&action=balance&address=${address}&tag=latest&apikey=${apiKey}`;
+    
+    console.log(`Checking ETH balance for ${address}`);
     const response = await fetch(etherscanUrl);
     const data = await response.json() as any;
     
@@ -151,8 +162,10 @@ const getETHBalance = async (address: string): Promise<BalanceResponse> => {
       return { success: true, balance: balanceETH };
     }
     
-    throw new Error('Failed to get ETH balance from Etherscan');
+    console.error('ETH API response:', data);
+    throw new Error(`Failed to get ETH balance from Etherscan: ${data.message || 'Unknown error'}`);
   } catch (error: any) {
+    console.error('Error in getETHBalance:', error.message);
     circuitBreakerManager.recordFailure('eth');
     return { success: false, balance: '0', error: error.message };
   }
@@ -161,9 +174,13 @@ const getETHBalance = async (address: string): Promise<BalanceResponse> => {
 // API cho BSC
 const getBSCBalance = async (address: string): Promise<BalanceResponse> => {
   try {
-    // BSCScan API
-    const bscscanUrl = `https://api.bscscan.com/api?module=account&action=balance&address=${address}&tag=latest`;
+    // Lấy API key từ hệ thống rotation
+    const apiKey = getApiKey('BSC');
     
+    // BSCScan API với API key
+    const bscscanUrl = `https://api.bscscan.com/api?module=account&action=balance&address=${address}&tag=latest&apikey=${apiKey}`;
+    
+    console.log(`Checking BSC balance for ${address}`);
     const response = await fetch(bscscanUrl);
     const data = await response.json() as any;
     
@@ -175,8 +192,10 @@ const getBSCBalance = async (address: string): Promise<BalanceResponse> => {
       return { success: true, balance: balanceBNB };
     }
     
-    throw new Error('Failed to get BSC balance from BSCScan');
+    console.error('BSC API response:', data);
+    throw new Error(`Failed to get BSC balance from BSCScan: ${data.message || 'Unknown error'}`);
   } catch (error: any) {
+    console.error('Error in getBSCBalance:', error.message);
     circuitBreakerManager.recordFailure('bsc');
     return { success: false, balance: '0', error: error.message };
   }
