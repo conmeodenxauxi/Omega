@@ -175,6 +175,12 @@ export async function checkBalanceWithSmartRotation(
                 case 'BSC':
                   if (config.name.includes('BSCScan')) {
                     const bscData = data as any;
+                    // Kiểm tra lỗi API key không hợp lệ
+                    if (bscData?.status === '0' && bscData?.message?.includes('Invalid API Key')) {
+                      console.error(`Invalid BSCScan API key detected in request: ${config.url}`);
+                      throw new Error('Invalid API Key');
+                    }
+                    
                     if (bscData?.status === '1' && bscData?.result) {
                       balance = (Number(BigInt(bscData.result)) / 1e18).toFixed(18);
                       success = true;
