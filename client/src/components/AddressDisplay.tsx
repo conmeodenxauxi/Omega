@@ -51,20 +51,22 @@ export function AddressDisplay({ addresses }: AddressDisplayProps) {
                       return (
                         <div 
                           key={`BTC-${addressType}`}
-                          className="p-2 bg-muted rounded-md overflow-hidden"
+                          className="flex items-center gap-2 mb-1"
                         >
-                          <div className="flex items-center mb-1">
-                            <span className="text-xs font-medium mr-2 min-w-[100px]">{addressType}:</span>
+                          <div className="flex items-center min-w-[100px]">
+                            <span className="text-xs font-medium">{addressType}:</span>
                           </div>
-                          {address ? (
-                            <code className="text-xs font-mono w-full inline-block truncate">
-                              {address}
-                            </code>
-                          ) : (
-                            <div className="text-xs text-muted-foreground">
-                              Chưa có địa chỉ
-                            </div>
-                          )}
+                          <div className="p-2 bg-muted rounded-md flex-1 overflow-hidden">
+                            {address ? (
+                              <code className="text-xs font-mono w-full inline-block truncate">
+                                {address}
+                              </code>
+                            ) : (
+                              <div className="text-xs text-muted-foreground">
+                                Chưa có địa chỉ
+                              </div>
+                            )}
+                          </div>
                         </div>
                       );
                     })}
