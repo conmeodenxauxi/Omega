@@ -147,7 +147,7 @@ const apiKeys: Record<string, string[]> = {
 /**
  * Tạo và lưu trữ các API endpoint cho tất cả các blockchain
  */
-const blockchainEndpoints: Record<BlockchainType, ApiEndpoint[]> = {
+export const blockchainEndpoints: Record<BlockchainType, ApiEndpoint[]> = {
   'BTC': [
     // Public API (không cần API key)
     {
@@ -290,6 +290,58 @@ const blockchainEndpoints: Record<BlockchainType, ApiEndpoint[]> = {
       type: 'public',
       url: '',
       formatUrl: (address) => `https://sochain.com/api/v2/get_address_balance/DOGE/${address}`,
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      needsApiKey: false,
+      callCount: 0
+    },
+    // Thêm các RPC Public cho Dogecoin
+    {
+      name: 'DogeChain',
+      type: 'public',
+      url: '',
+      formatUrl: (address) => `https://dogechain.info/api/v1/address/balance/${address}`,
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      needsApiKey: false,
+      callCount: 0
+    },
+    {
+      name: 'BlockCypher DOGE',
+      type: 'public',
+      url: '',
+      formatUrl: (address) => `https://api.blockcypher.com/v1/doge/main/addrs/${address}/balance`,
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      needsApiKey: false,
+      callCount: 0
+    },
+    {
+      name: 'Chain.so',
+      type: 'public',
+      url: '',
+      formatUrl: (address) => `https://chain.so/api/v2/get_address_balance/DOGE/${address}`,
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      needsApiKey: false,
+      callCount: 0
+    },
+    // DOGE RPC Servers
+    {
+      name: 'DOGE-RPC-1',
+      type: 'public',
+      url: 'https://dogecoin.tokenview.io/api/address/tokenbalance/doge/',
+      formatUrl: (address) => `https://dogecoin.tokenview.io/api/address/tokenbalance/doge/${address}`,
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      needsApiKey: false,
+      callCount: 0
+    },
+    {
+      name: 'DOGE-RPC-2',
+      type: 'public',
+      url: '',
+      formatUrl: (address) => `https://api.blockindex.net/api/dogecoin/address/${address}`,
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
       needsApiKey: false,
