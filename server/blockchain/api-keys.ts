@@ -229,7 +229,7 @@ export function getApiEndpoint(blockchain: BlockchainType, address?: string): st
       return `https://api.helius.xyz/v0/addresses/${address}/balances?api-key=${getApiKey(blockchain)}`;
       
     case 'DOGE':
-      return `https://rest.cryptoapis.io/v2/blockchain-data/dogecoin/mainnet/addresses/${address}/balance?context=CryptoWalletChecker`;
+      return `https://rest.cryptoapis.io/blockchain-data/doge/mainnet/addresses/${address}/balance?context=yourExampleString`;
       
     default:
       throw new Error(`Không hỗ trợ blockchain: ${blockchain}`);
@@ -246,9 +246,7 @@ export function getApiHeaders(blockchain: BlockchainType): Record<string, string
     case 'DOGE':
       return {
         'Content-Type': 'application/json',
-        'X-API-Key': getApiKey(blockchain),
-        'Accept': 'application/json',
-        'Context': 'CryptoWalletChecker' // Context là bắt buộc cho CryptoAPIs.io
+        'X-API-Key': getApiKey(blockchain)
       };
       
     case 'BTC':
