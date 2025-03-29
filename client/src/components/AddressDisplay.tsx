@@ -19,9 +19,9 @@ export function AddressDisplay({ addresses }: AddressDisplayProps) {
   });
   
   return (
-    <Card className="min-h-[300px]">
+    <Card className="h-[400px] overflow-auto">
       <CardContent className="pt-2">
-        <div className="grid gap-2">
+        <div className="grid h-full gap-2">
           {allBlockchains.map((blockchain) => {
             const Icon = getBlockchainIcon(blockchain);
             const colorClass = getBlockchainColor(blockchain);
@@ -36,7 +36,7 @@ export function AddressDisplay({ addresses }: AddressDisplayProps) {
               return (
                 <div 
                   key={`${blockchain}`}
-                  className="border rounded-md p-2 min-h-[30px]"
+                  className="border rounded-md p-2 h-[120px]"
                 >
                   <div className="flex items-center space-x-2 mb-1">
                     <Icon className={`h-4 w-4 ${colorClass}`} />
@@ -56,7 +56,7 @@ export function AddressDisplay({ addresses }: AddressDisplayProps) {
                           <div className="flex items-center min-w-[100px]">
                             <span className="text-xs font-medium">{addressType}:</span>
                           </div>
-                          <div className="p-1 bg-muted rounded-md flex-1 overflow-hidden min-h-[28px]">
+                          <div className="p-1 bg-muted rounded-md flex-1 overflow-hidden min-h-[28px] max-w-[250px]">
                             {address ? (
                               <code className="text-xs font-mono w-full inline-block truncate">
                                 {address}
@@ -79,7 +79,7 @@ export function AddressDisplay({ addresses }: AddressDisplayProps) {
             return (
               <div 
                 key={`${blockchain}`}
-                className="border rounded-md p-2 min-h-[30px]"
+                className="border rounded-md p-2 h-[45px]"
               >
                 <div className="flex items-center">
                   <div className="flex items-center min-w-[100px] mr-2">
@@ -87,7 +87,7 @@ export function AddressDisplay({ addresses }: AddressDisplayProps) {
                     <span className="font-medium">{blockchainName}</span>
                   </div>
                   
-                  <div className="p-1 bg-muted rounded-md flex-1 overflow-hidden min-h-[28px]">
+                  <div className="p-1 bg-muted rounded-md flex-1 overflow-hidden min-h-[28px] max-w-[250px]">
                     {walletAddress?.addresses[0] ? (
                       <code className="text-xs font-mono w-full inline-block truncate">
                         {walletAddress.addresses[0]}

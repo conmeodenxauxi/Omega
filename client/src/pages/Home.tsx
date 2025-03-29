@@ -133,7 +133,7 @@ export default function Home() {
       </div>
 
       {/* Address Display */}
-      <div className="mb-6 p-4 bg-gray-100 rounded-md min-h-[400px]">
+      <div className="mb-6 p-4 bg-gray-100 rounded-md min-h-[400px] max-w-[600px] mx-auto">
         <h2 className="font-medium mb-2">Địa chỉ ví đang kiểm tra:</h2>
         <AddressDisplay addresses={currentAddresses} />
       </div>
