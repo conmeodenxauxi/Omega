@@ -342,71 +342,65 @@ const getDOGEBalance = async (address: string): Promise<BalanceResponse> => {
     try {
       const apiKey = getApiKey('DOGE', 'cryptoapis');
       
-      // Thử với hai cấu trúc URL khác nhau - có thể một trong hai sẽ hoạt động
-      const cryptoApiUrl1 = `https://rest.cryptoapis.io/wallet-as-a-service/wallets/doge/${address}/addresses/details?context=yourExampleString`;
-      const cryptoApiUrl2 = `https://rest.cryptoapis.io/blockchain-data/dogecoin/mainnet/addresses/${address}`;
+      // Sử dụng URL từ api-keys.ts
+      const cryptoApisUrl = getApiEndpoint('DOGE', address);
+      console.log(`Calling CryptoAPIs.io with URL: ${cryptoApisUrl}`);
       
       // Thêm timeout cho request
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 giây timeout
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // Tăng timeout lên 10 giây
       
-      console.log(`Calling CryptoAPIs.io with URL: ${cryptoApiUrl1}`);
       try {
-        const response1 = await fetch(cryptoApiUrl1, {
+        const cryptoApisResponse = await fetch(cryptoApisUrl, {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': apiKey
-          },
+          headers: getApiHeaders('DOGE'),
           signal: controller.signal
         });
         
-        if (response1.ok) {
-          const data1 = await response1.json();
-          console.log('CryptoAPIs.io URL1 response:', JSON.stringify(data1).substring(0, 300) + '...');
-          
-          // Xử lý dữ liệu nếu có định dạng phù hợp
-          if (data1 && data1.data) {
-            // Tìm trường chứa số dư
-            return { success: true, balance: "0" }; // Cập nhật logic xử lý khi biết cấu trúc phản hồi chính xác
-          }
-        } else {
-          console.log(`CryptoAPIs.io URL1 failed with status: ${response1.status}`);
-        }
-      } catch (err: any) {
-        console.log(`Error with CryptoAPIs.io URL1: ${err.message}`);
-      }
-      
-      // Nếu URL đầu tiên thất bại, thử URL thứ hai
-      console.log(`Calling CryptoAPIs.io with alternative URL: ${cryptoApiUrl2}`);
-      try {
-        const response2 = await fetch(cryptoApiUrl2, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': apiKey
-          },
-          signal: controller.signal
-        });
+        clearTimeout(timeoutId);
         
-        if (response2.ok) {
-          const data2 = await response2.json();
-          console.log('CryptoAPIs.io URL2 response:', JSON.stringify(data2).substring(0, 300) + '...');
+        if (!cryptoApisResponse.ok) {
+          console.log(`CryptoAPIs.io failed with status: ${cryptoApisResponse.status}`);
+          const errorText = await cryptoApisResponse.text();
+          console.log('Error response:', errorText.substring(0, 200));
+          return { success: false, balance: '0', error: `API error: ${cryptoApisResponse.status}` };
+        }
+        
+        const cryptoApisData = await cryptoApisResponse.json();
+        console.log('CryptoAPIs.io response structure:', Object.keys(cryptoApisData).join(', '));
+        
+        if (cryptoApisData && cryptoApisData.data) {
+          console.log('CryptoAPIs.io data structure:', Object.keys(cryptoApisData.data).join(', '));
           
-          // Xử lý dữ liệu nếu có định dạng phù hợp
-          if (data2 && data2.data) {
-            // Tìm trường chứa số dư
-            return { success: true, balance: "0" }; // Cập nhật logic xử lý khi biết cấu trúc phản hồi chính xác
+          // Kiểm tra cấu trúc JSON để tìm field chứa balance
+          if (cryptoApisData.data.item && cryptoApisData.data.item.confirmedBalance) {
+            // Format 1: { data: { item: { confirmedBalance: { amount, unit } } } }
+            console.log('Found balance in format 1');
+            const balance = cryptoApisData.data.item.confirmedBalance.amount;
+            return { success: true, balance: balance.toString() };
+          } 
+          else if (cryptoApisData.data.balance) {
+            // Format 2: { data: { balance: "xxx" } }
+            console.log('Found balance in format 2');
+            return { success: true, balance: cryptoApisData.data.balance.toString() };
+          }
+          else if (cryptoApisData.data.confirmed) {
+            // Format 3: { data: { confirmed: "xxx" } }
+            console.log('Found balance in format 3');
+            return { success: true, balance: cryptoApisData.data.confirmed.toString() };
+          }
+          else {
+            // In ra toàn bộ cấu trúc dữ liệu để debug
+            console.log('Full response:', JSON.stringify(cryptoApisData).substring(0, 500));
+            return { success: false, balance: '0', error: 'Unknown data format' };
           }
         } else {
-          console.log(`CryptoAPIs.io URL2 failed with status: ${response2.status}`);
+          console.log('CryptoAPIs.io response has no data field:', JSON.stringify(cryptoApisData).substring(0, 300));
         }
       } catch (err: any) {
-        console.log(`Error with CryptoAPIs.io URL2: ${err.message}`);
+        clearTimeout(timeoutId);
+        console.log(`Error with CryptoAPIs.io: ${err.message}`);
       }
-      
-      clearTimeout(timeoutId);
-      console.log('All CryptoAPIs.io attempts failed');
       
     } catch (error: any) {
       console.error(`CryptoAPIs.io error: ${error.message}`);

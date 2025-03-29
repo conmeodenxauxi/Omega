@@ -229,7 +229,8 @@ export function getApiEndpoint(blockchain: BlockchainType, address?: string): st
       return `https://api.helius.xyz/v0/addresses/${address}/balances?api-key=${getApiKey(blockchain)}`;
       
     case 'DOGE':
-      return `https://rest.cryptoapis.io/addresses-latest/utxo/dogecoin/mainnet/${address}/balance`;
+      // Sử dụng định dạng URL mới tương tự như Ethereum
+      return `https://rest.cryptoapis.io/blockchain-data/dogecoin/mainnet/addresses/${address}/balance`;
       
     default:
       throw new Error(`Không hỗ trợ blockchain: ${blockchain}`);
