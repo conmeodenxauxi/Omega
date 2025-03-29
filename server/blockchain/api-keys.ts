@@ -108,39 +108,28 @@ const apiKeys: Record<string, string[]> = {
     'c9fe92c4-6d56-4f0c-8c3f-99ccf9685d7c'
   ],
   
-  // Dogecoin API Keys (Cryptoapis.io)
-  'DOGE_CRYPTOAPIS': [
-    '2cc480292ad73e22db79168c3981fc1063640846',
-    'f325c94f37645a29b031e9d03fd7f17e775ce6b5',
-    'afccc4af98acc32ec64deec50674741a64eb8daf',
-    '07b9c6ed0579e59735560835bc8fc5db9966edfd',
-    'accc04da9b1d39a2f9b5dc1ff64a2e8409225c28',
-    '9054fc47b1e99099821c8e159ff83f5137544b59',
-    'df39de20267a0514f1a9afdabfd8568ab38eda70',
-    '39d6dbf7acbd9775ffc455726d494b8085dcfbb1',
-    '9b92bc908818b6d89da8b171b0c68d9382970775',
-    'ec39e5960fb38091a2458f21314fba3c8dc6981d',
-    '398346886406923578e0d25625870fd7732947b6',
-    'b4a1294319c6df5ee99f0c2b27841b0d10ed7073',
-    '356f6e5e8c8164e8014b89776944fc34e7d6c6a3',
-    '0255a022afc8f069f578bc18814e4da7eed8d257',
-    '1922ebdb34e326f16399f4f1bca447e887133c66',
-    'fe1b3b78a71d2e6e91945391b6e63fb150868154',
-    '6d65f6db8c9b95c879d48dd485a37e402b7b1cf2',
-    '76e66decd99da2a5b7990105442cfe1e38791320',
-    'b98522605fb9f6b54efd6af0ba88cdffc58a4875',
-    'dfd67ca24de0e52dfeae91844731a183ec5ab253',
-    '488e2503cedaa795de0f5fcbb51e856ddb9c0f5e',
-    '21a93c4767da395e2d2aef3252bb9b47533d3c5d',
-    'ee0638974c33442ade72a1e3b95c65da7aa04f81',
-    '4c1d0c38ba5071278e41f5b4b3b38b2f3035746c',
-    '450bed527dc728e5ea7c9afe3753d7eaf4c810a8',
-    'c20c061c10a657dbb165f174908f55c6d7ff141e',
-    '19ddcc0c7f60d8991aa23ac16624ba954832d0c2',
-    'bf5533bfc7e1a54f884dc7ab139884be885aed08',
-    '795d5d2924e3ac26d4c24aa90263d575ad583778',
-    '535de95dcf44dd2c2f62ad82d708202aa320c400',
-    'bb697766f501dc61e081e975524eb5dac705b522'
+  // Dogecoin API Keys (Tatum.io)
+  'DOGE_TATUM': [
+    't-67e87aff5953fae328c284a2-00409cd135ad4247badffb32',
+    't-67e879369c386072971b6f11-2570f79dc58f410bacdfcfd6',
+    't-67e87c459c386072971b6f1b-8177400282744943842bc637',
+    't-67e87ceb832893ddeb2bfb85-f0e675bd2a5e4d729fa02052',
+    't-67e87d41832893ddeb2bfb8d-87242e2dff6a4a9aa4864197',
+    't-67e87def5953fae328c284ae-a0f9aced6e134936a9ea1f33',
+    't-67e87ed25953fae328c284be-eb439fa5f5724331a5142880',
+    't-67e87eb79c386072971b6f25-48419e24b4a1446a8877e9b2',
+    't-67e87f8b832893ddeb2bfb99-afff5832b65d431aa8ded26c',
+    't-67e87fad9c386072971b6f33-5a969661d2e340e992459d9f',
+    't-67e8804e5953fae328c284c9-0952ed23a0ae4804afb3e95d',
+    't-67e880725953fae328c284d0-0bfda87435944ba0a238df87',
+    't-67e881525953fae328c284da-267ac23e0f56486b94619a60',
+    't-67e881379c386072971b6f3c-d96a8026e14e40b1911baa77',
+    't-67e8827b5953fae328c284e2-0b5d95a69912480aa06d7c1a',
+    't-67e88227832893ddeb2bfba8-aa301b8f7c554271a8eebc10',
+    't-67e88349832893ddeb2bfbb4-1946d051f1084b5ebcbf6927',
+    't-67e883175953fae328c284e9-464883db18be4955a60a683f',
+    't-67e88422832893ddeb2bfbbd-c890492b88b0459fbc51bf16',
+    't-67e884e8832893ddeb2bfbc6-3c30b4a88f4b4d00b57a327b'
   ]
 };
 
@@ -274,36 +263,15 @@ const blockchainEndpoints: Record<BlockchainType, ApiEndpoint[]> = {
     }
   ],
   'DOGE': [
-    // Public APIs
+    // Tatum.io API
     {
-      name: 'Blockchair',
-      type: 'public',
-      url: '',
-      formatUrl: (address) => `https://api.blockchair.com/dogecoin/dashboards/address/${address}`,
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-      needsApiKey: false,
-      callCount: 0
-    },
-    {
-      name: 'SoChain',
-      type: 'public',
-      url: '',
-      formatUrl: (address) => `https://sochain.com/api/v2/get_address_balance/DOGE/${address}`,
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-      needsApiKey: false,
-      callCount: 0
-    },
-    // CryptoAPIs
-    {
-      name: 'CryptoAPIs',
+      name: 'Tatum',
       type: 'private',
       url: '',
-      formatUrl: (address) => `https://rest.cryptoapis.io/blockchain-data/doge/mainnet/addresses/${address}/balance?context=yourExampleString`,
+      formatUrl: (address) => `https://api.tatum.io/v3/dogecoin/address/balance/${address}`,
       formatHeaders: (apiKey) => ({
         'Content-Type': 'application/json',
-        'X-API-Key': apiKey || ''
+        'x-api-key': apiKey || ''
       }),
       method: 'GET',
       needsApiKey: true,
@@ -393,8 +361,8 @@ export function getApiKey(blockchain: BlockchainType, endpointName?: string): st
     case 'Helius':
       provider = 'SOL_HELIUS';
       break;
-    case 'CryptoAPIs':
-      provider = 'DOGE_CRYPTOAPIS';
+    case 'Tatum':
+      provider = 'DOGE_TATUM';
       break;
     default:
       // Endpoint công khai không cần API key
@@ -483,8 +451,8 @@ export function getAllApiConfigs(blockchain: BlockchainType, address: string): A
         case 'Helius':
           apiKey = getNextApiKey('SOL_HELIUS');
           break;
-        case 'CryptoAPIs':
-          apiKey = getNextApiKey('DOGE_CRYPTOAPIS');
+        case 'Tatum':
+          apiKey = getNextApiKey('DOGE_TATUM');
           break;
       }
     }

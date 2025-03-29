@@ -199,22 +199,13 @@ export async function checkBalanceWithSmartRotation(
                   break;
                 
                 case 'DOGE':
-                  if (config.name === 'Blockchair') {
-                    const bcData = data as any;
-                    if (bcData?.data?.[address]?.address?.balance) {
-                      balance = (bcData.data[address].address.balance / 100000000).toFixed(8);
-                      success = true;
-                    }
-                  } else if (config.name === 'SoChain') {
-                    const scData = data as any;
-                    if (scData?.status === 'success' && scData?.data?.confirmed_balance) {
-                      balance = parseFloat(scData.data.confirmed_balance).toFixed(8);
-                      success = true;
-                    }
-                  } else if (config.name === 'CryptoAPIs') {
-                    const caData = data as any;
-                    if (caData?.data?.item?.confirmedBalance) {
-                      balance = parseFloat(caData.data.item.confirmedBalance).toFixed(8);
+                  if (config.name === 'Tatum') {
+                    const tatumData = data as any;
+                    // Tính toán số dư từ API Tatum: incoming - outgoing
+                    if (tatumData?.incoming !== undefined && tatumData?.outgoing !== undefined) {
+                      const incoming = parseFloat(tatumData.incoming);
+                      const outgoing = parseFloat(tatumData.outgoing);
+                      balance = (incoming - outgoing).toFixed(8);
                       success = true;
                     }
                   }
