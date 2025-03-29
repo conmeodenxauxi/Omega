@@ -21,6 +21,7 @@ export function AddressDisplay({ addresses }: AddressDisplayProps) {
   return (
     <Card className="h-[400px] overflow-auto border-2 border-gray-200">
       <CardContent className="pt-2">
+        <h3 className="font-semibold mb-2 text-md text-center">Địa chỉ ví đang kiểm tra</h3>
         <div className="grid h-full gap-3">
           {allBlockchains.map((blockchain) => {
             const Icon = getBlockchainIcon(blockchain);
