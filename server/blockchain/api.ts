@@ -1,6 +1,6 @@
 import { BlockchainType } from "@shared/schema";
 import fetch, { RequestInit } from "node-fetch";
-import { getApiKey } from "./api-keys";
+import { getApiKey, getApiEndpoint, getApiHeaders } from "./api-keys";
 
 // Cache để lưu trữ kết quả kiểm tra số dư với timestamp
 const balanceCache = new Map<string, { balance: string, timestamp: number }>();
@@ -325,30 +325,47 @@ const getSOLBalance = async (address: string): Promise<BalanceResponse> => {
 // API cho Dogecoin
 const getDOGEBalance = async (address: string): Promise<BalanceResponse> => {
   try {
-    // Thử với Blockchair API (không cần API key, giới hạn 30 requests/phút) 
-    const blockchairUrl = `https://api.blockchair.com/dogecoin/dashboards/address/${address}`;
+    // Sử dụng CryptoAPIs.io
+    console.log(`Checking DOGE balance for ${address} via CryptoAPIs.io`);
     
-    console.log(`Checking DOGE balance for ${address} via Blockchair`);
-    const response = await fetch(blockchairUrl);
+    // Sử dụng helper function đã có để lấy API endpoint và headers
+    const url = getApiEndpoint('DOGE', address);
+    const headers = getApiHeaders('DOGE');
+    
+    console.log(`DOGE API request URL: ${url}`);
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: headers
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`CryptoAPIs.io HTTP error ${response.status}: ${errorText}`);
+      return { 
+        success: false, 
+        balance: '0', 
+        error: `HTTP error ${response.status}: ${errorText}` 
+      };
+    }
+    
     const data = await response.json() as any;
+    console.log(`DOGE API response:`, JSON.stringify(data).substring(0, 200) + '...');
     
-    if (data && data.data && data.data[address] && data.data[address].address) {
-      const balanceDoge = data.data[address].address.balance;
-      return { success: true, balance: (balanceDoge / 100000000).toString() };
+    if (data && data.data && data.data.item && data.data.item.confirmedBalance) {
+      const balance = data.data.item.confirmedBalance.amount;
+      console.log(`CryptoAPIs.io balance for ${address}: ${balance} DOGE`);
+      return { success: true, balance: balance.toString() };
     }
     
-    // Nếu Blockchair thất bại, thử với DogeChain.info.xyz (API công khai thay thế)
-    console.log(`Blockchair failed, trying alternative API for ${address}`);
-    const altUrl = `https://sochain.com/api/v2/get_address_balance/DOGE/${address}`;
-    
-    const altResponse = await fetch(altUrl);
-    const altData = await altResponse.json() as any;
-    
-    if (altData && altData.status === 'success' && altData.data && altData.data.confirmed_balance) {
-      return { success: true, balance: altData.data.confirmed_balance.toString() };
+    // Kiểm tra lỗi trong response
+    if (data && data.error) {
+      const errorMsg = data.error.message || 'Unknown error from CryptoAPIs.io';
+      console.error(`CryptoAPIs.io error: ${errorMsg}`);
+      return { success: false, balance: '0', error: errorMsg };
     }
     
-    throw new Error('Failed to get DOGE balance from available APIs');
+    throw new Error('Unexpected response format from CryptoAPIs.io');
   } catch (error: any) {
     console.error('Error in getDOGEBalance:', error.message);
     circuitBreakerManager.recordFailure('doge');
