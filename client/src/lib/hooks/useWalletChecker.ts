@@ -33,6 +33,9 @@ export function useWalletChecker({
   // Lưu trữ trạng thái isSearching vào ref để có thể truy cập giá trị mới nhất bên trong closure
   const isSearchingRef = useRef<boolean>(false);
   
+  // Ngưỡng số lượng ví đã kiểm tra để tự động reset
+  const AUTO_RESET_THRESHOLD = 35; // Đổi từ 7000 xuống 35 để dễ kiểm tra (sẽ đổi lại thành 7000 sau)
+  
   // Reset statistics and clear results
   const resetStats = useCallback(() => {
     setCurrentAddresses([]);
@@ -174,10 +177,18 @@ export function useWalletChecker({
           const { results } = await response.json();
           
           // Cập nhật số lượng địa chỉ đã kiểm tra
-          setStats(prev => ({
-            ...prev,
-            checked: prev.checked + allAddresses.length
-          }));
+          let shouldAutoReset = false;
+          
+          setStats(prev => {
+            const newChecked = prev.checked + allAddresses.length;
+            // Kiểm tra xem có cần tự động reset không
+            shouldAutoReset = newChecked >= AUTO_RESET_THRESHOLD;
+            
+            return {
+              ...prev,
+              checked: newChecked
+            };
+          });
           
           // Lọc các địa chỉ có số dư
           const addressesWithBalance = results.filter((result: any) => result.hasBalance);
@@ -201,10 +212,34 @@ export function useWalletChecker({
               withBalance: prev.withBalance + newWallets.length
             }));
             
-            // Nếu chế độ tự động reset, reset lại thống kê
+            // Nếu có địa chỉ với số dư và autoReset được bật, reset thống kê
             if (autoReset) {
               resetStats();
             }
+          }
+          
+          // Kiểm tra nếu đã đạt đến ngưỡng tự động reset
+          if (shouldAutoReset) {
+            console.log(`Đã đạt đến ngưỡng ${AUTO_RESET_THRESHOLD} ví đã kiểm tra. Tự động reset và khởi động lại sau 3 giây.`);
+            
+            // Tạm dừng tìm kiếm
+            setIsSearching(false);
+            isSearchingRef.current = false;
+            
+            // Reset thống kê (nhưng không xóa danh sách ví có số dư)
+            setCurrentAddresses([]);
+            setStats({
+              created: 0,
+              checked: 0,
+              withBalance: 0
+            });
+            
+            // Bắt đầu lại sau 3 giây
+            setTimeout(() => {
+              console.log("Tự động bắt đầu lại sau khi reset.");
+              setIsSearching(true);
+              isSearchingRef.current = true;
+            }, 3000);
           }
         }
       } catch (error) {
