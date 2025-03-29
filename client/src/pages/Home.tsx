@@ -133,7 +133,7 @@ export default function Home() {
       </div>
 
       {/* Address Display */}
-      <div className="mb-6 p-4 bg-gray-100 rounded-md min-h-[400px] max-w-[600px] mx-auto">
+      <div className="mb-6 p-4 bg-gray-100 rounded-md min-h-[400px] max-w-[600px] mx-auto border-2 border-gray-200">
         <h2 className="font-medium mb-2">Địa chỉ ví đang kiểm tra:</h2>
         <AddressDisplay addresses={currentAddresses} />
       </div>
@@ -143,7 +143,7 @@ export default function Home() {
 
       {/* Results Table */}
       <div className="mb-8">
-        <div className="bg-gray-100 rounded-md p-4">
+        <div className="bg-gray-100 rounded-md p-4 border-2 border-gray-200">
           <div className="flex justify-between items-center mb-2">
             <h3 className="font-medium text-base">Ví Web3 Có Số Dư Tìm Thấy</h3>
             {walletsWithBalance.length > 0 && (

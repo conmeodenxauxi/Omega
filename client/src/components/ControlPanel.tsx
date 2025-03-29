@@ -26,7 +26,7 @@ export function ControlPanel({
   walletsCount = 0
 }: ControlPanelProps) {
   return (
-    <Card className="mb-4">
+    <Card className="mb-4 border-2 border-gray-200">
       <CardHeader className="pb-0 py-2">
         <CardTitle className="text-base font-medium">Kiểm tra tự động</CardTitle>
       </CardHeader>

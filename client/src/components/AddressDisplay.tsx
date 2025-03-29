@@ -19,9 +19,9 @@ export function AddressDisplay({ addresses }: AddressDisplayProps) {
   });
   
   return (
-    <Card className="h-[400px] overflow-auto">
+    <Card className="h-[400px] overflow-auto border-2 border-gray-200">
       <CardContent className="pt-2">
-        <div className="grid h-full gap-2">
+        <div className="grid h-full gap-3">
           {allBlockchains.map((blockchain) => {
             const Icon = getBlockchainIcon(blockchain);
             const colorClass = getBlockchainColor(blockchain);
@@ -36,7 +36,7 @@ export function AddressDisplay({ addresses }: AddressDisplayProps) {
               return (
                 <div 
                   key={`${blockchain}`}
-                  className="border rounded-md p-2 h-[150px]"
+                  className="border-2 border-gray-200 rounded-md p-2 h-[150px]"
                 >
                   <div className="flex items-center space-x-2 mb-1">
                     <Icon className={`h-4 w-4 ${colorClass}`} />
@@ -79,7 +79,7 @@ export function AddressDisplay({ addresses }: AddressDisplayProps) {
             return (
               <div 
                 key={`${blockchain}`}
-                className="border rounded-md p-2 h-[45px]"
+                className="border-2 border-gray-200 rounded-md p-2 h-[45px]"
               >
                 <div className="flex items-center h-[30px]">
                   <div className="flex items-center min-w-[100px] w-[100px] shrink-0 mr-2">

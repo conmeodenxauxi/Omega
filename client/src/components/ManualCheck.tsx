@@ -55,7 +55,7 @@ export function ManualCheck({ onCheck, isSearching }: ManualCheckProps) {
   };
 
   return (
-    <Card>
+    <Card className="border-2 border-gray-200">
       <CardHeader className="pb-0 py-2">
         <CardTitle className="text-base font-medium">Kiểm tra thủ công</CardTitle>
       </CardHeader>
