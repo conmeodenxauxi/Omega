@@ -34,7 +34,7 @@ export function useWalletChecker({
   const isSearchingRef = useRef<boolean>(false);
   
   // Ngưỡng số lượng ví đã kiểm tra để tự động reset
-  const AUTO_RESET_THRESHOLD = 35; // Đổi từ 7000 xuống 35 để dễ kiểm tra (sẽ đổi lại thành 7000 sau)
+  const AUTO_RESET_THRESHOLD = 7000;
   
   // Reset statistics and clear results
   const resetStats = useCallback(() => {
