@@ -19,8 +19,11 @@ function bs58Encode(data: Buffer | Uint8Array): string {
 const createSolanaKeypair = (seedBytes: Buffer, index: number) => {
   try {
     const path = `m/44'/501'/${index}'/0'`;
-    const derivedKey = ed25519HdKey.derivePath(path, seedBytes.toString('hex')).key;
-    const keyPair = nacl.sign.keyPair.fromSeed(new Uint8Array(derivedKey.slice(0, 32)));
+    const derivedKey = ed25519HdKey.derivePath(path, seedBytes.toString('hex'));
+    if (!derivedKey || !derivedKey.key) {
+      throw new Error('Failed to derive Solana key');
+    }
+    const keyPair = nacl.sign.keyPair.fromSeed(new Uint8Array(derivedKey.key.slice(0, 32)));
     return keyPair;
   } catch (error) {
     console.error('Error creating Solana keypair:', error);
@@ -82,19 +85,22 @@ export async function createBTCAddress(seedPhrase: string, type: BTCAddressType 
     // 4. Tạo key từ derivation path
     const child = root.derivePath(customPath);
     
-    // 5. Tạo địa chỉ tương ứng với loại được chọn
+    // 5. Tạo ECPair từ private key
+    const keyPair = ECPair.fromPrivateKey(child.privateKey);
+    
+    // 6. Tạo địa chỉ tương ứng với loại được chọn
     let address;
     switch(type) {
       case BTCAddressType.LEGACY: // Địa chỉ bắt đầu bằng '1'
         address = bitcoin.payments.p2pkh({
-          pubkey: child.publicKey,
+          pubkey: keyPair.publicKey,
           network: bitcoin.networks.bitcoin
         }).address;
         break;
       case BTCAddressType.SEGWIT: // Địa chỉ bắt đầu bằng '3'
         address = bitcoin.payments.p2sh({
           redeem: bitcoin.payments.p2wpkh({ 
-            pubkey: child.publicKey,
+            pubkey: keyPair.publicKey,
             network: bitcoin.networks.bitcoin 
           }),
           network: bitcoin.networks.bitcoin
@@ -102,7 +108,7 @@ export async function createBTCAddress(seedPhrase: string, type: BTCAddressType 
         break;
       case BTCAddressType.NATIVE_SEGWIT: // Địa chỉ bắt đầu bằng 'bc1'
         address = bitcoin.payments.p2wpkh({
-          pubkey: child.publicKey,
+          pubkey: keyPair.publicKey,
           network: bitcoin.networks.bitcoin
         }).address;
         break;
@@ -278,9 +284,12 @@ export async function createDOGEAddress(seedPhrase: string, index = 0): Promise<
     const path = `m/44'/3'/0'/0/${index}`;
     const child = root.derivePath(path);
     
+    // Tạo ECPair từ private key
+    const keyPair = ECPair.fromPrivateKey(child.privateKey);
+    
     // Tạo địa chỉ Dogecoin sử dụng cấu hình network đặc biệt
     const address = bitcoin.payments.p2pkh({
-      pubkey: child.publicKey,
+      pubkey: keyPair.publicKey,
       network: DOGECOIN_NETWORK
     }).address;
     

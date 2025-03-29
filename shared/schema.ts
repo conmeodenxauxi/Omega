@@ -76,3 +76,10 @@ export interface WalletWithBalance {
   balance: string;
   seedPhrase: string;
 }
+
+// Định nghĩa kiểu dữ liệu cho thống kê kiểm tra ví
+export interface WalletCheckStats {
+  created: number;
+  checked: number;
+  withBalance: number;
+}
