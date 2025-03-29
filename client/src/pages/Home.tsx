@@ -154,13 +154,9 @@ export default function Home() {
             </Button>
           )}
         </div>
-        {walletsWithBalance.length > 0 ? (
-          <ResultsTable
-            walletsWithBalance={walletsWithBalance}
-          />
-        ) : (
-          <p className="text-center text-gray-500 py-4">Chưa tìm thấy ví nào có số dư.</p>
-        )}
+        <ResultsTable
+          walletsWithBalance={walletsWithBalance}
+        />
       </div>
     </div>
   );
