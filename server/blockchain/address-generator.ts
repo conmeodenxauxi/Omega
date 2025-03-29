@@ -105,6 +105,9 @@ export async function createBTCAddress(seedPhrase: string, type: BTCAddressType 
     const child = root.derivePath(customPath);
     
     // 5. Tạo ECPair từ private key
+    if (!child.privateKey) {
+      throw new Error('Failed to derive private key for address');
+    }
     const keyPair = ECPair.fromPrivateKey(child.privateKey);
     
     // 6. Tạo địa chỉ tương ứng với loại được chọn

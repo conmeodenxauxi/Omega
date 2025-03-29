@@ -29,7 +29,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate addresses
       const addresses = await addressGenerator.generateAddressesFromSeedPhrase(
         seedPhrase,
-        blockchains
+        blockchains,
+        0, // batchNumber
+        3 // DEFAULT_BASE_SIZE
       );
 
       return res.json({ addresses });

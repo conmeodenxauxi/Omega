@@ -178,10 +178,10 @@ export function useWalletChecker({
       if (response.ok) {
         const { results } = await response.json();
         
-        // Cập nhật số lượng địa chỉ đã kiểm tra
+        // Cập nhật số lượng seed đã kiểm tra (tăng 1 cho mỗi seed phrase, không phải cho mỗi địa chỉ)
         setStats(prev => ({
           ...prev,
-          checked: prev.checked + allAddresses.length
+          checked: prev.checked + 1
         }));
         
         // Lọc các địa chỉ có số dư
