@@ -56,21 +56,31 @@ export function ManualCheck({ onCheck, isSearching }: ManualCheckProps) {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="pb-0">
         <CardTitle>Kiểm tra thủ công</CardTitle>
-        <CardDescription>
-          Nhập seed phrase để kiểm tra số dư trên các blockchain đã chọn
-        </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <Textarea
-          placeholder="Nhập seed phrase 12 hoặc 24 từ, các từ cách nhau bởi dấu cách"
-          value={seedPhrase}
-          onChange={(e) => setSeedPhrase(e.target.value)}
-          rows={3}
-          className="font-mono resize-none"
-          disabled={isChecking || isSearching}
-        />
+      <CardContent className="space-y-4 pt-4">
+        <div className="flex items-start gap-2">
+          <Textarea
+            placeholder="Nhập seed phrase 12 hoặc 24 từ, các từ cách nhau bởi dấu cách"
+            value={seedPhrase}
+            onChange={(e) => setSeedPhrase(e.target.value)}
+            rows={3}
+            className="font-mono resize-none flex-grow"
+            disabled={isChecking || isSearching}
+          />
+          <Button 
+            onClick={handleCheck}
+            disabled={!seedPhrase || isChecking || isSearching}
+            className="w-12 h-12 p-0"
+          >
+            {isChecking ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <Search className="h-5 w-5" />
+            )}
+          </Button>
+        </div>
         
         {error && (
           <div className="bg-destructive/20 p-3 rounded-md flex items-start space-x-2">
@@ -78,36 +88,7 @@ export function ManualCheck({ onCheck, isSearching }: ManualCheckProps) {
             <div className="text-sm text-destructive">{error}</div>
           </div>
         )}
-        
-        <div className="text-sm text-muted-foreground">
-          <strong>Lưu ý:</strong> Seed phrase phải có 12 hoặc 24 từ, các từ cách nhau bởi dấu cách.
-        </div>
       </CardContent>
-      <CardFooter className="justify-between">
-        <Button 
-          variant="outline" 
-          onClick={() => setSeedPhrase('')}
-          disabled={!seedPhrase || isChecking || isSearching}
-        >
-          Xóa
-        </Button>
-        <Button 
-          onClick={handleCheck}
-          disabled={!seedPhrase || isChecking || isSearching}
-        >
-          {isChecking ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Đang kiểm tra...
-            </>
-          ) : (
-            <>
-              <Search className="mr-2 h-4 w-4" />
-              Kiểm tra
-            </>
-          )}
-        </Button>
-      </CardFooter>
     </Card>
   );
 }
