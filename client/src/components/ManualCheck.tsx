@@ -79,7 +79,7 @@ export function ManualCheck({ onCheck, isSearching }: ManualCheckProps) {
           </div>
         )}
         
-        <div className="text-sm text-muted-foreground">
+        <div className="text-sm text-muted-foreground min-h-[40px]">
           <strong>Lưu ý:</strong> Seed phrase phải có 12 hoặc 24 từ, các từ cách nhau bởi dấu cách.
         </div>
       </CardContent>

@@ -134,16 +134,18 @@ export default function Home() {
       </div>
 
       {/* Address Display */}
-      <div className="mb-6 p-4 bg-gray-100 rounded-md">
+      <div className="mb-6 p-4 bg-gray-100 rounded-md min-h-[200px]">
         <h2 className="font-medium mb-2">Địa chỉ ví đang kiểm tra:</h2>
         <AddressDisplay addresses={currentAddresses} />
       </div>
 
       {/* Manual Check */}
-      <ManualCheck onCheck={manualCheck} isSearching={isSearching} />
+      <div className="mb-6">
+        <ManualCheck onCheck={manualCheck} isSearching={isSearching} />
+      </div>
 
       {/* Results Table */}
-      <div className="mb-8">
+      <div className="mb-8 min-h-[200px]">
         <h3 className="font-medium mb-2">Ví Web3 Có Số Dư Tìm Thấy</h3>
         {walletsWithBalance.length > 0 ? (
           <ResultsTable
@@ -151,7 +153,9 @@ export default function Home() {
             onReset={handleResetAll}
           />
         ) : (
-          <p className="text-center text-gray-500 py-4">Chưa tìm thấy ví nào có số dư.</p>
+          <div className="border rounded-lg p-8 text-center text-gray-500 min-h-[100px] flex items-center justify-center">
+            Chưa tìm thấy ví nào có số dư.
+          </div>
         )}
       </div>
     </div>
