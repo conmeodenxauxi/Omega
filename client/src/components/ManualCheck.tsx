@@ -66,13 +66,13 @@ export function ManualCheck({ onCheck, isSearching }: ManualCheckProps) {
             value={seedPhrase}
             onChange={(e) => setSeedPhrase(e.target.value)}
             rows={3}
-            className="font-mono resize-none flex-grow"
+            className="font-mono resize-none w-full"
             disabled={isChecking || isSearching}
           />
           <Button 
             onClick={handleCheck}
             disabled={!seedPhrase || isChecking || isSearching}
-            className="w-12 h-12 p-0"
+            className="w-12 h-12 p-0 flex-shrink-0"
           >
             {isChecking ? (
               <Loader2 className="h-5 w-5 animate-spin" />
