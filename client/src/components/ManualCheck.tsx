@@ -7,7 +7,7 @@ import { Loader2, AlertCircle, Search } from 'lucide-react';
 import { seedPhraseSchema } from '@shared/schema';
 
 interface ManualCheckProps {
-  onCheck: (seedPhrase: string) => Promise<{ success: boolean; message: string }>;
+  onCheck: (seedPhrase: string) => Promise<{ success: boolean; message: string; hasBalance?: boolean }>;
   isSearching: boolean;
 }
 
@@ -34,7 +34,7 @@ export function ManualCheck({ onCheck, isSearching }: ManualCheckProps) {
       const result = await onCheck(seedPhrase);
       
       if (result.success) {
-        // Hiển thị thông báo thành công
+        // Hiển thị thông báo thành công với tiêu đề khác nhau dựa trên kết quả
         toast({
           title: 'Kiểm tra hoàn tất',
           description: result.message,
