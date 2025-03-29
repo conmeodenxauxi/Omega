@@ -115,15 +115,15 @@ export function getBlockchainIcon(blockchain: BlockchainType): LucideIcon {
 export function getBlockchainName(blockchain: BlockchainType): string {
   switch (blockchain) {
     case 'BTC':
-      return 'Bitcoin';
+      return 'BTC';
     case 'ETH':
-      return 'Ethereum';
+      return 'ETH';
     case 'BSC':
-      return 'Binance Smart Chain';
+      return 'BSC';
     case 'SOL':
-      return 'Solana';
+      return 'SOL';
     case 'DOGE':
-      return 'Dogecoin';
+      return 'DOGE';
     default:
       return 'Unknown';
   }

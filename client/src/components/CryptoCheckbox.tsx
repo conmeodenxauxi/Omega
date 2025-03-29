@@ -16,17 +16,17 @@ export function CryptoCheckbox({ blockchain, checked, onChange }: CryptoCheckbox
   const colorClass = getBlockchainColor(blockchain);
   
   return (
-    <div className="flex items-center space-x-3 rounded-lg border p-4 shadow-sm">
+    <div className="flex items-center space-x-2 rounded-lg border p-2 shadow-sm">
       <Checkbox 
         id={`crypto-${blockchain}`} 
         checked={checked} 
         onCheckedChange={onChange}
       />
-      <div className="flex items-center space-x-2">
-        <Icon className={`h-5 w-5 ${colorClass}`} />
+      <div className="flex items-center space-x-1">
+        <Icon className={`h-4 w-4 ${colorClass}`} />
         <Label 
           htmlFor={`crypto-${blockchain}`}
-          className="font-medium"
+          className="text-sm font-medium"
         >
           {name}
         </Label>
