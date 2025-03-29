@@ -137,7 +137,7 @@ const getBTCBalance = async (address: string): Promise<BalanceResponse> => {
       },
       // GetBlock.io API - Blockbook (REST)
       {
-        url: `https://go.getblock.io/${getApiKey('BTC', 'getblock')}/api/v2/address/${address}?details=basic`,
+        url: `https://btc.getblock.io/mainnet/blockbook/api/v2/address/${address}?api_key=${getApiKey('BTC', 'getblock')}`,
         headers: {
           'Content-Type': 'application/json'
         },
