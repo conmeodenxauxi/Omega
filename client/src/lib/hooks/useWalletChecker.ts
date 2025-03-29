@@ -174,10 +174,10 @@ export function useWalletChecker({
           
           setWalletsWithBalance(prev => [...prev, ...newWallets]);
           
-          // Cập nhật số lượng ví có số dư để phản ánh chính xác số lượng ví trong bảng
+          // Cập nhật số lượng ví có số dư
           setStats(prev => ({
             ...prev,
-            withBalance: (prev.withBalance + newWallets.length)
+            withBalance: prev.withBalance + newWallets.length
           }));
           
           // Nếu chế độ tự động reset, reset lại thống kê
