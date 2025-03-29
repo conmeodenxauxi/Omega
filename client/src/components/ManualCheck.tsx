@@ -56,23 +56,23 @@ export function ManualCheck({ onCheck, isSearching }: ManualCheckProps) {
 
   return (
     <Card>
-      <CardHeader className="pb-0">
-        <CardTitle>Kiểm tra thủ công</CardTitle>
+      <CardHeader className="pb-0 py-2">
+        <CardTitle className="text-base font-medium">Kiểm tra thủ công</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4 pt-4">
+      <CardContent className="space-y-2 pt-2">
         <div className="flex items-start gap-2">
           <Textarea
             placeholder="Nhập seed phrase 12 hoặc 24 từ, các từ cách nhau bởi dấu cách"
             value={seedPhrase}
             onChange={(e) => setSeedPhrase(e.target.value)}
-            rows={3}
-            className="font-mono resize-none w-full"
+            rows={2}
+            className="font-mono resize-none w-full text-xs"
             disabled={isChecking || isSearching}
           />
           <Button 
             onClick={handleCheck}
             disabled={!seedPhrase || isChecking || isSearching}
-            className="w-12 h-12 p-0 flex-shrink-0"
+            className="w-10 h-10 p-0 flex-shrink-0"
           >
             {isChecking ? (
               <Loader2 className="h-5 w-5 animate-spin" />
@@ -83,9 +83,9 @@ export function ManualCheck({ onCheck, isSearching }: ManualCheckProps) {
         </div>
         
         {error && (
-          <div className="bg-destructive/20 p-3 rounded-md flex items-start space-x-2">
-            <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
-            <div className="text-sm text-destructive">{error}</div>
+          <div className="bg-destructive/20 p-2 rounded-md flex items-start space-x-2">
+            <AlertCircle className="h-4 w-4 text-destructive mt-0.5" />
+            <div className="text-xs text-destructive">{error}</div>
           </div>
         )}
       </CardContent>
