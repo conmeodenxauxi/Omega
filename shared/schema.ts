@@ -52,21 +52,6 @@ export const seedPhraseSchema = z.string()
     {
       message: "Seed phrase must have 12 or 24 words",
     }
-  )
-  .refine(
-    (phrase) => {
-      // Kiểm tra tính hợp lệ theo chuẩn BIP39 bằng cách import bip39 từ server
-      try {
-        const bip39 = require('bip39');
-        return bip39.validateMnemonic(phrase);
-      } catch (error) {
-        console.error('Error validating seed phrase:', error);
-        return false;
-      }
-    },
-    {
-      message: "Seed phrase is not valid according to BIP39 standard",
-    }
   );
 
 // Định nghĩa kiểu dữ liệu cho địa chỉ ví
