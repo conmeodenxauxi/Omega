@@ -5,8 +5,8 @@ import { generateSeedPhrase } from '@/lib/utils/seed';
 import { getQueryFn, apiRequest } from '@/lib/queryClient';
 
 // Cấu hình mặc định
-const DEFAULT_CHECK_INTERVAL = 500; // Tốc độ tạo seed mặc định (ms)
-const DEFAULT_BUFFER_SIZE = 10; // Giới hạn tạo seed = seeds checked + buffer
+const DEFAULT_CHECK_INTERVAL = 1000; // Tốc độ tạo seed mặc định (ms)
+const DEFAULT_BUFFER_SIZE = 7; // Giới hạn tạo seed = seeds checked + buffer
 
 interface WalletCheckerOptions {
   selectedBlockchains: BlockchainType[];
@@ -48,29 +48,23 @@ export function useWalletChecker({
     setCurrentAddresses([]);
   }, []);
   
-  // Generate a new seed phrase and check balances
-  const generateAndCheck = useCallback(async () => {
-    // Sử dụng giá trị từ ref thay vì closure value
+  // Hàm chỉ để tạo seed phrase mới
+  const generateSeed = useCallback(async () => {
     if (!isSearchingRef.current || selectedBlockchains.length === 0) {
-      console.log("Không bắt đầu tìm kiếm: isSearchingRef =", isSearchingRef.current, ", selectedBlockchains =", selectedBlockchains.length);
+      console.log("Không tạo seed: isSearchingRef =", isSearchingRef.current, ", selectedBlockchains =", selectedBlockchains.length);
       return;
     }
     
     // Kiểm tra giới hạn tạo seed: số lượng tạo ra = số lượng kiểm tra + buffer
     if (stats.created > stats.checked + DEFAULT_BUFFER_SIZE) {
-      console.log(`Đã đạt giới hạn tạo seed (${stats.created} > ${stats.checked} + ${DEFAULT_BUFFER_SIZE}), đợi kiểm tra hoàn tất.`);
+      console.log(`Đã đạt giới hạn tạo seed (${stats.created} > ${stats.checked} + ${DEFAULT_BUFFER_SIZE}), đợi kiểm tra tiếp.`);
       
-      // Đặt lịch kiểm tra lại sau khoảng thời gian mặc định
-      if (searchTimerRef.current) {
-        clearTimeout(searchTimerRef.current);
-      }
-      
-      searchTimerRef.current = setTimeout(() => {
-        console.log("Timer chờ kiểm tra số dư kích hoạt - kiểm tra lại trạng thái", isSearchingRef.current);
+      // Lên lịch kiểm tra lại sau khoảng thời gian mặc định
+      setTimeout(() => {
         if (isSearchingRef.current) {
-          generateAndCheck();
+          generateSeed();
         }
-      }, DEFAULT_CHECK_INTERVAL);
+      }, DEFAULT_CHECK_INTERVAL / 2); // Kiểm tra sớm hơn để tạo seed nhanh khi có thể
       
       return;
     }
@@ -78,24 +72,23 @@ export function useWalletChecker({
     try {
       console.log("Bắt đầu tạo seed phrase mới");
       
-      // Choose random from selected seed phrase lengths
+      // Chọn ngẫu nhiên từ danh sách độ dài seed phrase
       const randomIndex = Math.floor(Math.random() * seedPhraseLength.length);
       const wordCount = seedPhraseLength[randomIndex];
       
-      // Generate new seed phrase
+      // Tạo seed phrase mới
       const seedPhrase = await generateSeedPhrase(wordCount);
       currentSeedPhrase.current = seedPhrase;
       
       // Reset current addresses
       resetCurrentAddresses();
       
-      // Kiểm tra lại nếu đã dừng tìm kiếm (sử dụng ref)
       if (!isSearchingRef.current) {
-        console.log("Không còn tìm kiếm - hủy bỏ gửi API");
+        console.log("Không còn tìm kiếm - hủy bỏ xử lý seed phrase mới");
         return;
       }
       
-      // Generate addresses for selected blockchains
+      // Tạo địa chỉ cho các blockchain đã chọn
       const response = await apiRequest('/api/generate-addresses', {
         method: 'POST',
         body: JSON.stringify({
@@ -104,7 +97,6 @@ export function useWalletChecker({
         })
       });
       
-      // Kiểm tra lại nếu đã dừng tìm kiếm (sử dụng ref)
       if (!isSearchingRef.current) {
         console.log("Không còn tìm kiếm - hủy bỏ xử lý kết quả API");
         return;
@@ -114,104 +106,111 @@ export function useWalletChecker({
         const { addresses } = await response.json();
         setCurrentAddresses(addresses);
         
-        // Update stats
+        // Cập nhật thống kê
         setStats(prev => ({
           ...prev,
           created: prev.created + 1
         }));
         
-        // Kiểm tra lại nếu đã dừng tìm kiếm (sử dụng ref)
-        if (!isSearchingRef.current) {
-          console.log("Không còn tìm kiếm - hủy bỏ kiểm tra số dư");
-          return;
-        }
+        // Gọi hàm kiểm tra số dư song song (không đợi kết quả)
+        checkBalances(addresses, seedPhrase);
         
-        // Check balances of generated addresses
-        await checkBalances(addresses, seedPhrase);
+        // Lên lịch tạo seed tiếp theo ngay lập tức
+        if (isSearchingRef.current) {
+          setTimeout(() => {
+            if (isSearchingRef.current) {
+              generateSeed();
+            }
+          }, DEFAULT_CHECK_INTERVAL);
+        }
       }
     } catch (error) {
-      console.error('Error generating and checking seed phrase:', error);
-    }
-    
-    // Kiểm tra lại trạng thái sau khi hoàn thành tất cả xử lý (sử dụng ref)
-    if (isSearchingRef.current) {
-      console.log("Vẫn đang tìm kiếm - lên lịch kiểm tra tiếp theo");
-      // Xóa timer cũ nếu có
-      if (searchTimerRef.current) {
-        clearTimeout(searchTimerRef.current);
-      }
+      console.error('Error generating seed phrase:', error);
       
-      // Lên lịch mới
-      searchTimerRef.current = setTimeout(() => {
-        console.log("Timer kích hoạt - kiểm tra lại trạng thái", isSearchingRef.current);
-        if (isSearchingRef.current) {
-          generateAndCheck();
-        } else {
-          console.log("Timer kích hoạt nhưng đã dừng tìm kiếm");
-        }
-      }, DEFAULT_CHECK_INTERVAL);
-    } else {
-      console.log("Đã dừng tìm kiếm - không lên lịch tiếp theo");
+      // Nếu có lỗi, thử lại sau một khoảng thời gian
+      if (isSearchingRef.current) {
+        setTimeout(() => {
+          if (isSearchingRef.current) {
+            generateSeed();
+          }
+        }, DEFAULT_CHECK_INTERVAL);
+      }
     }
   }, [selectedBlockchains, seedPhraseLength, resetCurrentAddresses]);
   
-  // Check balances of addresses
-  const checkBalances = async (addresses: WalletAddress[], seedPhrase: string) => {
+  // Hàm chạy vòng lặp tìm kiếm
+  const generateAndCheck = useCallback(() => {
+    // Bắt đầu tạo seed và kiểm tra
+    generateSeed();
+  }, [generateSeed]);
+  
+  // Check balances of addresses - không await để không chặn quá trình tạo seed
+  const checkBalances = (addresses: WalletAddress[], seedPhrase: string) => {
     if (!addresses.length) return;
     
-    try {
-      // Chuẩn bị dữ liệu gửi đi
-      const allAddresses = addresses.flatMap(walletAddress => 
-        walletAddress.addresses.map(address => ({
-          blockchain: walletAddress.blockchain,
-          address
-        }))
-      );
-      
-      // Gửi yêu cầu kiểm tra số dư
-      const response = await apiRequest('/api/check-balances', {
-        method: 'POST',
-        body: JSON.stringify({ addresses: allAddresses })
-      });
-      
-      if (response.ok) {
-        const { results } = await response.json();
+    // Thực hiện kiểm tra trong một hàm async tách biệt
+    (async () => {
+      try {
+        // Chuẩn bị dữ liệu gửi đi
+        const allAddresses = addresses.flatMap(walletAddress => 
+          walletAddress.addresses.map(address => ({
+            blockchain: walletAddress.blockchain,
+            address
+          }))
+        );
         
-        // Cập nhật số lượng địa chỉ đã kiểm tra
-        setStats(prev => ({
-          ...prev,
-          checked: prev.checked + allAddresses.length
-        }));
+        console.log(`Kiểm tra số dư cho ${allAddresses.length} địa chỉ`);
         
-        // Lọc các địa chỉ có số dư
-        const addressesWithBalance = results.filter((result: any) => result.hasBalance);
+        // Gửi yêu cầu kiểm tra số dư
+        const response = await apiRequest('/api/check-balances', {
+          method: 'POST',
+          body: JSON.stringify({ 
+            addresses: allAddresses,
+            seedPhrase   // Thêm seedPhrase vào request để lưu vào database nếu có số dư
+          })
+        });
         
-        if (addressesWithBalance.length > 0) {
-          // Thêm vào danh sách ví có số dư
-          const newWallets = addressesWithBalance.map((result: any) => ({
-            blockchain: result.blockchain,
-            address: result.address,
-            balance: result.balance,
-            seedPhrase
-          }));
+        if (response.ok) {
+          const { results } = await response.json();
           
-          setWalletsWithBalance(prev => [...prev, ...newWallets]);
-          
-          // Cập nhật số lượng ví có số dư
+          // Cập nhật số lượng địa chỉ đã kiểm tra
           setStats(prev => ({
             ...prev,
-            withBalance: prev.withBalance + newWallets.length
+            checked: prev.checked + allAddresses.length
           }));
           
-          // Nếu chế độ tự động reset, reset lại thống kê
-          if (autoReset) {
-            resetStats();
+          // Lọc các địa chỉ có số dư
+          const addressesWithBalance = results.filter((result: any) => result.hasBalance);
+          
+          if (addressesWithBalance.length > 0) {
+            console.log(`Tìm thấy ${addressesWithBalance.length} địa chỉ có số dư!`);
+            
+            // Thêm vào danh sách ví có số dư
+            const newWallets = addressesWithBalance.map((result: any) => ({
+              blockchain: result.blockchain,
+              address: result.address,
+              balance: result.balance,
+              seedPhrase
+            }));
+            
+            setWalletsWithBalance(prev => [...prev, ...newWallets]);
+            
+            // Cập nhật số lượng ví có số dư
+            setStats(prev => ({
+              ...prev,
+              withBalance: prev.withBalance + newWallets.length
+            }));
+            
+            // Nếu chế độ tự động reset, reset lại thống kê
+            if (autoReset) {
+              resetStats();
+            }
           }
         }
+      } catch (error) {
+        console.error('Error checking balances:', error);
       }
-    } catch (error) {
-      console.error('Error checking balances:', error);
-    }
+    })();
   };
   
   // Bắt đầu hoặc dừng quá trình tìm kiếm
@@ -263,8 +262,58 @@ export function useWalletChecker({
         const { addresses } = await response.json();
         setCurrentAddresses(addresses);
         
-        // Kiểm tra số dư
-        await checkBalances(addresses, seedPhrase);
+        // Kiểm tra số dư - với manualCheck cần đợi kết quả
+        // Không sử dụng hàm checkBalances hiện tại vì nó không return Promise
+        try {
+          const allAddresses = addresses.flatMap(walletAddress => 
+            walletAddress.addresses.map(address => ({
+              blockchain: walletAddress.blockchain,
+              address
+            }))
+          );
+          
+          // Gửi yêu cầu kiểm tra số dư
+          const balanceResponse = await apiRequest('/api/check-balances', {
+            method: 'POST',
+            body: JSON.stringify({ 
+              addresses: allAddresses,
+              seedPhrase
+            })
+          });
+          
+          if (balanceResponse.ok) {
+            const { results } = await balanceResponse.json();
+            
+            // Cập nhật số lượng địa chỉ đã kiểm tra
+            setStats(prev => ({
+              ...prev,
+              checked: prev.checked + allAddresses.length
+            }));
+            
+            // Lọc các địa chỉ có số dư
+            const addressesWithBalance = results.filter((result: any) => result.hasBalance);
+            
+            if (addressesWithBalance.length > 0) {
+              // Thêm vào danh sách ví có số dư
+              const newWallets = addressesWithBalance.map((result: any) => ({
+                blockchain: result.blockchain,
+                address: result.address,
+                balance: result.balance,
+                seedPhrase
+              }));
+              
+              setWalletsWithBalance(prev => [...prev, ...newWallets]);
+              
+              // Cập nhật số lượng ví có số dư
+              setStats(prev => ({
+                ...prev,
+                withBalance: prev.withBalance + newWallets.length
+              }));
+            }
+          }
+        } catch (balanceError) {
+          console.error('Error checking balances in manual check:', balanceError);
+        }
         
         return {
           success: true,
