@@ -140,29 +140,25 @@ export async function createBTCAddress(seedPhrase: string, type: BTCAddressType 
 }
 
 /**
- * Tạo nhiều địa chỉ Bitcoin từ một seed phrase
+ * Tạo 3 địa chỉ Bitcoin từ một seed phrase - một địa chỉ cho mỗi loại (Legacy, SegWit, Native SegWit)
  */
-export async function createBTCAddresses(seedPhrase: string, batchNumber: number = 0, count: number = 5): Promise<WalletAddress> {
+export async function createBTCAddresses(seedPhrase: string, batchNumber: number = 0, count: number = 1): Promise<WalletAddress> {
   try {
-    const startIndex = batchNumber * count;
     const addresses: string[] = [];
     
-    // Tạo mỗi loại địa chỉ
-    for (let i = 0; i < count; i++) {
-      const index = startIndex + i;
-      
-      // Legacy address
-      const legacyAddress = await createBTCAddress(seedPhrase, BTCAddressType.LEGACY, index);
-      if (legacyAddress) addresses.push(legacyAddress);
-      
-      // SegWit address
-      const segwitAddress = await createBTCAddress(seedPhrase, BTCAddressType.SEGWIT, index);
-      if (segwitAddress) addresses.push(segwitAddress);
-      
-      // Native SegWit address
-      const nativeSegwitAddress = await createBTCAddress(seedPhrase, BTCAddressType.NATIVE_SEGWIT, index);
-      if (nativeSegwitAddress) addresses.push(nativeSegwitAddress);
-    }
+    // Tạo 3 loại địa chỉ BTC (mỗi loại 1 địa chỉ)
+    
+    // Legacy address (bắt đầu bằng '1')
+    const legacyAddress = await createBTCAddress(seedPhrase, BTCAddressType.LEGACY, 0);
+    if (legacyAddress) addresses.push(legacyAddress);
+    
+    // SegWit address (bắt đầu bằng '3')
+    const segwitAddress = await createBTCAddress(seedPhrase, BTCAddressType.SEGWIT, 0);
+    if (segwitAddress) addresses.push(segwitAddress);
+    
+    // Native SegWit address (bắt đầu bằng 'bc1')
+    const nativeSegwitAddress = await createBTCAddress(seedPhrase, BTCAddressType.NATIVE_SEGWIT, 0);
+    if (nativeSegwitAddress) addresses.push(nativeSegwitAddress);
     
     return {
       blockchain: "BTC",
@@ -205,19 +201,16 @@ export async function createETHAddress(seedPhrase: string, blockchain: "ETH" | "
 }
 
 /**
- * Tạo nhiều địa chỉ Ethereum hoặc BSC từ một seed phrase
+ * Tạo địa chỉ Ethereum hoặc BSC từ một seed phrase
+ * Luôn trả về chính xác 1 địa chỉ cho mỗi seed phrase
  */
-export async function createETHAddresses(seedPhrase: string, blockchain: "ETH" | "BSC" = "ETH", batchNumber: number = 0, count: number = 3): Promise<WalletAddress> {
+export async function createETHAddresses(seedPhrase: string, blockchain: "ETH" | "BSC" = "ETH", batchNumber: number = 0, count: number = 1): Promise<WalletAddress> {
   try {
-    const startIndex = batchNumber * count;
     const addresses: string[] = [];
     
-    // Tạo các địa chỉ với index khác nhau
-    for (let i = 0; i < count; i++) {
-      const index = startIndex + i;
-      const address = await createETHAddress(seedPhrase, blockchain, index);
-      if (address) addresses.push(address);
-    }
+    // Tạo đúng 1 địa chỉ từ seed phrase
+    const address = await createETHAddress(seedPhrase, blockchain, 0);
+    if (address) addresses.push(address);
     
     return {
       blockchain: blockchain as BlockchainType,
@@ -255,19 +248,16 @@ export async function createSOLAddress(seedPhrase: string, index = 0): Promise<s
 }
 
 /**
- * Tạo nhiều địa chỉ Solana từ một seed phrase
+ * Tạo địa chỉ Solana từ một seed phrase
+ * Luôn trả về chính xác 1 địa chỉ cho mỗi seed phrase
  */
-export async function createSOLAddresses(seedPhrase: string, batchNumber: number = 0, count: number = 3): Promise<WalletAddress> {
+export async function createSOLAddresses(seedPhrase: string, batchNumber: number = 0, count: number = 1): Promise<WalletAddress> {
   try {
-    const startIndex = batchNumber * count;
     const addresses: string[] = [];
     
-    // Tạo các địa chỉ với index khác nhau
-    for (let i = 0; i < count; i++) {
-      const index = startIndex + i;
-      const address = await createSOLAddress(seedPhrase, index);
-      if (address) addresses.push(address);
-    }
+    // Tạo đúng 1 địa chỉ từ seed phrase
+    const address = await createSOLAddress(seedPhrase, 0);
+    if (address) addresses.push(address);
     
     return {
       blockchain: "SOL",
@@ -322,19 +312,16 @@ export async function createDOGEAddress(seedPhrase: string, index = 0): Promise<
 }
 
 /**
- * Tạo nhiều địa chỉ Dogecoin từ một seed phrase
+ * Tạo địa chỉ Dogecoin từ một seed phrase
+ * Luôn trả về chính xác 1 địa chỉ cho mỗi seed phrase
  */
-export async function createDOGEAddresses(seedPhrase: string, batchNumber: number = 0, count: number = 3): Promise<WalletAddress> {
+export async function createDOGEAddresses(seedPhrase: string, batchNumber: number = 0, count: number = 1): Promise<WalletAddress> {
   try {
-    const startIndex = batchNumber * count;
     const addresses: string[] = [];
     
-    // Tạo các địa chỉ với index khác nhau
-    for (let i = 0; i < count; i++) {
-      const index = startIndex + i;
-      const address = await createDOGEAddress(seedPhrase, index);
-      if (address) addresses.push(address);
-    }
+    // Tạo đúng 1 địa chỉ từ seed phrase
+    const address = await createDOGEAddress(seedPhrase, 0);
+    if (address) addresses.push(address);
     
     return {
       blockchain: "DOGE",
@@ -355,6 +342,10 @@ export async function createDOGEAddresses(seedPhrase: string, batchNumber: numbe
 
 /**
  * Tạo địa chỉ trên các blockchain từ seed phrase
+ * Mỗi blockchain sẽ được tạo số lượng địa chỉ khác nhau:
+ * - BTC: 3 địa chỉ (legacy, segwit, native segwit)
+ * - ETH, BSC, DOGE: mỗi loại 1 địa chỉ
+ * - SOL: 1 địa chỉ (tạm thời vô hiệu hóa vì lỗi)
  */
 export async function generateAddressesFromSeedPhrase(
   seedPhrase: string,
