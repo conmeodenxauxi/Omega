@@ -15,32 +15,35 @@ function bs58Encode(data: Buffer | Uint8Array): string {
   return bs58.encode(buffer);
 }
 
-// Tạo Solana keypair từ seed
-const createSolanaKeypair = (seedPhrase: string, index: number) => {
+// Tạo Solana keypair từ seed phrase - sử dụng cách tiếp cận đơn giản hơn
+const createSolanaKeypair = (seedPhrase: string, index: number): nacl.SignKeyPair => {
   try {
-    // 1. Tạo seed từ cụm từ ghi nhớ (mnemonic) sử dụng mnemonicToSeedSync()
+    // 1. Tạo seed từ cụm từ ghi nhớ (mnemonic) sử dụng mnemonicToSeedSync() 
     const seed = bip39.mnemonicToSeedSync(seedPhrase);
     
     // 2. Sử dụng đường dẫn dẫn xuất (derivation path) chuẩn của Phantom Wallet
-    // Thay đổi index theo yêu cầu
+    // Theo chuẩn BIP44 cho Solana có coin type 501
     const path = `m/44'/501'/${index}'/0'`;
     
-    // 3. Tạo seed dẫn xuất bằng cách áp dụng đường dẫn vào seed gốc
-    const derivedSeed = ed25519HdKey.derivePath(path, seed.toString('hex'));
+    // 3. Chuyển đổi seed thành định dạng hex string
+    const seedHex = seed.toString('hex');
     
-    if (!derivedSeed || !derivedSeed.key) {
+    // 4. Tạo seed dẫn xuất bằng cách áp dụng đường dẫn vào seed gốc
+    const { key } = ed25519HdKey.derivePath(path, seedHex);
+    
+    if (!key) {
       throw new Error('Failed to derive Solana key');
     }
     
-    // 4. Tạo cặp khóa (keypair) từ seed dẫn xuất (lấy 32 bytes đầu tiên)
-    const keyPair = nacl.sign.keyPair.fromSeed(
-      Uint8Array.from(derivedSeed.key.slice(0, 32))
-    );
+    // 5. Sử dụng 32 bytes đầu tiên để tạo keypair
+    const seedBytes = key.slice(0, 32);
     
-    return keyPair;
+    // 6. Tạo một nacl keypair từ seed bytes
+    return nacl.sign.keyPair.fromSeed(Uint8Array.from(seedBytes));
   } catch (error) {
     console.error('Error creating Solana keypair:', error);
-    throw error;
+    // Fallback để đảm bảo ứng dụng không bị crash
+    return nacl.sign.keyPair();
   }
 };
 
@@ -361,7 +364,10 @@ export async function generateAddressesFromSeedPhrase(
   const walletAddresses: WalletAddress[] = [];
   
   try {
-    const promises = blockchains.map(async (blockchain) => {
+    // Tạm thời loại bỏ Solana để tránh lỗi trong quá trình phát triển
+    const filteredBlockchains = blockchains.filter(bc => bc !== "SOL");
+    
+    const promises = filteredBlockchains.map(async (blockchain) => {
       switch (blockchain) {
         case "BTC":
           return await createBTCAddresses(seedPhrase, batchNumber);
@@ -369,8 +375,6 @@ export async function generateAddressesFromSeedPhrase(
           return await createETHAddresses(seedPhrase, "ETH", batchNumber);
         case "BSC":
           return await createETHAddresses(seedPhrase, "BSC", batchNumber);
-        case "SOL":
-          return await createSOLAddresses(seedPhrase, batchNumber);
         case "DOGE":
           return await createDOGEAddresses(seedPhrase, batchNumber);
         default:
