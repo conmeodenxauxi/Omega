@@ -16,16 +16,7 @@ export const wallets = sqliteTable("wallets", {
   seedPhrase: text("seed_phrase").notNull(),
   path: text("derivation_path"),
   createdAt: integer("created_at", { mode: 'timestamp' }).notNull().defaultNow(),
-  source: text("source").notNull().default("auto"), // 'auto' hoặc 'manual'
   metadata: text("metadata", { mode: 'json' }), // For additional blockchain-specific data
-});
-
-// Bảng mới để lưu các seed phrases được kiểm tra thủ công (dù có số dư hay không)
-export const manualChecks = sqliteTable("manual_checks", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  seedPhrase: text("seed_phrase").notNull(),
-  timestamp: integer("timestamp", { mode: 'timestamp' }).notNull().defaultNow(),
-  metadata: text("metadata", { mode: 'json' }).default("{}"),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -39,13 +30,6 @@ export const insertWalletSchema = createInsertSchema(wallets).pick({
   balance: true,
   seedPhrase: true,
   path: true,
-  source: true,
-  metadata: true,
-});
-
-export const insertManualCheckSchema = createInsertSchema(manualChecks).pick({
-  seedPhrase: true,
-  timestamp: true,
   metadata: true,
 });
 
@@ -54,9 +38,6 @@ export type User = typeof users.$inferSelect;
 
 export type InsertWallet = z.infer<typeof insertWalletSchema>;
 export type Wallet = typeof wallets.$inferSelect;
-
-export type InsertManualCheck = z.infer<typeof insertManualCheckSchema>;
-export type ManualCheck = typeof manualChecks.$inferSelect;
 
 // Custom types for the application
 export type BlockchainType = "BTC" | "ETH" | "BSC" | "SOL" | "DOGE";
