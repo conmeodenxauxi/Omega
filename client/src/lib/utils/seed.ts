@@ -1,5 +1,7 @@
 // This file would use the bip39 library to handle seed phrase generation and validation
 // We'll implement this on the frontend so we can generate seed phrases client-side
+// Import Buffer polyfill first to avoid "Buffer is not defined" error
+import '@/lib/polyfill/buffer';
 import * as bip39 from 'bip39';
 
 /**

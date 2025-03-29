@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { BlockchainType } from '@shared/schema';
 import { WalletAddress, WalletWithBalance, WalletCheckStats } from '@/types';
-import { createSeedPhrase } from '@/lib/utils/seedPhraseGenerator';
+import { generateSeedPhrase } from '@/lib/utils/seed';
 import { getQueryFn, apiRequest } from '@/lib/queryClient';
 
 interface WalletCheckerOptions {
@@ -60,7 +60,7 @@ export function useWalletChecker({
       const wordCount = seedPhraseLength[randomIndex];
       
       // Generate new seed phrase
-      const seedPhrase = createSeedPhrase(wordCount);
+      const seedPhrase = generateSeedPhrase(wordCount);
       currentSeedPhrase.current = seedPhrase;
       
       // Reset current addresses
