@@ -10,6 +10,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 interface ControlPanelProps {
   isSearching: boolean;
   stats: WalletCheckStats;
+  autoReset: boolean;
+  setAutoReset: (value: boolean) => void;
   onToggleSearch: () => void;
   onReset: () => void;
   walletsCount?: number;
@@ -20,6 +22,8 @@ interface ControlPanelProps {
 export function ControlPanel({
   isSearching, 
   stats, 
+  autoReset,
+  setAutoReset,
   onToggleSearch,
   onReset,
   walletsCount = 0,

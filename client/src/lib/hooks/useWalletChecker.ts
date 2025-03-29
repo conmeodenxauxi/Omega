@@ -211,6 +211,11 @@ export function useWalletChecker({
               ...prev,
               withBalance: prev.withBalance + newWallets.length
             }));
+            
+            // Nếu có địa chỉ với số dư và autoReset được bật, reset thống kê
+            if (autoReset) {
+              resetStats();
+            }
           }
           
           // Kiểm tra nếu đã đạt đến ngưỡng tự động reset
