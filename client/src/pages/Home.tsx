@@ -143,10 +143,7 @@ export default function Home() {
       {/* Results Table */}
       <div className="mb-8">
         <div className="flex justify-between items-center mb-2">
-          <h3 className="font-medium flex items-center">
-            Ví Web3 Có Số Dư Tìm Thấy 
-            <span className="ml-2 text-sm text-primary">({stats.withBalance})</span>
-          </h3>
+          <h3 className="font-medium">Ví Web3 Có Số Dư Tìm Thấy</h3>
           {walletsWithBalance.length > 0 && (
             <Button variant="ghost" size="sm" onClick={handleResetAll} className="h-8 w-8 p-0">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">

@@ -54,6 +54,10 @@ export function ResultsTable({ walletsWithBalance, onReset }: ResultsTableProps)
   
   return (
     <div className="border rounded-lg p-4 bg-card space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold">({walletsWithBalance.length})</h3>
+      </div>
+      
       <Table>
         <TableCaption>Danh sách các ví có số dư được tìm thấy</TableCaption>
         <TableHeader>

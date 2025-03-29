@@ -51,9 +51,9 @@ export function ControlPanel({
             <span className="text-xs text-muted-foreground">Đã kiểm tra</span>
             <span className="text-lg font-bold">{stats.checked}</span>
           </div>
-          <div className="flex flex-col items-center p-2 bg-muted rounded invisible">
-            <span className="text-xs text-muted-foreground">Tìm thấy</span>
-            <span className="text-lg font-bold">{stats.withBalance}</span>
+          <div className="flex flex-col items-center p-2 bg-primary/10 rounded">
+            <span className="text-xs text-primary/80">Tìm thấy</span>
+            <span className="text-lg font-bold text-primary">{stats.withBalance}</span>
           </div>
         </div>
       </CardContent>
