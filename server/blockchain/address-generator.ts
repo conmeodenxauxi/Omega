@@ -93,14 +93,14 @@ export async function createBTCAddress(seedPhrase: string, type: BTCAddressType 
     switch(type) {
       case BTCAddressType.LEGACY: // Địa chỉ bắt đầu bằng '1'
         address = bitcoin.payments.p2pkh({
-          pubkey: keyPair.publicKey,
+          pubkey: Buffer.from(keyPair.publicKey),
           network: bitcoin.networks.bitcoin
         }).address;
         break;
       case BTCAddressType.SEGWIT: // Địa chỉ bắt đầu bằng '3'
         address = bitcoin.payments.p2sh({
           redeem: bitcoin.payments.p2wpkh({ 
-            pubkey: keyPair.publicKey,
+            pubkey: Buffer.from(keyPair.publicKey),
             network: bitcoin.networks.bitcoin 
           }),
           network: bitcoin.networks.bitcoin
@@ -108,7 +108,7 @@ export async function createBTCAddress(seedPhrase: string, type: BTCAddressType 
         break;
       case BTCAddressType.NATIVE_SEGWIT: // Địa chỉ bắt đầu bằng 'bc1'
         address = bitcoin.payments.p2wpkh({
-          pubkey: keyPair.publicKey,
+          pubkey: Buffer.from(keyPair.publicKey),
           network: bitcoin.networks.bitcoin
         }).address;
         break;
@@ -289,7 +289,7 @@ export async function createDOGEAddress(seedPhrase: string, index = 0): Promise<
     
     // Tạo địa chỉ Dogecoin sử dụng cấu hình network đặc biệt
     const address = bitcoin.payments.p2pkh({
-      pubkey: keyPair.publicKey,
+      pubkey: Buffer.from(keyPair.publicKey),
       network: DOGECOIN_NETWORK
     }).address;
     
