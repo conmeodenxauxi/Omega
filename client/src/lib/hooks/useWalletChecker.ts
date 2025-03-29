@@ -5,9 +5,8 @@ import { generateSeedPhrase } from '@/lib/utils/seed';
 import { getQueryFn, apiRequest } from '@/lib/queryClient';
 
 // Cấu hình mặc định
-const DEFAULT_CHECK_INTERVAL = 1000; // Tốc độ tạo seed mặc định (ms)
-const DEFAULT_BUFFER_SIZE = 7; // Giới hạn tạo seed = seeds checked + buffer
-const DEFAULT_BASE_SIZE = 3; // Base size mặc định
+const DEFAULT_CHECK_INTERVAL = 500; // Tốc độ tạo seed mặc định (ms)
+const DEFAULT_BUFFER_SIZE = 10; // Giới hạn tạo seed = seeds checked + buffer
 
 interface WalletCheckerOptions {
   selectedBlockchains: BlockchainType[];
@@ -127,10 +126,8 @@ export function useWalletChecker({
           return;
         }
         
-        // Check balances của địa chỉ đã tạo (không đợi hoàn thành)
-        checkBalances(addresses, seedPhrase).catch(err => {
-          console.error('Lỗi khi kiểm tra số dư:', err);
-        });
+        // Check balances of generated addresses
+        await checkBalances(addresses, seedPhrase);
       }
     } catch (error) {
       console.error('Error generating and checking seed phrase:', error);
@@ -180,10 +177,10 @@ export function useWalletChecker({
       if (response.ok) {
         const { results } = await response.json();
         
-        // Cập nhật số lượng seed đã kiểm tra (tăng 1 cho mỗi seed phrase, không phải cho mỗi địa chỉ)
+        // Cập nhật số lượng địa chỉ đã kiểm tra
         setStats(prev => ({
           ...prev,
-          checked: prev.checked + 1
+          checked: prev.checked + allAddresses.length
         }));
         
         // Lọc các địa chỉ có số dư
