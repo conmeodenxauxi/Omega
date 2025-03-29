@@ -44,12 +44,7 @@ export function AddressDisplay({ addresses }: AddressDisplayProps) {
   
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Địa chỉ được tạo</CardTitle>
-        <CardDescription>
-          Danh sách địa chỉ được tạo từ seed phrase trên các blockchain
-        </CardDescription>
-      </CardHeader>
+
       <CardContent className="space-y-2">
         <Accordion type="single" collapsible className="w-full">
           {addresses.map((walletAddress, index) => {
