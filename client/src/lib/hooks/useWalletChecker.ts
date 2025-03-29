@@ -47,6 +47,12 @@ export function useWalletChecker({
     if (!isSearching || selectedBlockchains.length === 0) return;
     
     try {
+      // Kiểm tra lại nếu đã dừng tìm kiếm
+      if (!isSearching) {
+        console.log("Không còn tìm kiếm, hủy tiến trình");
+        return;
+      }
+      
       // Choose random from selected seed phrase lengths
       const randomIndex = Math.floor(Math.random() * seedPhraseLength.length);
       const wordCount = seedPhraseLength[randomIndex];
@@ -67,6 +73,12 @@ export function useWalletChecker({
         })
       });
       
+      // Kiểm tra lại nếu đã dừng tìm kiếm
+      if (!isSearching) {
+        console.log("Không còn tìm kiếm, dừng xử lý");
+        return;
+      }
+      
       if (response.ok) {
         const { addresses } = await response.json();
         setCurrentAddresses(addresses);
@@ -84,9 +96,18 @@ export function useWalletChecker({
       console.error('Error generating and checking seed phrase:', error);
     }
     
-    // Schedule next check if still searching
+    // Schedule next check if still searching - kiểm tra lại trạng thái hiện tại
     if (isSearching) {
-      searchTimerRef.current = setTimeout(generateAndCheck, 2000);
+      searchTimerRef.current = setTimeout(() => {
+        // Kiểm tra lại trước khi chạy tiếp
+        if (isSearching) {
+          generateAndCheck();
+        } else {
+          console.log("Đã dừng tìm kiếm, không tiếp tục");
+        }
+      }, 2000);
+    } else {
+      console.log("Không còn tìm kiếm, không lên lịch tiếp");
     }
   }, [isSearching, selectedBlockchains, seedPhraseLength, resetCurrentAddresses]);
   
@@ -151,7 +172,15 @@ export function useWalletChecker({
   
   // Bắt đầu hoặc dừng quá trình tìm kiếm
   const toggleSearching = useCallback(() => {
-    setIsSearching(prev => !prev);
+    setIsSearching(prev => {
+      const newState = !prev;
+      // Nếu dừng lại, xóa timer đang chạy
+      if (!newState && searchTimerRef.current) {
+        clearTimeout(searchTimerRef.current);
+        searchTimerRef.current = null;
+      }
+      return newState;
+    });
   }, []);
   
   // Kiểm tra thủ công một seed phrase
@@ -209,19 +238,18 @@ export function useWalletChecker({
   // Effect để bắt đầu hoặc dừng quá trình tìm kiếm
   useEffect(() => {
     if (isSearching) {
+      // Nếu đang tìm kiếm, khởi chạy ngay lập tức
       generateAndCheck();
     } else {
-      // Clear timer if stopping
-      if (searchTimerRef.current) {
-        clearTimeout(searchTimerRef.current);
-        searchTimerRef.current = null;
-      }
+      // Clear timer if stopping (đã được xử lý trong toggleSearching)
+      console.log("Đã dừng tìm kiếm");
     }
     
     // Cleanup on unmount
     return () => {
       if (searchTimerRef.current) {
         clearTimeout(searchTimerRef.current);
+        searchTimerRef.current = null;
       }
     };
   }, [isSearching, generateAndCheck]);
