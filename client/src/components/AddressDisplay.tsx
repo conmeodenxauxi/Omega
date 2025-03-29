@@ -15,11 +15,7 @@ interface AddressDisplayProps {
 export function AddressDisplay({ addresses }: AddressDisplayProps) {
   const { toast } = useToast();
   
-  if (!addresses.length) return (
-    <div className="flex items-center justify-center h-[100px] text-gray-500">
-      Chọn một blockchain và nhấn "Bắt đầu" để tạo địa chỉ
-    </div>
-  );
+  if (!addresses.length) return null;
   
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
