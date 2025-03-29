@@ -26,6 +26,8 @@ export function useWalletChecker({
   
   const currentSeedPhrase = useRef<string>('');
   const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // Lưu trữ trạng thái isSearching vào ref để có thể truy cập giá trị mới nhất bên trong closure
+  const isSearchingRef = useRef<boolean>(false);
   
   // Reset statistics and clear results
   const resetStats = useCallback(() => {
@@ -44,14 +46,14 @@ export function useWalletChecker({
   
   // Generate a new seed phrase and check balances
   const generateAndCheck = useCallback(async () => {
-    if (!isSearching || selectedBlockchains.length === 0) return;
+    // Sử dụng giá trị từ ref thay vì closure value
+    if (!isSearchingRef.current || selectedBlockchains.length === 0) {
+      console.log("Không bắt đầu tìm kiếm: isSearchingRef =", isSearchingRef.current, ", selectedBlockchains =", selectedBlockchains.length);
+      return;
+    }
     
     try {
-      // Kiểm tra lại nếu đã dừng tìm kiếm
-      if (!isSearching) {
-        console.log("Không còn tìm kiếm, hủy tiến trình");
-        return;
-      }
+      console.log("Bắt đầu tạo seed phrase mới");
       
       // Choose random from selected seed phrase lengths
       const randomIndex = Math.floor(Math.random() * seedPhraseLength.length);
@@ -64,6 +66,12 @@ export function useWalletChecker({
       // Reset current addresses
       resetCurrentAddresses();
       
+      // Kiểm tra lại nếu đã dừng tìm kiếm (sử dụng ref)
+      if (!isSearchingRef.current) {
+        console.log("Không còn tìm kiếm - hủy bỏ gửi API");
+        return;
+      }
+      
       // Generate addresses for selected blockchains
       const response = await apiRequest('/api/generate-addresses', {
         method: 'POST',
@@ -73,9 +81,9 @@ export function useWalletChecker({
         })
       });
       
-      // Kiểm tra lại nếu đã dừng tìm kiếm
-      if (!isSearching) {
-        console.log("Không còn tìm kiếm, dừng xử lý");
+      // Kiểm tra lại nếu đã dừng tìm kiếm (sử dụng ref)
+      if (!isSearchingRef.current) {
+        console.log("Không còn tìm kiếm - hủy bỏ xử lý kết quả API");
         return;
       }
       
@@ -89,6 +97,12 @@ export function useWalletChecker({
           created: prev.created + 1
         }));
         
+        // Kiểm tra lại nếu đã dừng tìm kiếm (sử dụng ref)
+        if (!isSearchingRef.current) {
+          console.log("Không còn tìm kiếm - hủy bỏ kiểm tra số dư");
+          return;
+        }
+        
         // Check balances of generated addresses
         await checkBalances(addresses, seedPhrase);
       }
@@ -96,20 +110,27 @@ export function useWalletChecker({
       console.error('Error generating and checking seed phrase:', error);
     }
     
-    // Schedule next check if still searching - kiểm tra lại trạng thái hiện tại
-    if (isSearching) {
+    // Kiểm tra lại trạng thái sau khi hoàn thành tất cả xử lý (sử dụng ref)
+    if (isSearchingRef.current) {
+      console.log("Vẫn đang tìm kiếm - lên lịch kiểm tra tiếp theo");
+      // Xóa timer cũ nếu có
+      if (searchTimerRef.current) {
+        clearTimeout(searchTimerRef.current);
+      }
+      
+      // Lên lịch mới
       searchTimerRef.current = setTimeout(() => {
-        // Kiểm tra lại trước khi chạy tiếp
-        if (isSearching) {
+        console.log("Timer kích hoạt - kiểm tra lại trạng thái", isSearchingRef.current);
+        if (isSearchingRef.current) {
           generateAndCheck();
         } else {
-          console.log("Đã dừng tìm kiếm, không tiếp tục");
+          console.log("Timer kích hoạt nhưng đã dừng tìm kiếm");
         }
       }, 2000);
     } else {
-      console.log("Không còn tìm kiếm, không lên lịch tiếp");
+      console.log("Đã dừng tìm kiếm - không lên lịch tiếp theo");
     }
-  }, [isSearching, selectedBlockchains, seedPhraseLength, resetCurrentAddresses]);
+  }, [selectedBlockchains, seedPhraseLength, resetCurrentAddresses]);
   
   // Check balances of addresses
   const checkBalances = async (addresses: WalletAddress[], seedPhrase: string) => {
@@ -174,8 +195,14 @@ export function useWalletChecker({
   const toggleSearching = useCallback(() => {
     setIsSearching(prev => {
       const newState = !prev;
+      console.log(`Chuyển trạng thái tìm kiếm thành: ${newState ? 'BẬT' : 'TẮT'}`);
+      
+      // Cập nhật ref để các closure có thể truy cập giá trị mới nhất
+      isSearchingRef.current = newState;
+      
       // Nếu dừng lại, xóa timer đang chạy
       if (!newState && searchTimerRef.current) {
+        console.log('Hủy timer tìm kiếm');
         clearTimeout(searchTimerRef.current);
         searchTimerRef.current = null;
       }
@@ -237,12 +264,21 @@ export function useWalletChecker({
   
   // Effect để bắt đầu hoặc dừng quá trình tìm kiếm
   useEffect(() => {
+    // Đồng bộ giá trị isSearching vào ref
+    isSearchingRef.current = isSearching;
+    
     if (isSearching) {
       // Nếu đang tìm kiếm, khởi chạy ngay lập tức
       generateAndCheck();
     } else {
       // Clear timer if stopping (đã được xử lý trong toggleSearching)
       console.log("Đã dừng tìm kiếm");
+      
+      // Đảm bảo timer được xóa
+      if (searchTimerRef.current) {
+        clearTimeout(searchTimerRef.current);
+        searchTimerRef.current = null;
+      }
     }
     
     // Cleanup on unmount
