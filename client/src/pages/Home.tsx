@@ -87,27 +87,15 @@ export default function Home() {
         </label>
       </div>
 
-      {/* Start Button */}
-      <div className="mb-4">
-        <Button 
-          onClick={toggleSearching}
-          className="bg-slate-900 text-white hover:bg-slate-800 w-full sm:w-auto"
-        >
-          {isSearching ? "Dừng lại" : "Bắt đầu"}
-        </Button>
-
-        {/* Stats */}
-        <div className="flex justify-center mt-2 text-sm">
-          <div className="mr-8">
-            <span className="text-gray-500">Đã tạo:</span>
-            <span className="font-bold ml-1">{stats.created}</span>
-          </div>
-          <div>
-            <span className="text-gray-500">Đã kiểm tra:</span>
-            <span className="font-bold ml-1">{stats.checked}</span>
-          </div>
-        </div>
-      </div>
+      {/* Control Panel */}
+      <ControlPanel
+        isSearching={isSearching}
+        stats={stats}
+        autoReset={autoReset}
+        setAutoReset={setAutoReset}
+        onToggleSearch={toggleSearching}
+        onReset={handleResetAll}
+      />
 
       {/* Phrase Length Selection */}
       <div className="mb-4 flex items-center gap-2">
