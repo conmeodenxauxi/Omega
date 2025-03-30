@@ -107,11 +107,19 @@ export async function checkBalanceWithSmartRotation(
         if (parseFloat(balance) > 0) {
           console.log(`Found positive BTC balance for ${address}: ${balance}`);
         }
-        circuitBreakerManager.recordSuccess(blockchain.toLowerCase());
+        if (typeof blockchain === 'string') {
+          circuitBreakerManager.recordSuccess(blockchain.toLowerCase());
+        } else {
+          circuitBreakerManager.recordSuccess('unknown');
+        }
         return balance;
       } catch (error) {
         console.error(`Error in Bitcoin special rotation:`, error);
-        circuitBreakerManager.recordFailure(blockchain.toLowerCase());
+        if (typeof blockchain === 'string') {
+          circuitBreakerManager.recordFailure(blockchain.toLowerCase());
+        } else {
+          circuitBreakerManager.recordFailure('unknown');
+        }
         return '0';
       }
     }
@@ -123,11 +131,19 @@ export async function checkBalanceWithSmartRotation(
         if (parseFloat(balance) > 0) {
           console.log(`Found positive ETH balance for ${address}: ${balance}`);
         }
-        circuitBreakerManager.recordSuccess(blockchain.toLowerCase());
+        if (typeof blockchain === 'string') {
+          circuitBreakerManager.recordSuccess(blockchain.toLowerCase());
+        } else {
+          circuitBreakerManager.recordSuccess('unknown');
+        }
         return balance;
       } catch (error) {
         console.error(`Error in Ethereum special rotation:`, error);
-        circuitBreakerManager.recordFailure(blockchain.toLowerCase());
+        if (typeof blockchain === 'string') {
+          circuitBreakerManager.recordFailure(blockchain.toLowerCase());
+        } else {
+          circuitBreakerManager.recordFailure('unknown');
+        }
         return '0';
       }
     }
@@ -139,11 +155,19 @@ export async function checkBalanceWithSmartRotation(
         if (parseFloat(balance) > 0) {
           console.log(`Found positive BSC balance for ${address}: ${balance}`);
         }
-        circuitBreakerManager.recordSuccess(blockchain.toLowerCase());
+        if (typeof blockchain === 'string') {
+          circuitBreakerManager.recordSuccess(blockchain.toLowerCase());
+        } else {
+          circuitBreakerManager.recordSuccess('unknown');
+        }
         return balance;
       } catch (error) {
         console.error(`Error in BSC special rotation:`, error);
-        circuitBreakerManager.recordFailure(blockchain.toLowerCase());
+        if (typeof blockchain === 'string') {
+          circuitBreakerManager.recordFailure(blockchain.toLowerCase());
+        } else {
+          circuitBreakerManager.recordFailure('unknown');
+        }
         return '0';
       }
     }
@@ -155,11 +179,19 @@ export async function checkBalanceWithSmartRotation(
         if (parseFloat(balance) > 0) {
           console.log(`Found positive SOL balance for ${address}: ${balance}`);
         }
-        circuitBreakerManager.recordSuccess(blockchain.toLowerCase());
+        if (typeof blockchain === 'string') {
+          circuitBreakerManager.recordSuccess(blockchain.toLowerCase());
+        } else {
+          circuitBreakerManager.recordSuccess('unknown');
+        }
         return balance;
       } catch (error) {
         console.error(`Error in Solana special rotation:`, error);
-        circuitBreakerManager.recordFailure(blockchain.toLowerCase());
+        if (typeof blockchain === 'string') {
+          circuitBreakerManager.recordFailure(blockchain.toLowerCase());
+        } else {
+          circuitBreakerManager.recordFailure('unknown');
+        }
         return '0';
       }
     }
@@ -318,21 +350,24 @@ export async function checkBalanceWithSmartRotation(
     ]);
     
     if (result && result.success && result.balance) {
-      // Parse kết quả
-      const balance = parseBalanceResponse(blockchain, result.balance);
-      
-      if (parseFloat(balance) > 0) {
-        console.log(`Found positive balance for ${blockchain}:${address}: ${balance}`);
-      }
-      
-      // Đảm bảo blockchain là một chuỗi hợp lệ trước khi gọi toLowerCase
+      // Đảm bảo blockchain là một chuỗi hợp lệ trước khi gửi đến parseBalanceResponse
       if (typeof blockchain === 'string') {
+        // Parse kết quả
+        const balance = parseBalanceResponse(blockchain as BlockchainType, result.balance);
+        
+        if (parseFloat(balance) > 0) {
+          console.log(`Found positive balance for ${blockchain}:${address}: ${balance}`);
+        }
+        
+        // Ghi nhận thành công cho circuit breaker
         circuitBreakerManager.recordSuccess(blockchain.toLowerCase());
+        
+        return balance;
       } else {
+        // Trường hợp không xác định được blockchain
         circuitBreakerManager.recordSuccess('unknown');
+        return result.balance;
       }
-      
-      return balance;
     }
     
     throw new Error('All API requests failed');

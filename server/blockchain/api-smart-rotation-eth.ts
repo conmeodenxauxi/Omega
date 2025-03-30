@@ -22,8 +22,8 @@ const etherscanApiKeys: string[] = [
 // Thông tin API public (không cần key)
 const publicEndpoints = [
   {
-    name: 'Infura',
-    url: 'https://mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161', // Public endpoint
+    name: 'Ankr-ETH',
+    url: 'https://rpc.ankr.com/eth', // Public endpoint
     method: 'POST',
     formatBody: (address: string) => JSON.stringify({
       jsonrpc: '2.0',

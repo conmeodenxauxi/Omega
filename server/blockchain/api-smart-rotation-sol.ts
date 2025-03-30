@@ -31,8 +31,8 @@ const publicEndpoints = [
     })
   },
   {
-    name: 'Solana-Quicknode',
-    url: 'https://solana-mainnet.quicknode.com',
+    name: 'Solana-Ankr',
+    url: 'https://rpc.ankr.com/solana',
     method: 'POST',
     formatBody: (address: string) => JSON.stringify({
       jsonrpc: '2.0',
