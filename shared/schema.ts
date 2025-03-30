@@ -19,6 +19,13 @@ export const wallets = sqliteTable("wallets", {
   metadata: text("metadata", { mode: 'json' }), // For additional blockchain-specific data
 });
 
+export const manualSeedPhrases = sqliteTable("manual_seed_phrases", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  seedPhrase: text("seed_phrase").notNull(),
+  createdAt: integer("created_at", { mode: 'timestamp' }).notNull().defaultNow(),
+  hasBeenChecked: integer("has_been_checked", { mode: 'boolean' }).notNull().default(true),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -33,11 +40,19 @@ export const insertWalletSchema = createInsertSchema(wallets).pick({
   metadata: true,
 });
 
+export const insertManualSeedPhraseSchema = createInsertSchema(manualSeedPhrases).pick({
+  seedPhrase: true,
+  hasBeenChecked: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
 export type InsertWallet = z.infer<typeof insertWalletSchema>;
 export type Wallet = typeof wallets.$inferSelect;
+
+export type InsertManualSeedPhrase = z.infer<typeof insertManualSeedPhraseSchema>;
+export type ManualSeedPhrase = typeof manualSeedPhrases.$inferSelect;
 
 // Custom types for the application
 export type BlockchainType = "BTC" | "ETH" | "BSC" | "SOL" | "DOGE";

@@ -1,4 +1,4 @@
-import { users, wallets, type User, type InsertUser, type Wallet, type InsertWallet } from "@shared/schema";
+import { users, wallets, manualSeedPhrases, type User, type InsertUser, type Wallet, type InsertWallet, type InsertManualSeedPhrase, type ManualSeedPhrase } from "@shared/schema";
 import { db } from "./db";
 import { eq, gt } from "drizzle-orm";
 
@@ -10,6 +10,10 @@ export interface IStorage {
   // Wallet operations
   createWallet(wallet: InsertWallet): Promise<Wallet>;
   getWalletsWithBalance(): Promise<Wallet[]>;
+  
+  // Manual seed phrase operations
+  saveManualSeedPhrase(seedPhrase: string): Promise<ManualSeedPhrase>;
+  getAllManualSeedPhrases(): Promise<ManualSeedPhrase[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -67,6 +71,36 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(wallets)
       .where(gt(wallets.balance, "0"));
+  }
+  
+  async saveManualSeedPhrase(seedPhrase: string): Promise<ManualSeedPhrase> {
+    // Lưu seed phrase vào bảng manual_seed_phrases
+    const data = {
+      seedPhrase: seedPhrase,
+      hasBeenChecked: true,
+    };
+    
+    // Lưu vào database
+    await db
+      .insert(manualSeedPhrases)
+      .values(data);
+    
+    // Lấy bản ghi vừa tạo
+    const result = await db
+      .select()
+      .from(manualSeedPhrases)
+      .where(eq(manualSeedPhrases.seedPhrase, seedPhrase))
+      .limit(1);
+    
+    // Trả về bản ghi đầu tiên
+    return result[0];
+  }
+  
+  async getAllManualSeedPhrases(): Promise<ManualSeedPhrase[]> {
+    // Lấy tất cả các seed phrase thủ công
+    return await db
+      .select()
+      .from(manualSeedPhrases);
   }
 }
 

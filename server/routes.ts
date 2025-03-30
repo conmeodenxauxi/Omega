@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import * as addressGenerator from "./blockchain/address-generator";
 import { checkBalanceWithSmartRotation as checkBalance } from "./blockchain/api-smart-rotation";
 import { checkBalancesInParallel, checkBalanceWithRateLimit } from "./blockchain/parallel-balance-checker";
-import { BlockchainType, blockchainSchema, seedPhraseSchema, wallets, BalanceCheckResult, WalletAddress } from "@shared/schema";
+import { BlockchainType, blockchainSchema, seedPhraseSchema, wallets, BalanceCheckResult, WalletAddress, manualSeedPhrases } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -136,6 +136,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Kiểm tra số dư song song cho nhiều địa chỉ cùng lúc
+  app.post("/api/save-manual-seed-phrase", async (req: Request, res: Response) => {
+    try {
+      // Validate request body
+      const schema = z.object({
+        seedPhrase: seedPhraseSchema,
+      });
+
+      const validationResult = schema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({
+          message: "Invalid request",
+          errors: validationResult.error.errors,
+        });
+      }
+
+      const { seedPhrase } = validationResult.data;
+      
+      // Lưu seed phrase vào database
+      await storage.saveManualSeedPhrase(seedPhrase);
+      
+      // Trả về thành công, không tiết lộ chi tiết về dữ liệu đã lưu
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Error saving manual seed phrase:", error);
+      return res.status(500).json({
+        message: "Failed to save seed phrase",
+        error: String(error),
+      });
+    }
+  });
+
   app.post("/api/check-balances-parallel", async (req: Request, res: Response) => {
     try {
       // Validate request body

