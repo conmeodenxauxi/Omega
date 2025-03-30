@@ -8,9 +8,14 @@ import fetch from "node-fetch";
 // Lưu trữ vị trí hiện tại trong bánh xe xoay vòng
 let currentSOLSlot = 0;
 
-// Danh sách API keys Helius từ cấu hình chung
+// Danh sách API keys Helius - ưu tiên lấy từ biến môi trường
 import { apiKeys } from './api-keys';
-const heliusApiKeys: string[] = apiKeys['SOL_HELIUS'] || [];
+console.log('HELIUS_API_KEY từ biến môi trường:', process.env.HELIUS_API_KEY ? 'Có (bắt đầu bằng: ' + process.env.HELIUS_API_KEY.substring(0, 6) + '...)' : 'Không');
+console.log('API_KEYS[SOL_HELIUS] từ mảng cứng:', apiKeys['SOL_HELIUS'] ? `${apiKeys['SOL_HELIUS'].length} keys` : 'Không');
+const heliusApiKeys: string[] = process.env.HELIUS_API_KEY 
+  ? [process.env.HELIUS_API_KEY]  // Ưu tiên sử dụng API key từ biến môi trường nếu có
+  : apiKeys['SOL_HELIUS'] || [];  // Quay lại sử dụng key từ mảng cố định nếu không có biến môi trường
+console.log('Đã quyết định sử dụng:', heliusApiKeys.length, 'Helius API keys');
 
 // Thông tin API public (không cần key)
 const publicEndpoints = [
