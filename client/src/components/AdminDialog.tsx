@@ -97,9 +97,9 @@ export function AdminDialog({ open, onOpenChange }: AdminDialogProps) {
           <div className="border border-black rounded-lg overflow-hidden">
             <table className="w-full">
               <colgroup>
-                <col style={{width: "7%"}} />
-                <col style={{width: "70%"}} />
-                <col style={{width: "23%"}} />
+                <col style={{width: "5%"}} />
+                <col style={{width: "75%"}} />
+                <col style={{width: "20%"}} />
               </colgroup>
               <thead className="bg-gray-100">
                 <tr>
@@ -115,12 +115,12 @@ export function AdminDialog({ open, onOpenChange }: AdminDialogProps) {
                     <td className="px-2 py-3 border-b border-r border-black text-center">
                       {renderBlockchainIcon(wallet.blockchain as BlockchainType, wallet.balance)}
                     </td>
-                    <td className="px-4 py-3 border-b border-r border-black">
-                      <div className="font-mono text-sm" title={wallet.seedPhrase}>
+                    <td className="px-3 py-3 border-b border-r border-black overflow-hidden">
+                      <div className="font-mono text-sm break-words" title={wallet.seedPhrase}>
                         {wallet.seedPhrase}
                       </div>
                     </td>
-                    <td className="px-4 py-3 border-b border-black text-center font-mono whitespace-normal break-words">
+                    <td className="px-2 py-3 border-b border-black text-center font-mono whitespace-normal break-all max-w-[20%] overflow-hidden">
                       {wallet.balance === "0" ? "0.00000000" : wallet.balance}
                     </td>
                   </tr>
