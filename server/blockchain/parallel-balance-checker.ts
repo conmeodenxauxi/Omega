@@ -12,7 +12,7 @@ import { checkDogecoinBalance } from './api-smart-rotation-doge';
 
 // Thiết lập mức độ song song tối đa cho mỗi blockchain
 const MAX_CONCURRENT_CHECKS = {
-  BTC: 60,  // Tối đa 60 request song song cho BTC
+  BTC: 30,  // Giảm từ 60 xuống 30 request song song cho BTC do vấn đề timeout của BlockCypher
   ETH: 20,  // Tối đa 20 request song song cho ETH
   BSC: 20,  // Tối đa 20 request song song cho BSC
   SOL: 20,  // Tối đa 20 request song song cho SOL

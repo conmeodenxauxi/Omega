@@ -44,7 +44,8 @@ function calculateTotalBtcSlots(): number {
             const testKey = getApiKey('BTC', 'BlockCypher');
             if (testKey) {
               // Nếu getApiKey thành công, đếm số slot bằng số key có sẵn
-              slots += endpoint.name === 'BlockCypher' ? 9 : 0; // thay bằng số thực tế từ api-keys.ts
+              // Giảm số slot BlockCypher do vấn đề timeout
+              slots += endpoint.name === 'BlockCypher' ? 3 : 0; // Giảm từ 9 xuống 3 slot để tránh quá tải
             }
           } catch (error) {
             console.log(`Không có API key nào cho ${endpoint.name}`);
@@ -138,13 +139,14 @@ function getNextBitcoinApi(address: string): {
       let keyCount = 0;
       switch (endpoint.name) {
         case 'BlockCypher':
-          keyCount = 9; // thay bằng số thực tế từ api-keys.ts
+          // Giảm sử dụng slot BlockCypher do hay gặp timeout
+          keyCount = 3; // Giảm từ 9 xuống 3 slot để tránh quá tải
           break;
         case 'GetBlock':
-          keyCount = 17; // thay bằng số thực tế từ api-keys.ts
+          keyCount = 17; // Tổng số key thực tế từ api-keys.ts
           break;
         case 'BTC_Tatum':
-          keyCount = 15; // thay bằng số thực tế từ api-keys.ts
+          keyCount = 15; // Tổng số key thực tế từ api-keys.ts
           break;
         default:
           keyCount = 1;
@@ -287,7 +289,9 @@ export async function checkBitcoinBalance(address: string): Promise<string> {
     
     // Thêm timeout
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000); // Tăng từ 5s lên 15s
+    // Đặt timeout dài hơn cho BlockCypher do thường xuyên gặp lỗi timeout
+    const timeoutDuration = apiConfig.name.includes('BlockCypher') ? 30000 : 15000;
+    const timeout = setTimeout(() => controller.abort(), timeoutDuration);
     fetchOptions.signal = controller.signal as any;
     
     try {
