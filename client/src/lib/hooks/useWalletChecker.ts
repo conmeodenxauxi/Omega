@@ -266,7 +266,7 @@ export function useWalletChecker({
             for (let i = 0; i < results.length; i++) {
               setTimeout(() => {
                 console.log(`+1 địa chỉ vào số ví đã kiểm tra (${i+1}/${results.length})`);
-              }, i * 50); // Delay 50ms cho mỗi địa chỉ
+              }, i * 100); // Delay 100ms cho mỗi địa chỉ
             }
           }, 0);
           
@@ -385,7 +385,7 @@ export function useWalletChecker({
                     ...prev,
                     checked: prev.checked + 1
                   }));
-                }, i * 50); // Delay 50ms cho mỗi địa chỉ
+                }, i * 100); // Delay 100ms cho mỗi địa chỉ
               }
             }, 0);
             

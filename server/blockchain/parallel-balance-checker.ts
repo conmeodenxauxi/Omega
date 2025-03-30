@@ -99,7 +99,7 @@ export async function checkBalancesInParallel(
   const checkPromises = addresses.map(async ({ blockchain, address }, index) => {
     try {
       // Thêm độ trễ tăng dần nhẹ theo index để phân tán request
-      const staggerDelay = Math.floor(index / 5) * 50; // Mỗi 5 địa chỉ thêm 50ms delay
+      const staggerDelay = Math.floor(index / 5) * 100; // Mỗi 5 địa chỉ thêm 100ms delay
       if (staggerDelay > 0) {
         await new Promise(resolve => setTimeout(resolve, staggerDelay));
       }
