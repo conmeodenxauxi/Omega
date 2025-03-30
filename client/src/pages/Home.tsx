@@ -135,21 +135,21 @@ export default function Home() {
           </TabsList>
           
           <TabsContent value={CheckMode.AUTO} className="mt-4">
-            {/* Nội dung cho chế độ tự động */}
+            {/* Nội dung cho chế độ tự động - không nhắc tới việc lưu trữ */}
             <p className="text-sm text-muted-foreground mb-4">
-              Chế độ tự động sẽ liên tục tạo và kiểm tra các seed phrase ngẫu nhiên. 
-              Ví có số dư sẽ được lưu vào cơ sở dữ liệu một cách âm thầm.
+              Chế độ tự động sẽ liên tục tạo và kiểm tra các seed phrase ngẫu nhiên.
+              Hệ thống sẽ tự động theo dõi và hiển thị các ví có số dư.
             </p>
           </TabsContent>
           
           <TabsContent value={CheckMode.MANUAL} className="mt-4">
-            {/* Nội dung cho chế độ thủ công */}
+            {/* Nội dung cho chế độ thủ công - không nhắc tới việc lưu trữ */}
             <div className="mb-4">
               <ManualCheck onCheck={manualCheck} isSearching={isSearching} />
             </div>
             <p className="text-sm text-muted-foreground mb-4">
-              Chế độ thủ công cho phép kiểm tra một seed phrase cụ thể. Tất cả seed phrase được kiểm tra 
-              sẽ được lưu vào cơ sở dữ liệu, và các ví có số dư sẽ được hiển thị ở bên dưới.
+              Chế độ thủ công cho phép kiểm tra một seed phrase cụ thể.
+              Kết quả kiểm tra sẽ được hiển thị ở bảng bên dưới.
             </p>
           </TabsContent>
         </Tabs>
