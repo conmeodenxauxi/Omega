@@ -111,7 +111,8 @@ const apiKeys: Record<string, string[]> = {
     '88a214e2-b5b9-45eb-803d-2f3c6ab5aa50',
     '3bcac472-0eb9-4404-8d20-bb25ca9dadc8',
     'c9fe92c4-6d56-4f0c-8c3f-99ccf9685d7c',
-    'f769413c-ebdf-4df9-841a-aa054fbce6b2' // Key mới được thêm vào
+    'f769413c-ebdf-4df9-841a-aa054fbce6b2', // Key mới được thêm vào
+    'a5f7d1bc-23f3-4833-80e6-279774f98ef1'  // Key mới được thêm vào (30/03/2025)
   ],
   
   // Bitcoin API Keys (Tatum.io)

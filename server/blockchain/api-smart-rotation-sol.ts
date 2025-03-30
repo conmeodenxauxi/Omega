@@ -10,7 +10,7 @@ let currentSOLSlot = 0;
 
 // Thông tin các API key Helius
 const heliusApiKeys: string[] = [
-  // Danh sách 20 API key Helius (mỗi key có thể xử lý 10 request/giây)
+  // Danh sách API key Helius (mỗi key có thể xử lý 10 request/giây)
   'f4b8bccc-ad42-4379-83aa-12037a668596',
   '4634a127-8c86-4f9f-b293-f089744ca86e',
   '6d5a7770-ef7a-4f6f-b24a-3b64a0ac6e24',
@@ -30,7 +30,9 @@ const heliusApiKeys: string[] = [
   'd4077d9b-8183-4708-90e7-6d64449dd09e',
   '88a214e2-b5b9-45eb-803d-2f3c6ab5aa50',
   '3bcac472-0eb9-4404-8d20-bb25ca9dadc8',
-  'c9fe92c4-6d56-4f0c-8c3f-99ccf9685d7c'
+  'c9fe92c4-6d56-4f0c-8c3f-99ccf9685d7c',
+  'f769413c-ebdf-4df9-841a-aa054fbce6b2',
+  'a5f7d1bc-23f3-4833-80e6-279774f98ef1' // Key mới thêm vào (30/03/2025)
 ];
 
 // Thông tin API public (không cần key)
