@@ -186,37 +186,7 @@ const getBTCBalance = async (address: string): Promise<BalanceResponse> => {
           }
           throw new Error('Unexpected response from SoChain');
         }
-      },
-      // Tatum API - Tạm thời vô hiệu hóa do API key không hợp lệ
-      // Sẽ kích hoạt lại khi có API key hợp lệ
-      /*
-      {
-        url: `https://api.tatum.io/v3/bitcoin/address/balance/${address}`,
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': getApiKey('BTC', 'BTC Tatum') || ''
-        },
-        method: 'GET',
-        processResponse: async (res: any) => {
-          try {
-            const data = await res.json() as any;
-            if (data && typeof data.incoming === 'string' && typeof data.outgoing === 'string') {
-              const incoming = BigInt(data.incoming);
-              const outgoing = BigInt(data.outgoing);
-              const balanceSats = Number(incoming - outgoing);
-              const balanceBTC = (balanceSats / 100000000).toFixed(8);
-              console.log(`Tatum balance for ${address}: ${balanceBTC} BTC`);
-              return { success: true, balance: balanceBTC };
-            }
-            console.error('Tatum response format unexpected:', data);
-            throw new Error('Unexpected response from Tatum API');
-          } catch (error) {
-            console.error('Error processing Tatum response:', error);
-            throw error;
-          }
-        }
       }
-      */
     ];
 
     // Tạo kiểu cho API
@@ -428,7 +398,7 @@ const getDOGEBalance = async (address: string): Promise<BalanceResponse> => {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey || ''
+        'x-api-key': apiKey
       }
     };
     
