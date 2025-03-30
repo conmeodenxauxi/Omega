@@ -152,6 +152,31 @@ const apiKeys: Record<string, string[]> = {
     't-67e8827b5953fae328c284e2-0b5d95a69912480aa06d7c1a'
   ],
   
+  // Solana API Keys (Helius.xyz)
+  'SOL_HELIUS': [
+    // 20 Helius API keys
+    '7f2bdca6-6f7c-4f80-9f51-3de6c53d8bcc',
+    '47747d9c-3ec1-4343-af1d-1c40b9d14ff6',
+    'df99fe42-24c8-4e31-849e-7363f8c68f97',
+    'ae60722e-3a81-4841-bd41-45fcae92a271',
+    '3e07f178-d169-4250-91f8-16700f2dd88f',
+    '93a77d3d-6115-40aa-9fde-9e932b321318',
+    'b5119a65-96f9-44b9-93e4-6f4c3a73a51d',
+    '701d1c01-710a-442a-8dc8-626d04c78854',
+    'd6389e8e-5730-4c5a-95b1-f73eed140c98',
+    'afc70c2a-8d4a-4e2c-a0d4-5ace73897b73',
+    'b5f2e8c5-d599-4139-95b5-532e56b8ef80',
+    '5d1ed6e4-2f17-4442-9a57-29f9e5d1cc60',
+    'aed2fd41-1d11-4c7a-b8ac-40ef50a0e851',
+    'f9b03a24-89b1-4549-9bf9-4a3c6ebea576',
+    '8c4f6e7a-bb93-4b07-8e67-6c46ddf55e2f',
+    'e4a7ad23-a358-48e5-9830-576e6a7d3890',
+    '38a6f01b-e32b-492c-9a96-29ad3d45b838',
+    'cd2e7fad-15b4-4896-98d5-b9dccb6ca55e',
+    '7b3a5e78-6ff3-402c-b390-7160f755d3d2',
+    '1a8b6c2d-4f9e-40e3-967a-91d2c8f5b0a7'
+  ],
+
   // Dogecoin API Keys (NowNodes.io)
   'DOGE_NOWNODES': [
     '4eea1226-2f22-44af-9a91-5c61f2c82a9d',

@@ -10,10 +10,8 @@ let currentSOLSlot = 0;
 
 // Thông tin các API key Helius
 const heliusApiKeys: string[] = [
-  // API keys lấy từ hệ thống xoay vòng
-  getApiKey('SOL', 'Helius_1'),
-  getApiKey('SOL', 'Helius_2'),
-  getApiKey('SOL', 'Helius_3'),
+  // 20 API keys lấy từ SOL_HELIUS
+  ...Array(20).fill(0).map((_, i) => getApiKey('SOL', 'Helius'))
   // Đảm bảo loại bỏ các key trống
 ].filter(key => key && key.length > 0);
 
