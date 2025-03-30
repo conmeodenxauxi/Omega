@@ -106,9 +106,13 @@ function getNextSolanaApi(address: string): {
   // Sử dụng JSON-RPC endpoint của Helius để lấy số dư
   return {
     name: 'Helius',
-    url: `https://mainnet.helius-rpc.com/?api-key=${apiKey}`,
+    // URL chuẩn mới: Không đặt api-key trong query parameter mà đưa vào header
+    url: `https://mainnet.helius-rpc.com/`,
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey
+    },
     body: JSON.stringify({
       jsonrpc: '2.0',
       id: 1,

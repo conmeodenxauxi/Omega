@@ -307,10 +307,12 @@ export const blockchainEndpoints: Record<BlockchainType, ApiEndpoint[]> = {
     {
       name: 'Helius',
       type: 'private',
-      url: '',
-      formatUrl: (address, apiKey) => `https://mainnet.helius-rpc.com/?api-key=${apiKey}`,
+      url: 'https://mainnet.helius-rpc.com/',
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      formatHeaders: (apiKey) => ({
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey || ''
+      }),
       formatBody: (address) => ({
         jsonrpc: '2.0',
         id: 1,
