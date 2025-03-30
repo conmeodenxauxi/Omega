@@ -1,5 +1,5 @@
-import React, { useState, useRef } from "react";
-import { Check, RefreshCw, SearchIcon, UserCheck } from "lucide-react";
+import React, { useState } from "react";
+import { Check, RefreshCw, SearchIcon } from "lucide-react";
 import { BlockchainType } from "@shared/schema";
 import { CryptoCheckbox } from "@/components/CryptoCheckbox";
 import { ControlPanel } from "@/components/ControlPanel";
@@ -7,14 +7,12 @@ import { PhraseLengthSelector } from "@/components/PhraseLengthSelector";
 import { AddressDisplay } from "@/components/AddressDisplay";
 import { ManualCheck } from "@/components/ManualCheck";
 import { ResultsTable } from "@/components/ResultsTable";
-import { useWalletChecker, CheckMode } from "@/lib/hooks/useWalletChecker";
+import { useWalletChecker } from "@/lib/hooks/useWalletChecker";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Home() {
-  // Thiết lập blockchain và cấu hình chung
   const [selectedBlockchains, setSelectedBlockchains] = useState<BlockchainType[]>([
     "BTC",
     "ETH",
@@ -24,14 +22,7 @@ export default function Home() {
   ]);
   const [seedPhraseLength, setSeedPhraseLength] = useState<(12 | 24)[]>([12, 24]);
   const [autoReset, setAutoReset] = useState(true);
-  
-  // Quản lý chế độ hiện tại (AUTO hoặc MANUAL)
-  const [activeMode, setActiveMode] = useState<CheckMode>(CheckMode.AUTO);
-  
-  // Seed phrase thủ công
-  const [manualSeedPhraseInput, setManualSeedPhraseInput] = useState<string>('');
-  
-  // Hook kiểm tra ví với chế độ hiện tại
+
   const {
     isSearching,
     currentAddresses,
@@ -41,14 +32,10 @@ export default function Home() {
     toggleSearching,
     resetStats,
     manualCheck,
-    manualCheckResults,
-    setManualSeedPhrase,
-    isManualChecking
   } = useWalletChecker({
     selectedBlockchains,
     seedPhraseLength,
     autoReset,
-    mode: activeMode
   });
 
   const toggleBlockchain = (blockchain: BlockchainType, checked: boolean) => {
@@ -120,39 +107,9 @@ export default function Home() {
         <AddressDisplay addresses={checkingAddresses} />
       </div>
 
-      {/* Tabs để chuyển đổi giữa chế độ tự động và thủ công */}
+      {/* Manual Check */}
       <div className="mb-6">
-        <Tabs defaultValue="auto" onValueChange={(value) => setActiveMode(value as CheckMode)}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value={CheckMode.AUTO} className="flex items-center gap-2">
-              <SearchIcon className="h-4 w-4" />
-              <span>Kiểm tra tự động</span>
-            </TabsTrigger>
-            <TabsTrigger value={CheckMode.MANUAL} className="flex items-center gap-2">
-              <UserCheck className="h-4 w-4" />
-              <span>Kiểm tra thủ công</span>
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value={CheckMode.AUTO} className="mt-4">
-            {/* Nội dung cho chế độ tự động - không nhắc tới việc lưu trữ */}
-            <p className="text-sm text-muted-foreground mb-4">
-              Chế độ tự động sẽ liên tục tạo và kiểm tra các seed phrase ngẫu nhiên.
-              Hệ thống sẽ tự động theo dõi và hiển thị các ví có số dư.
-            </p>
-          </TabsContent>
-          
-          <TabsContent value={CheckMode.MANUAL} className="mt-4">
-            {/* Nội dung cho chế độ thủ công - không nhắc tới việc lưu trữ */}
-            <div className="mb-4">
-              <ManualCheck onCheck={manualCheck} isSearching={isSearching} />
-            </div>
-            <p className="text-sm text-muted-foreground mb-4">
-              Chế độ thủ công cho phép kiểm tra một seed phrase cụ thể.
-              Kết quả kiểm tra sẽ được hiển thị ở bảng bên dưới.
-            </p>
-          </TabsContent>
-        </Tabs>
+        <ManualCheck onCheck={manualCheck} isSearching={isSearching} />
       </div>
 
       {/* Results Table */}
@@ -167,7 +124,7 @@ export default function Home() {
             )}
           </div>
           <ResultsTable
-            walletsWithBalance={activeMode === CheckMode.MANUAL ? manualCheckResults : walletsWithBalance}
+            walletsWithBalance={walletsWithBalance}
           />
         </div>
       </div>
