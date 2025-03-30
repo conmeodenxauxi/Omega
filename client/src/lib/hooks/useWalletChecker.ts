@@ -170,8 +170,8 @@ export function useWalletChecker({
         
         console.log(`Kiểm tra số dư cho ${allAddresses.length} địa chỉ`);
         
-        // Gửi yêu cầu kiểm tra số dư
-        const response = await apiRequest('/api/check-balances', {
+        // Gửi yêu cầu kiểm tra số dư SONG SONG
+        const response = await apiRequest('/api/check-balances-parallel', {
           method: 'POST',
           body: JSON.stringify({ 
             addresses: allAddresses,
@@ -315,8 +315,8 @@ export function useWalletChecker({
             }))
           );
           
-          // Gửi yêu cầu kiểm tra số dư
-          const balanceResponse = await apiRequest('/api/check-balances', {
+          // Gửi yêu cầu kiểm tra số dư SONG SONG
+          const balanceResponse = await apiRequest('/api/check-balances-parallel', {
             method: 'POST',
             body: JSON.stringify({ 
               addresses: allAddresses,

