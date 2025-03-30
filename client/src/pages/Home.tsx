@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Check, RefreshCw, SearchIcon, HelpCircle } from "lucide-react";
 import { BlockchainType } from "@shared/schema";
 import { CryptoCheckbox } from "@/components/CryptoCheckbox";
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { UserGuideDialog } from "@/components/UserGuideDialog";
+import { useSearch } from "@/lib/context/SearchContext";
 
 export default function Home() {
   const [selectedBlockchains, setSelectedBlockchains] = useState<BlockchainType[]>([
@@ -23,6 +24,9 @@ export default function Home() {
   ]);
   const [seedPhraseLength, setSeedPhraseLength] = useState<(12 | 24)[]>([12, 24]);
   const [autoReset, setAutoReset] = useState(true);
+
+  // Sử dụng context cho chức năng tự động tìm kiếm
+  const { registerSearchCallback, unregisterSearchCallback } = useSearch();
 
   const {
     isSearching,
@@ -38,6 +42,28 @@ export default function Home() {
     seedPhraseLength,
     autoReset,
   });
+
+  // Đăng ký callback tìm kiếm khi component mount
+  useEffect(() => {
+    // Chỉ đăng ký nếu không đang tìm kiếm
+    // Nếu đang tìm kiếm rồi thì không cần kích hoạt lại
+    const startSearchCallback = () => {
+      if (!isSearching) {
+        console.log('Tự động kích hoạt tìm kiếm sau khi phục hồi kết nối server');
+        toggleSearching();
+      } else {
+        console.log('Đã đang tìm kiếm, không cần kích hoạt lại');
+      }
+    };
+
+    // Đăng ký callback
+    registerSearchCallback(startSearchCallback);
+
+    // Cleanup khi component unmount
+    return () => {
+      unregisterSearchCallback();
+    };
+  }, [isSearching, toggleSearching, registerSearchCallback, unregisterSearchCallback]);
 
   const toggleBlockchain = (blockchain: BlockchainType, checked: boolean) => {
     if (checked) {
