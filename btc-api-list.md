@@ -14,7 +14,7 @@
 
 ### Tatum
 - **Số lượng API key**: 15 (10 key cũ + 5 key mới)
-- **Rate limit**: 5 req/giây/key = 75 req/giây
+- **Rate limit**: 3 req/giây/key = 45 req/giây
 - **Mô tả**: Private API cho Bitcoin, yêu cầu sử dụng API key trong header
 
 ### Public APIs
@@ -25,7 +25,7 @@
 - **Mempool.space**: 3-5 req/giây
 
 ## Tổng rate limit hiện tại cho Bitcoin
-- **Tổng cộng**: ~145 request/giây
+- **Tổng cộng**: ~115 request/giây
 
 ---
 
@@ -35,7 +35,7 @@
 
 ### Tatum
 - **Số lượng API key**: 15
-- **Rate limit**: 5 req/giây/key = 75 req/giây
+- **Rate limit**: 3 req/giây/key = 45 req/giây
 - **Mô tả**: Private API cho Dogecoin, yêu cầu sử dụng API key trong header
 
 ### NowNodes
@@ -49,7 +49,7 @@
 - Tỷ lệ này tối ưu hóa việc sử dụng API keys và tránh rate limit
 
 ## Tổng rate limit hiện tại cho Dogecoin
-- **Tổng cộng**: ~68 request/giây
+- **Tổng cộng**: ~57 request/giây
 
 ---
 
