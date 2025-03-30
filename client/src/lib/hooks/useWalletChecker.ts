@@ -55,7 +55,7 @@ export function useWalletChecker({
   }, []);
   
   // Thiết lập kích thước batch - số lượng seed phrase được tạo và kiểm tra cùng lúc
-  const BATCH_SIZE = 3; // Tạo và kiểm tra 3 seed phrases một lúc
+  const BATCH_SIZE = 2; // Giảm từ 3 xuống 2 để tối ưu hiệu suất khi chạy nhiều phiên
 
   // Hàm để tạo các seed phrases mới theo batch
   const generateSeed = useCallback(async () => {

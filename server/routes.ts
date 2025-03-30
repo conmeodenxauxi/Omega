@@ -230,7 +230,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { addresses, seedPhrase, isManualCheck = false } = validationResult.data;
-      const BATCH_SIZE = 3; // Kiểm tra 3 seed phrases (21 địa chỉ) một lần
+      const BATCH_SIZE = 2; // Giảm batch size từ 3 xuống 2 để tối ưu hiệu suất khi nhiều phiên
       
       // Kiểm tra số dư song song cho tất cả địa chỉ
       const startTime = Date.now();
