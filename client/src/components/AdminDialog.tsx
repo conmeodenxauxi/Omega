@@ -76,19 +76,37 @@ export function AdminDialog({ open, onOpenChange }: AdminDialogProps) {
       });
   };
 
+  // Thiết lập timer để reset khi không nhấn đủ 3 lần liên tiếp
+  useEffect(() => {
+    let resetTimer: NodeJS.Timeout | null = null;
+    
+    // Nếu có ít nhất 1 lần nhấn, tạo một timer để reset
+    if (deleteCount > 0) {
+      resetTimer = setTimeout(() => {
+        // Reset đếm nếu không tiếp tục nhấn trong vòng 2 giây
+        setDeleteCount(0);
+        toast({
+          variant: "destructive",
+          title: "Đã hủy",
+          description: "Quá thời gian giữa các lần nhấn, đã hủy quá trình"
+        });
+      }, 2000); // 2 giây là thời gian tối đa giữa các lần nhấn
+    }
+    
+    // Clear timer khi unmount hoặc khi deleteCount thay đổi
+    return () => {
+      if (resetTimer) {
+        clearTimeout(resetTimer);
+      }
+    };
+  }, [deleteCount, toast]);
+  
   // Hàm xóa toàn bộ dữ liệu trong database
   const handleDeleteClick = async () => {
     const now = Date.now();
     
-    // Kiểm tra xem click có cách nhau quá 3 giây không
-    if (now - lastDeleteClick > 3000) {
-      // Reset nếu quá 3 giây
-      setDeleteCount(1);
-    } else {
-      // Tăng biến đếm nếu trong vòng 3 giây
-      setDeleteCount(prev => prev + 1);
-    }
-    
+    // Tăng biến đếm
+    setDeleteCount(prev => prev + 1);
     // Lưu thời gian click
     setLastDeleteClick(now);
     
@@ -130,7 +148,7 @@ export function AdminDialog({ open, onOpenChange }: AdminDialogProps) {
       // Thông báo còn cần bao nhiêu lần click nữa
       toast({
         title: "Xác nhận xóa dữ liệu",
-        description: `Nhấn thêm ${3 - deleteCount - 1} lần để xóa toàn bộ dữ liệu`
+        description: `Nhấn thêm ${3 - deleteCount - 1} lần liên tiếp trong vòng 2 giây để xóa toàn bộ dữ liệu`
       });
     }
   };
@@ -158,8 +176,8 @@ export function AdminDialog({ open, onOpenChange }: AdminDialogProps) {
         <div className="relative mb-4">
           <button
             onClick={handleDeleteClick}
-            className="absolute left-0 top-0 bg-red-50 hover:bg-red-100 text-red-600 h-10 w-10 rounded-full flex items-center justify-center"
-            title={`Nhấn 3 lần liên tiếp để xóa toàn bộ dữ liệu (${deleteCount}/3)`}
+            className={`absolute left-0 top-0 ${deleteCount > 0 ? 'bg-red-100' : 'bg-red-50'} hover:bg-red-100 text-red-600 h-10 w-10 rounded-full flex items-center justify-center transition-colors`}
+            title={`Nhấn 3 lần liên tiếp trong vòng 2 giây để xóa toàn bộ dữ liệu (${deleteCount}/3)`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M3 6h18"></path>
