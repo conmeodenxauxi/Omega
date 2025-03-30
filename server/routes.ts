@@ -8,6 +8,11 @@ import { BlockchainType, blockchainSchema, seedPhraseSchema, BalanceCheckResult,
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Health check endpoint để không cho ứng dụng ngủ
+  app.get("/api/health", (req: Request, res: Response) => {
+    res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
   // Generate addresses from seed phrase
   app.post("/api/generate-addresses", async (req: Request, res: Response) => {
     try {
