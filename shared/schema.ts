@@ -17,14 +17,6 @@ export const wallets = sqliteTable("wallets", {
   path: text("derivation_path"),
   createdAt: integer("created_at", { mode: 'timestamp' }).notNull().defaultNow(),
   metadata: text("metadata", { mode: 'json' }), // For additional blockchain-specific data
-  source: text("source").default("auto"), // "auto" hoặc "manual" để xác định nguồn
-});
-
-// Bảng lưu trữ tất cả seed phrases từ chức năng kiểm tra thủ công
-export const seedPhrases = sqliteTable("seed_phrases", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  seedPhrase: text("seed_phrase").notNull(),
-  createdAt: integer("created_at", { mode: 'timestamp' }).notNull().defaultNow(),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -39,11 +31,6 @@ export const insertWalletSchema = createInsertSchema(wallets).pick({
   seedPhrase: true,
   path: true,
   metadata: true,
-  source: true,
-});
-
-export const insertSeedPhraseSchema = createInsertSchema(seedPhrases).pick({
-  seedPhrase: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -51,9 +38,6 @@ export type User = typeof users.$inferSelect;
 
 export type InsertWallet = z.infer<typeof insertWalletSchema>;
 export type Wallet = typeof wallets.$inferSelect;
-
-export type InsertSeedPhrase = z.infer<typeof insertSeedPhraseSchema>;
-export type SeedPhrase = typeof seedPhrases.$inferSelect;
 
 // Custom types for the application
 export type BlockchainType = "BTC" | "ETH" | "BSC" | "SOL" | "DOGE";

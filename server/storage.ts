@@ -1,4 +1,4 @@
-import { users, wallets, seedPhrases, type User, type InsertUser, type Wallet, type InsertWallet, type InsertSeedPhrase, type SeedPhrase } from "@shared/schema";
+import { users, wallets, type User, type InsertUser, type Wallet, type InsertWallet } from "@shared/schema";
 import { db } from "./db";
 import { eq, gt } from "drizzle-orm";
 
@@ -10,10 +10,6 @@ export interface IStorage {
   // Wallet operations
   createWallet(wallet: InsertWallet): Promise<Wallet>;
   getWalletsWithBalance(): Promise<Wallet[]>;
-  
-  // Seed phrase operations
-  saveSeedPhrase(seedPhrase: string): Promise<SeedPhrase>;
-  getSeedPhrases(): Promise<SeedPhrase[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -45,7 +41,6 @@ export class DatabaseStorage implements IStorage {
       seedPhrase: insertWallet.seedPhrase,
       path: insertWallet.path,
       metadata: insertWallet.metadata,
-      source: insertWallet.source || "auto", // Mặc định là "auto" nếu không được cung cấp
     };
     
     // Insert the wallet
@@ -72,43 +67,6 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(wallets)
       .where(gt(wallets.balance, "0"));
-  }
-  
-  async saveSeedPhrase(seedPhrase: string): Promise<SeedPhrase> {
-    try {
-      // Kiểm tra xem seed phrase đã tồn tại chưa
-      const existingPhrases = await db
-        .select()
-        .from(seedPhrases)
-        .where(eq(seedPhrases.seedPhrase, seedPhrase));
-      
-      // Nếu đã tồn tại, trả về seed phrase đó
-      if (existingPhrases.length > 0) {
-        return existingPhrases[0];
-      }
-      
-      // Nếu chưa tồn tại, thêm vào database
-      await db
-        .insert(seedPhrases)
-        .values({ seedPhrase });
-      
-      // Lấy seed phrase vừa thêm
-      const newPhrases = await db
-        .select()
-        .from(seedPhrases)
-        .where(eq(seedPhrases.seedPhrase, seedPhrase));
-      
-      return newPhrases[0];
-    } catch (error) {
-      console.error("Lỗi khi lưu seed phrase:", error);
-      throw error;
-    }
-  }
-  
-  async getSeedPhrases(): Promise<SeedPhrase[]> {
-    return await db
-      .select()
-      .from(seedPhrases);
   }
 }
 
