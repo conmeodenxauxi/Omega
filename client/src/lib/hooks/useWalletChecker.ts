@@ -79,11 +79,11 @@ export function useWalletChecker({
     }
     
     try {
-      console.log(`Bắt đầu tạo ${BATCH_SIZE} seed phrases mới (batch processing)`);
+      console.log(`Bắt đầu tạo ${BATCH_SIZE} seed phrases mới (batch processing với hiển thị luân phiên)`);
       
       // Tạo một mảng chứa BATCH_SIZE seed phrases
-      const seedPhraseBatch = [];
-      const seedAddresses = [];
+      const seedPhraseBatch: string[] = [];
+      const seedAddresses: Array<{seedPhrase: string, addresses: WalletAddress[]}> = [];
       
       // Tạo BATCH_SIZE seed phrases
       for (let i = 0; i < BATCH_SIZE; i++) {
@@ -132,8 +132,27 @@ export function useWalletChecker({
         }
       }
       
-      // Reset current addresses và thay thế bằng seed đầu tiên để hiển thị
-      setCurrentAddresses(seedAddresses.length > 0 ? seedAddresses[0].addresses : []);
+      // Hiển thị luân phiên cả 3 danh sách địa chỉ từ 3 seed phrases
+      let currentIndex = 0;
+      const showNextSeedAddresses = () => {
+        if (currentIndex < seedAddresses.length) {
+          // Hiển thị địa chỉ từ seed hiện tại
+          setCurrentAddresses(seedAddresses[currentIndex].addresses);
+          setCheckingAddresses(seedAddresses[currentIndex].addresses);
+          
+          // Tăng index và lên lịch hiển thị seed tiếp theo
+          currentIndex++;
+          if (currentIndex < seedAddresses.length && isSearchingRef.current) {
+            // Delay 100ms trước khi hiển thị seed tiếp theo
+            setTimeout(showNextSeedAddresses, 100);
+          }
+        }
+      };
+      
+      // Bắt đầu hiển thị luân phiên
+      if (seedAddresses.length > 0) {
+        showNextSeedAddresses();
+      }
       
       // Xử lý song song tất cả các seed phrases trong batch
       for (const seedData of seedAddresses) {
