@@ -72,7 +72,7 @@ function calculateTotalBtcSlots(): number {
           try {
             const testKey = getApiKey('BTC', 'BTC_Tatum');
             if (testKey) {
-              slots += endpoint.name === 'BTC_Tatum' ? 10 : 0; // Giảm từ 15 xuống 10 slot để cân bằng tải tốt hơn
+              slots += endpoint.name === 'BTC_Tatum' ? 15 : 0; // Tăng lên 15 slot để đảm bảo mỗi API key có 1 slot
             }
           } catch (error) {
             console.log(`Không có API key nào cho ${endpoint.name}`);
