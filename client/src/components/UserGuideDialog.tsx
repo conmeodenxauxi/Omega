@@ -23,7 +23,7 @@ export function UserGuideDialog() {
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-center text-2xl mb-3 font-bold text-black">Bản 🐈‍⬛ Omega</DialogTitle>
+          <DialogTitle className="text-center text-2xl mb-3 font-bold text-black">🐈‍⬛ Bản Omega</DialogTitle>
           <DialogDescription asChild>
             <div className="text-left text-black">
               <div className="text-lg font-medium mb-3">I/ Hướng dẫn sử dụng</div>
