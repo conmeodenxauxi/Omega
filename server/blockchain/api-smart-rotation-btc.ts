@@ -35,7 +35,12 @@ function calculateTotalBtcSlots(): number {
   for (const endpoint of endpoints) {
     if (!endpoint.needsApiKey) {
       // Endpoint không cần API key (RPC public) - tính là 1 slot
-      slots += 1;
+      // Giảm số slot của BlockCypher Public và Blockchair do thường xuyên bị rate limit
+      if (endpoint.name === 'BlockCypher Public' || endpoint.name === 'Blockchair') {
+        slots += 0.5; // Giảm xuống 0.5 slot (giảm tần suất sử dụng)
+      } else {
+        slots += 1;
+      }
     } else {
       // Endpoint cần API key
       switch (endpoint.name) {
@@ -44,20 +49,19 @@ function calculateTotalBtcSlots(): number {
           try {
             const testKey = getApiKey('BTC', 'BlockCypher');
             if (testKey) {
-              // Nếu getApiKey thành công, đếm số slot bằng số key có sẵn
-              // Giảm số slot BlockCypher do vấn đề timeout
-              slots += endpoint.name === 'BlockCypher' ? 3 : 0; // Giảm từ 9 xuống 3 slot để tránh quá tải
+              // Giảm số slot BlockCypher do hay bị rate limit
+              slots += endpoint.name === 'BlockCypher' ? 1 : 0; // Giảm từ 3 xuống 1 slot để tránh quá tải
             }
           } catch (error) {
             console.log(`Không có API key nào cho ${endpoint.name}`);
           }
           break;
         case 'GetBlock':
-          // Lấy số lượng key từ provider BTC_GETBLOCK
+          // Lấy số lượng key từ provider BTC_GETBLOCK - ổn định nên giữ nguyên slots
           try {
             const testKey = getApiKey('BTC', 'GetBlock');
             if (testKey) {
-              slots += endpoint.name === 'GetBlock' ? 17 : 0; // thay bằng số thực tế từ api-keys.ts
+              slots += endpoint.name === 'GetBlock' ? 17 : 0; // giữ nguyên số thực tế từ api-keys.ts
             }
           } catch (error) {
             console.log(`Không có API key nào cho ${endpoint.name}`);
@@ -68,7 +72,7 @@ function calculateTotalBtcSlots(): number {
           try {
             const testKey = getApiKey('BTC', 'BTC_Tatum');
             if (testKey) {
-              slots += endpoint.name === 'BTC_Tatum' ? 15 : 0; // thay bằng số thực tế từ api-keys.ts
+              slots += endpoint.name === 'BTC_Tatum' ? 10 : 0; // Giảm từ 15 xuống 10 slot để cân bằng tải tốt hơn
             }
           } catch (error) {
             console.log(`Không có API key nào cho ${endpoint.name}`);

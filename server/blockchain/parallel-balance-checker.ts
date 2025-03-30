@@ -12,11 +12,11 @@ import { checkDogecoinBalance } from './api-smart-rotation-doge';
 
 // Thiết lập mức độ song song tối đa cho mỗi blockchain
 const MAX_CONCURRENT_CHECKS = {
-  BTC: 30,  // Giảm từ 60 xuống 30 request song song cho BTC do vấn đề timeout của BlockCypher
-  ETH: 20,  // Tối đa 20 request song song cho ETH
-  BSC: 20,  // Tối đa 20 request song song cho BSC
-  SOL: 20,  // Tối đa 20 request song song cho SOL
-  DOGE: 20  // Tối đa 20 request song song cho DOGE
+  BTC: 15,  // Giảm từ 30 xuống 15 request song song cho BTC để giảm áp lực khi chạy nhiều phiên
+  ETH: 12,  // Giảm từ 20 xuống 12
+  BSC: 12,  // Giảm từ 20 xuống 12
+  SOL: 12,  // Giảm từ 20 xuống 12
+  DOGE: 10  // Giảm từ 20 xuống 10
 };
 
 // Quản lý số lượng request đang xử lý cho mỗi blockchain
@@ -29,15 +29,30 @@ const activeRequests: Record<BlockchainType, number> = {
 };
 
 /**
+ * Thêm độ trễ ngẫu nhiên để tránh đồng bộ hóa request
+ * @param baseDelay Độ trễ cơ bản (ms)
+ * @param jitter Phần trăm jitter (0-1)
+ * @returns Thời gian trễ với jitter (ms)
+ */
+function getDelayWithJitter(baseDelay: number, jitter: number = 0.3): number {
+  // Thêm jitter ±30% để tránh các phiên gửi request đồng thời
+  const jitterValue = baseDelay * jitter * (Math.random() * 2 - 1);
+  return Math.max(10, Math.floor(baseDelay + jitterValue));
+}
+
+/**
  * Kiểm tra số dư cho một địa chỉ cụ thể với cơ chế giới hạn song song
  * @param blockchain Loại blockchain
  * @param address Địa chỉ ví
  */
 export async function checkBalanceWithRateLimit(blockchain: BlockchainType, address: string): Promise<string> {
+  // Thêm độ trễ ngẫu nhiên khác nhau cho mỗi blockchain để giảm áp lực API
+  await new Promise(resolve => setTimeout(resolve, getDelayWithJitter(blockchain === 'BTC' ? 200 : 100)));
+  
   // Kiểm tra xem có đang đạt giới hạn song song không
   while (activeRequests[blockchain] >= MAX_CONCURRENT_CHECKS[blockchain]) {
-    // Nếu đã đạt giới hạn, đợi một chút trước khi thử lại
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // Nếu đã đạt giới hạn, đợi một chút trước khi thử lại với jitter
+    await new Promise(resolve => setTimeout(resolve, getDelayWithJitter(150)));
   }
 
   // Tăng số lượng request đang xử lý
@@ -78,17 +93,26 @@ export async function checkBalanceWithRateLimit(blockchain: BlockchainType, addr
 export async function checkBalancesInParallel(
   addresses: Array<{ blockchain: BlockchainType; address: string }>
 ): Promise<BalanceCheckResult[]> {
-  console.log(`Bắt đầu kiểm tra ${addresses.length} địa chỉ song song trên tất cả các blockchain`);
+  console.log(`Bắt đầu kiểm tra ${addresses.length} địa chỉ song song (batch size: ${MAX_CONCURRENT_CHECKS.BTC})`);
 
   // Tạo mảng các promise để kiểm tra song song
-  const checkPromises = addresses.map(async ({ blockchain, address }) => {
+  const checkPromises = addresses.map(async ({ blockchain, address }, index) => {
     try {
+      // Thêm độ trễ tăng dần nhẹ theo index để phân tán request
+      const staggerDelay = Math.floor(index / 5) * 50; // Mỗi 5 địa chỉ thêm 50ms delay
+      if (staggerDelay > 0) {
+        await new Promise(resolve => setTimeout(resolve, staggerDelay));
+      }
+      
       const balance = await checkBalanceWithRateLimit(blockchain, address);
       const hasBalance = parseFloat(balance) > 0;
 
-      // Nếu có số dư dương, in ra thông báo
+      // Log địa chỉ đã kiểm tra xong
+      console.log(`Đã kiểm tra địa chỉ đơn lẻ: ${blockchain} ${address.substring(0, 8)}...`);
+
+      // Nếu có số dư dương, in ra thông báo đặc biệt
       if (hasBalance) {
-        console.log(`Found positive ${blockchain} balance for ${address}: ${balance}`);
+        console.log(`ĐÃ TÌM THẤY SỐ DƯ DƯƠNG ${blockchain} cho ${address}: ${balance}`);
       }
 
       // Trả về kết quả kiểm tra
@@ -110,8 +134,15 @@ export async function checkBalancesInParallel(
     }
   });
 
-  // Đợi tất cả các promise hoàn thành và trả về kết quả
-  return Promise.all(checkPromises);
+  // Đo thời gian kiểm tra
+  const startTime = Date.now();
+  const results = await Promise.all(checkPromises);
+  const elapsedTime = Date.now() - startTime;
+  
+  console.log(`Hoàn thành kiểm tra ${addresses.length} địa chỉ song song trong ${elapsedTime}ms`);
+  
+  // Trả về kết quả
+  return results;
 }
 
 /**
