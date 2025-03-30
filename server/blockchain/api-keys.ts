@@ -185,7 +185,17 @@ const blockchainEndpoints: Record<BlockchainType, ApiEndpoint[]> = {
       needsApiKey: false,
       callCount: 0
     },
-
+    // Blockchair Public API
+    {
+      name: 'Blockchair',
+      type: 'public',
+      url: '',
+      formatUrl: (address) => `https://api.blockchair.com/bitcoin/dashboards/address/${address}`,
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      needsApiKey: false,
+      callCount: 0
+    },
     // BlockCypher API với key
     {
       name: 'BlockCypher',

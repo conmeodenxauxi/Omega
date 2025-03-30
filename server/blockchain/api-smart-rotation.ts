@@ -2,7 +2,6 @@ import { BlockchainType } from "@shared/schema";
 import fetch, { RequestInit } from "node-fetch";
 import { getApiConfigs } from "./api-keys";
 import { checkDogecoinBalance } from "./api-smart-rotation-doge";
-import { checkBitcoinBalance } from "./api-smart-rotation-btc";
 
 // Cache để lưu trữ kết quả kiểm tra số dư với timestamp
 const balanceCache = new Map<string, { balance: string, timestamp: number }>();
@@ -112,24 +111,6 @@ export async function checkBalanceWithSmartRotation(
           return balance;
         } catch (error) {
           console.error(`Error in Dogecoin special rotation:`, error);
-          circuitBreakerManager.recordFailure(blockchain.toLowerCase());
-          return '0';
-        }
-      }
-      
-      // Sử dụng cơ chế xoay vòng thông minh riêng cho Bitcoin
-      if (blockchain === 'BTC') {
-        try {
-          const balance = await checkBitcoinBalance(address);
-          // Lưu vào cache nếu có số dư dương
-          if (parseFloat(balance) > 0) {
-            console.log(`Found positive BTC balance for ${address}: ${balance}`);
-            setCachedBalance(blockchain, address, balance);
-          }
-          circuitBreakerManager.recordSuccess(blockchain.toLowerCase());
-          return balance;
-        } catch (error) {
-          console.error(`Error in Bitcoin special rotation:`, error);
           circuitBreakerManager.recordFailure(blockchain.toLowerCase());
           return '0';
         }
