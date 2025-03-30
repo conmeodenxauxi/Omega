@@ -108,6 +108,20 @@ const apiKeys: Record<string, string[]> = {
     'c9fe92c4-6d56-4f0c-8c3f-99ccf9685d7c'
   ],
   
+  // Bitcoin API Keys (Tatum.io)
+  'BTC_TATUM': [
+    't-67e888a2832893ddeb2bfbce-5c2156d4a3274787897d1e33',
+    't-67e88a6d5953fae328c284f9-5c1d92b1ccd74b1b88dee74a',
+    't-67e88dad5953fae328c28507-cace0aa2db32403e979b03b6',
+    't-67e891c09c386072971b6f58-de256a0565b049ce8d537e8e',
+    't-67e892fb5953fae328c2850f-a7b5e0f5c750419fbe1b83c2',
+    't-67e8951d5953fae328c28518-72cb0d0d1c534f0aa91cea65',
+    't-67e896559c386072971b6f63-8090b6da562348cfb25aba8e',
+    't-67e8975d9c386072971b6f6a-c4763690c181424d9daebb14',
+    't-67e898829c386072971b6f73-569069b90c4843da859a4b9e',
+    't-67e8994f832893ddeb2bfbe0-245ad020ff9b445381cac588'
+  ],
+  
   // Dogecoin API Keys (Tatum.io)
   'DOGE_TATUM': [
     't-67e87aff5953fae328c284a2-00409cd135ad4247badffb32',
@@ -179,6 +193,20 @@ const blockchainEndpoints: Record<BlockchainType, ApiEndpoint[]> = {
       formatUrl: (address, apiKey) => `https://go.getblock.io/${apiKey}/api/v2/address/${address}?details=basic`,
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
+      needsApiKey: true,
+      callCount: 0
+    },
+    // Tatum.io API cho Bitcoin
+    {
+      name: 'BTC_Tatum',
+      type: 'private',
+      url: '',
+      formatUrl: (address) => `https://api.tatum.io/v3/bitcoin/address/balance/${address}`,
+      formatHeaders: (apiKey) => ({
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey || ''
+      }),
+      method: 'GET',
       needsApiKey: true,
       callCount: 0
     }
@@ -330,6 +358,9 @@ export function getApiKey(blockchain: BlockchainType, endpointName?: string): st
     case 'GetBlock':
       provider = 'BTC_GETBLOCK';
       break;
+    case 'BTC_Tatum':
+      provider = 'BTC_TATUM';
+      break;
     case 'Etherscan':
       provider = 'ETH_ETHERSCAN';
       break;
@@ -419,6 +450,9 @@ export function getAllApiConfigs(blockchain: BlockchainType, address: string): A
           break;
         case 'GetBlock':
           apiKey = getNextApiKey('BTC_GETBLOCK');
+          break;
+        case 'BTC_Tatum':
+          apiKey = getNextApiKey('BTC_TATUM');
           break;
         case 'Etherscan':
           apiKey = getNextApiKey('ETH_ETHERSCAN');

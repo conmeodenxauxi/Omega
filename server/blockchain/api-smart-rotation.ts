@@ -159,6 +159,15 @@ export async function checkBalanceWithSmartRotation(
                       balance = parseFloat(scData.data.confirmed_balance).toFixed(8);
                       success = true;
                     }
+                  } else if (config.name === 'BTC_Tatum') {
+                    const tatumData = data as any;
+                    // Tính toán số dư từ API Tatum cho BTC: incoming - outgoing
+                    if (tatumData?.incoming !== undefined && tatumData?.outgoing !== undefined) {
+                      const incoming = parseFloat(tatumData.incoming);
+                      const outgoing = parseFloat(tatumData.outgoing);
+                      balance = (incoming - outgoing).toFixed(8);
+                      success = true;
+                    }
                   }
                   break;
                 
