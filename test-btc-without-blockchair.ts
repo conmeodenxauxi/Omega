@@ -1,5 +1,5 @@
 /**
- * Kiểm tra đơn giản cho cơ chế xoay vòng Bitcoin nhưng loại bỏ Blockchair
+ * Kiểm tra đơn giản cho cơ chế xoay vòng Bitcoin không sử dụng Blockchair và SoChain
  */
 
 // Import module cần thiết
@@ -13,9 +13,9 @@ interface ApiConfig {
   method: string;
 }
 
-// Test các API Bitcoin mà không sử dụng Blockchair
+// Test các API Bitcoin mà không sử dụng Blockchair và SoChain
 async function testBitcoinAPIs() {
-  console.log('== KIỂM TRA CÁC API BITCOIN (KHÔNG DÙNG BLOCKCHAIR) ==');
+  console.log('== KIỂM TRA CÁC API BITCOIN (KHÔNG DÙNG BLOCKCHAIR VÀ SOCHAIN) ==');
   
   // Địa chỉ Bitcoin để kiểm tra
   const testAddress = '1BitcoinEaterAddressDontSendf59kuE';
@@ -126,12 +126,6 @@ async function testBitcoinAPIs() {
             const funded = data.chain_stats.funded_txo_sum;
             const spent = data.chain_stats.spent_txo_sum;
             balance = ((funded - spent) / 100000000).toFixed(8);
-          }
-          break;
-          
-        case 'SoChain':
-          if (data && data.status === 'success' && data.data && data.data.confirmed_balance) {
-            balance = parseFloat(data.data.confirmed_balance).toFixed(8);
           }
           break;
       }

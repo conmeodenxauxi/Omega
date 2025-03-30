@@ -16,11 +16,9 @@ const limitedApi = 'BlockCypher';
 // Số lượng key thực sự sẽ phụ thuộc vào số lượng API key được cấu hình
 const allApiEndpoints = [
   // Free public RPC (mỗi RPC = 1 slot)
-  'Blockchair',     // Free RPC 1
-  'Blockchain.info', // Free RPC 2
-  'Blockstream',    // Free RPC 3 
-  'Mempool',        // Free RPC 4
-  'SoChain',        // Free RPC 5
+  'Blockchain.info', // Free RPC 1
+  'Blockstream',    // Free RPC 2
+  'Mempool',        // Free RPC 3
   
   // API tính phí (mỗi key = 1 slot)
   // GetBlock: 17 key
@@ -93,10 +91,6 @@ export function getNextBitcoinApiConfig(address: string): {
       headers['x-api-key'] = apiKey;
       break;
       
-    case 'Blockchair':
-      url = `https://api.blockchair.com/bitcoin/dashboards/address/${address}`;
-      break;
-      
     case 'Blockchain.info':
       url = `https://blockchain.info/balance?active=${address}`;
       break;
@@ -104,10 +98,6 @@ export function getNextBitcoinApiConfig(address: string): {
     case 'Blockstream':
     case 'Mempool':
       url = `https://blockstream.info/api/address/${address}`;
-      break;
-      
-    case 'SoChain':
-      url = `https://sochain.com/api/v2/get_address_balance/BTC/${address}`;
       break;
       
     default:
@@ -155,12 +145,6 @@ export function parseBitcoinApiResponse(name: string, data: any, address: string
         }
         break;
         
-      case 'Blockchair':
-        if (data?.data?.[address]?.address?.balance) {
-          return (data.data[address].address.balance / 100000000).toFixed(8);
-        }
-        break;
-        
       case 'Blockchain.info':
         if (data?.[address]?.final_balance !== undefined) {
           return (data[address].final_balance / 100000000).toFixed(8);
@@ -174,12 +158,6 @@ export function parseBitcoinApiResponse(name: string, data: any, address: string
           const funded = data.chain_stats.funded_txo_sum;
           const spent = data.chain_stats.spent_txo_sum;
           return ((funded - spent) / 100000000).toFixed(8);
-        }
-        break;
-        
-      case 'SoChain':
-        if (data?.status === 'success' && data?.data?.confirmed_balance) {
-          return parseFloat(data.data.confirmed_balance).toFixed(8);
         }
         break;
     }
