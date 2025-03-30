@@ -85,14 +85,18 @@ function getNextSolanaApi(address: string): {
   
   console.log(`[SOL Rotation] Đã chọn Helius API với API key ${apiKey.substring(0, 6)}... - Slot ${currentSlot + 1}/${totalSlots}`);
   
-  // Sử dụng các endpoint khác nhau của Helius để lấy số dư
-  // 1. API balances: https://api.helius.xyz/v0/addresses/{address}/balances
-  // 2. API getAccountInfo: https://api.helius.xyz/v0/
+  // Sử dụng JSON-RPC endpoint của Helius để lấy số dư
   return {
     name: 'Helius',
-    url: `https://api.helius.xyz/v0/addresses/${address}/balances?api-key=${apiKey}`,
-    method: 'GET',
-    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }
+    url: `https://mainnet.helius-rpc.com/?api-key=${apiKey}`,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'getBalance',
+      params: [address]
+    })
   };
 }
 
@@ -101,9 +105,14 @@ function getNextSolanaApi(address: string): {
  */
 function parseSolanaApiResponse(name: string, data: any): string {
   if (name === 'Helius') {
-    // Xử lý phản hồi từ Helius
-    // Kiểm tra cấu trúc dữ liệu để lấy đúng số dư
-    if (data && data.nativeBalance !== undefined) {
+    // Xử lý phản hồi từ Helius JSON-RPC
+    if (data && data.result !== undefined) {
+      // Chuyển đổi từ lamports sang SOL (1 SOL = 10^9 lamports)
+      return (data.result / 1e9).toFixed(9);
+    } else if (data && data.error) {
+      console.log(`Helius API error: ${JSON.stringify(data.error)}`);
+      return '0';
+    } else if (data && data.nativeBalance !== undefined) {
       // Cấu trúc cũ: { nativeBalance: number }
       return (data.nativeBalance / 1e9).toFixed(9);
     } else if (data && data.tokens && Array.isArray(data.tokens)) {
@@ -119,7 +128,7 @@ function parseSolanaApiResponse(name: string, data: any): string {
       // Cấu trúc mảng: [{ lamports: number }]
       return (data[0].lamports / 1e9).toFixed(9);
     }
-    console.log("Helius response không chứa thông tin số dư đúng định dạng");
+    console.log("Helius response không chứa thông tin số dư đúng định dạng:", JSON.stringify(data).substring(0, 200));
     return '0';
   } else {
     // Xử lý phản hồi từ JSON-RPC (Solana-RPC)

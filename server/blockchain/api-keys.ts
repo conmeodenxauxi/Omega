@@ -308,9 +308,15 @@ export const blockchainEndpoints: Record<BlockchainType, ApiEndpoint[]> = {
       name: 'Helius',
       type: 'private',
       url: '',
-      formatUrl: (address, apiKey) => `https://api.helius.xyz/v0/addresses/${address}/balances?api-key=${apiKey}`,
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      formatUrl: (address, apiKey) => `https://mainnet.helius-rpc.com/?api-key=${apiKey}`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      formatBody: (address) => ({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'getBalance',
+        params: [address]
+      }),
       needsApiKey: true,
       callCount: 0
     }
