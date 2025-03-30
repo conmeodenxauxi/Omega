@@ -172,7 +172,7 @@ const apiKeys: Record<string, string[]> = {
 /**
  * Tạo và lưu trữ các API endpoint cho tất cả các blockchain
  */
-const blockchainEndpoints: Record<BlockchainType, ApiEndpoint[]> = {
+export const blockchainEndpoints: Record<BlockchainType, ApiEndpoint[]> = {
   'BTC': [
     // Public API (không cần API key)
     {
