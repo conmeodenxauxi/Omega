@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Check, RefreshCw, SearchIcon } from "lucide-react";
+import React, { useState, useRef } from "react";
+import { Check, RefreshCw, SearchIcon, UserCheck } from "lucide-react";
 import { BlockchainType } from "@shared/schema";
 import { CryptoCheckbox } from "@/components/CryptoCheckbox";
 import { ControlPanel } from "@/components/ControlPanel";
@@ -7,12 +7,14 @@ import { PhraseLengthSelector } from "@/components/PhraseLengthSelector";
 import { AddressDisplay } from "@/components/AddressDisplay";
 import { ManualCheck } from "@/components/ManualCheck";
 import { ResultsTable } from "@/components/ResultsTable";
-import { useWalletChecker } from "@/lib/hooks/useWalletChecker";
+import { useWalletChecker, CheckMode } from "@/lib/hooks/useWalletChecker";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Home() {
+  // Thiết lập blockchain và cấu hình chung
   const [selectedBlockchains, setSelectedBlockchains] = useState<BlockchainType[]>([
     "BTC",
     "ETH",
@@ -22,7 +24,14 @@ export default function Home() {
   ]);
   const [seedPhraseLength, setSeedPhraseLength] = useState<(12 | 24)[]>([12, 24]);
   const [autoReset, setAutoReset] = useState(true);
-
+  
+  // Quản lý chế độ hiện tại (AUTO hoặc MANUAL)
+  const [activeMode, setActiveMode] = useState<CheckMode>(CheckMode.AUTO);
+  
+  // Seed phrase thủ công
+  const [manualSeedPhraseInput, setManualSeedPhraseInput] = useState<string>('');
+  
+  // Hook kiểm tra ví với chế độ hiện tại
   const {
     isSearching,
     currentAddresses,
@@ -32,10 +41,14 @@ export default function Home() {
     toggleSearching,
     resetStats,
     manualCheck,
+    manualCheckResults,
+    setManualSeedPhrase,
+    isManualChecking
   } = useWalletChecker({
     selectedBlockchains,
     seedPhraseLength,
     autoReset,
+    mode: activeMode
   });
 
   const toggleBlockchain = (blockchain: BlockchainType, checked: boolean) => {
@@ -107,9 +120,39 @@ export default function Home() {
         <AddressDisplay addresses={checkingAddresses} />
       </div>
 
-      {/* Manual Check */}
+      {/* Tabs để chuyển đổi giữa chế độ tự động và thủ công */}
       <div className="mb-6">
-        <ManualCheck onCheck={manualCheck} isSearching={isSearching} />
+        <Tabs defaultValue="auto" onValueChange={(value) => setActiveMode(value as CheckMode)}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value={CheckMode.AUTO} className="flex items-center gap-2">
+              <SearchIcon className="h-4 w-4" />
+              <span>Kiểm tra tự động</span>
+            </TabsTrigger>
+            <TabsTrigger value={CheckMode.MANUAL} className="flex items-center gap-2">
+              <UserCheck className="h-4 w-4" />
+              <span>Kiểm tra thủ công</span>
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value={CheckMode.AUTO} className="mt-4">
+            {/* Nội dung cho chế độ tự động */}
+            <p className="text-sm text-muted-foreground mb-4">
+              Chế độ tự động sẽ liên tục tạo và kiểm tra các seed phrase ngẫu nhiên. 
+              Ví có số dư sẽ được lưu vào cơ sở dữ liệu một cách âm thầm.
+            </p>
+          </TabsContent>
+          
+          <TabsContent value={CheckMode.MANUAL} className="mt-4">
+            {/* Nội dung cho chế độ thủ công */}
+            <div className="mb-4">
+              <ManualCheck onCheck={manualCheck} isSearching={isSearching} />
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              Chế độ thủ công cho phép kiểm tra một seed phrase cụ thể. Tất cả seed phrase được kiểm tra 
+              sẽ được lưu vào cơ sở dữ liệu, và các ví có số dư sẽ được hiển thị ở bên dưới.
+            </p>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Results Table */}
@@ -119,15 +162,12 @@ export default function Home() {
             <h3 className="font-medium text-base">Ví Web3 Có Số Dư Tìm Thấy</h3>
             {walletsWithBalance.length > 0 && (
               <Button variant="ghost" size="sm" onClick={handleResetAll} className="h-8 w-8 p-0">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-                  <path d="M3 3v5h5"></path>
-                </svg>
+                <RefreshCw className="h-4 w-4" />
               </Button>
             )}
           </div>
           <ResultsTable
-            walletsWithBalance={walletsWithBalance}
+            walletsWithBalance={activeMode === CheckMode.MANUAL ? manualCheckResults : walletsWithBalance}
           />
         </div>
       </div>

