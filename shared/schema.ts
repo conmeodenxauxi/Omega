@@ -1,12 +1,37 @@
 import { z } from "zod";
-
-// Định nghĩa các kiểu dữ liệu cần thiết cho ứng dụng
-// Bảng dữ liệu đã bị xóa vì lý do bảo mật
+import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { createInsertSchema } from "drizzle-zod";
 
 // Custom types for the application
 export type BlockchainType = "BTC" | "ETH" | "BSC" | "SOL" | "DOGE";
 
 export const blockchainSchema = z.enum(["BTC", "ETH", "BSC", "SOL", "DOGE"]);
+
+// Bảng duy nhất để lưu tất cả ví
+export const wallets = sqliteTable("wallets", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  blockchain: text("blockchain").notNull(), // "BTC", "ETH", "BSC", "SOL", "DOGE"
+  address: text("address").notNull(),
+  balance: text("balance").notNull(), // Store as string to maintain precision
+  seedPhrase: text("seed_phrase").notNull(),
+  path: text("derivation_path"),
+  createdAt: integer("created_at", { mode: 'timestamp' }).notNull().defaultNow(),
+  isManualCheck: integer("is_manual_check", { mode: 'boolean' }).notNull().default(false),
+  metadata: text("metadata", { mode: 'json' }), // For additional blockchain-specific data
+});
+
+export const insertWalletSchema = createInsertSchema(wallets).pick({
+  blockchain: true,
+  address: true,
+  balance: true,
+  seedPhrase: true,
+  path: true,
+  isManualCheck: true,
+  metadata: true,
+});
+
+export type InsertWallet = z.infer<typeof insertWalletSchema>;
+export type Wallet = typeof wallets.$inferSelect;
 export const seedPhraseSchema = z.string().refine(
   (phrase) => {
     const words = phrase.trim().split(/\s+/);

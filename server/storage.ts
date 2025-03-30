@@ -1,98 +1,69 @@
-import { BlockchainType } from "@shared/schema";
-
-// Tất cả các hoạt động database đã bị xóa vì lý do bảo mật
-// Các phương thức dưới đây chỉ là stub và không thực sự lưu trữ dữ liệu
-
-// Định nghĩa các kiểu dữ liệu tạm thời để thay thế
-interface User {
-  id: number;
-  username: string;
-}
-
-interface InsertUser {
-  username: string;
-  password: string;
-}
-
-interface Wallet {
-  id: number;
-  blockchain: BlockchainType;
-  address: string;
-  balance: string;
-  seedPhrase: string;
-  path?: string;
-  metadata?: any;
-}
-
-interface InsertWallet {
-  blockchain: BlockchainType;
-  address: string;
-  balance: string;
-  seedPhrase: string;
-  path?: string;
-  metadata?: any;
-}
-
-interface ManualSeedPhrase {
-  id: number;
-  seedPhrase: string;
-  hasBeenChecked: boolean;
-}
+import { BlockchainType, InsertWallet, Wallet, wallets } from "@shared/schema";
+import { eq } from "drizzle-orm";
+import { db } from "./db";
 
 export interface IStorage {
-  getUser(id: number): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
-  
   // Wallet operations
   createWallet(wallet: InsertWallet): Promise<Wallet>;
   
   // Manual seed phrase operations
-  saveManualSeedPhrase(seedPhrase: string): Promise<ManualSeedPhrase>;
-  getAllManualSeedPhrases(): Promise<ManualSeedPhrase[]>;
+  saveManualSeedPhrase(seedPhrase: string): Promise<Wallet>;
+  getAllManualSeedPhrases(): Promise<Wallet[]>;
+  
+  // Wallet query
+  getWalletsWithBalance(): Promise<Wallet[]>;
 }
 
-// Triển khai lớp lưu trữ không thực sự lưu trữ dữ liệu
-export class MemoryStorage implements IStorage {
-  async getUser(id: number): Promise<User | undefined> {
-    console.log("getUser called (no data actually stored)");
-    return undefined;
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    console.log("getUserByUsername called (no data actually stored)");
-    return undefined;
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    console.log("createUser called (no data actually stored)");
-    return {
-      id: 1,
-      username: insertUser.username
-    };
-  }
-
-  async createWallet(insertWallet: InsertWallet): Promise<Wallet> {
-    console.log(`createWallet called for blockchain: ${insertWallet.blockchain}, address: ${insertWallet.address} (no data actually stored)`);
-    return {
-      id: 1,
-      ...insertWallet
-    };
+// Triển khai lớp lưu trữ sử dụng Drizzle ORM với SQLite
+export class DatabaseStorage implements IStorage {
+  // Lưu trữ ví vào database, bao gồm cả ví từ kiểm tra tự động và kiểm tra thủ công
+  async createWallet(wallet: InsertWallet): Promise<Wallet> {
+    try {
+      // Thêm vào database
+      const result = await db.insert(wallets).values({
+        blockchain: wallet.blockchain,
+        address: wallet.address,
+        balance: wallet.balance,
+        seedPhrase: wallet.seedPhrase,
+        path: wallet.path || "",
+        isManualCheck: wallet.isManualCheck || false,
+        metadata: wallet.metadata || {}
+      }).returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error("Error creating wallet:", error);
+      throw error;
+    }
   }
   
-  async saveManualSeedPhrase(seedPhrase: string): Promise<ManualSeedPhrase> {
-    console.log("saveManualSeedPhrase called (no data actually stored)");
-    return {
-      id: 1,
-      seedPhrase,
-      hasBeenChecked: true
-    };
+  // Lưu seed phrase thủ công vào database với trạng thái isManualCheck = true
+  async saveManualSeedPhrase(seedPhrase: string): Promise<Wallet> {
+    // Lưu seed phrase như một ví với blockchain="MANUAL", address="UNCHECKED"
+    return this.createWallet({
+      blockchain: "MANUAL" as BlockchainType, // Kiểu ảo, không thực sự có blockchain này
+      address: "MANUAL_ENTRY",
+      balance: "0",
+      seedPhrase: seedPhrase,
+      path: "",
+      isManualCheck: true,
+      metadata: {}
+    });
   }
   
-  async getAllManualSeedPhrases(): Promise<ManualSeedPhrase[]> {
-    console.log("getAllManualSeedPhrases called (no data actually stored)");
-    return [];
+  // Lấy tất cả seed phrase thủ công từ database
+  async getAllManualSeedPhrases(): Promise<Wallet[]> {
+    return db.select().from(wallets).where(eq(wallets.isManualCheck, true));
+  }
+  
+  // Lấy tất cả ví có số dư từ database
+  async getWalletsWithBalance(): Promise<Wallet[]> {
+    // Chỉ lấy các ví có số dư > 0
+    return db.select().from(wallets).where(
+      // Loại bỏ các ví "MANUAL" không thực sự có blockchain
+      eq(wallets.blockchain, "BTC")
+    );
   }
 }
 
-export const storage = new MemoryStorage();
+export const storage = new DatabaseStorage();

