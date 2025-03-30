@@ -80,10 +80,7 @@ export function ControlPanel({
             variant={isSearching ? "destructive" : "default"}
           >
             {isSearching ? (
-              <>
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Dừng
-              </>
+              "Dừng"
             ) : (
               "Bắt đầu"
             )}

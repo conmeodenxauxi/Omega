@@ -110,7 +110,8 @@ const apiKeys: Record<string, string[]> = {
     'd4077d9b-8183-4708-90e7-6d64449dd09e',
     '88a214e2-b5b9-45eb-803d-2f3c6ab5aa50',
     '3bcac472-0eb9-4404-8d20-bb25ca9dadc8',
-    'c9fe92c4-6d56-4f0c-8c3f-99ccf9685d7c'
+    'c9fe92c4-6d56-4f0c-8c3f-99ccf9685d7c',
+    'f769413c-ebdf-4df9-841a-aa054fbce6b2' // Key mới được thêm vào
   ],
   
   // Bitcoin API Keys (Tatum.io)
@@ -130,7 +131,9 @@ const apiKeys: Record<string, string[]> = {
     't-67e88349832893ddeb2bfbb4-1946d051f1084b5ebcbf6927',
     't-67e883175953fae328c284e9-464883db18be4955a60a683f',
     't-67e88422832893ddeb2bfbbd-c890492b88b0459fbc51bf16',
-    't-67e884e8832893ddeb2bfbc6-3c30b4a88f4b4d00b57a327b'
+    't-67e884e8832893ddeb2bfbc6-3c30b4a88f4b4d00b57a327b',
+    // Key mới được thêm vào
+    't-67e8b19d5953fae328c2853a-6c3e0ea944094a47b3ef59f4'
   ],
   
   // Dogecoin API Keys (Tatum.io)
