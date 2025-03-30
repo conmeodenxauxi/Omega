@@ -184,18 +184,7 @@ const blockchainEndpoints: Record<BlockchainType, ApiEndpoint[]> = {
     }
   ],
   'ETH': [
-    // Public API (Etherscan без ключа - ограниченное количество запросов)
-    {
-      name: 'Etherscan Public',
-      type: 'public',
-      url: '',
-      formatUrl: (address) => `https://api.etherscan.io/api?module=account&action=balance&address=${address}&tag=latest`,
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-      needsApiKey: false,
-      callCount: 0
-    },
-    // Etherscan с API key
+    // Etherscan with API key
     {
       name: 'Etherscan',
       type: 'private',
@@ -208,18 +197,7 @@ const blockchainEndpoints: Record<BlockchainType, ApiEndpoint[]> = {
     }
   ],
   'BSC': [
-    // Public API
-    {
-      name: 'BSCScan Public',
-      type: 'public',
-      url: '',
-      formatUrl: (address) => `https://api.bscscan.com/api?module=account&action=balance&address=${address}&tag=latest`,
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-      needsApiKey: false,
-      callCount: 0
-    },
-    // BSCScan с API key
+    // BSCScan with API key
     {
       name: 'BSCScan',
       type: 'private',
