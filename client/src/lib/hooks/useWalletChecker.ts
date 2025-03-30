@@ -8,16 +8,24 @@ import { getQueryFn, apiRequest } from '@/lib/queryClient';
 const DEFAULT_CHECK_INTERVAL = 1000; // Tốc độ tạo seed mặc định (ms)
 const DEFAULT_BUFFER_SIZE = 9; // Giới hạn tạo seed = seeds checked + buffer
 
+// Định nghĩa chế độ kiểm tra
+export enum CheckMode {
+  AUTO = 'auto',   // Kiểm tra tự động với seed phrases ngẫu nhiên
+  MANUAL = 'manual' // Kiểm tra thủ công với seed phrase người dùng nhập
+}
+
 interface WalletCheckerOptions {
   selectedBlockchains: BlockchainType[];
   seedPhraseLength: (12 | 24)[];
   autoReset: boolean;
+  mode?: CheckMode; // Chế độ kiểm tra (mặc định là AUTO)
 }
 
 export function useWalletChecker({
   selectedBlockchains,
   seedPhraseLength,
-  autoReset
+  autoReset,
+  mode = CheckMode.AUTO // Mặc định là kiểm tra tự động
 }: WalletCheckerOptions) {
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [currentAddresses, setCurrentAddresses] = useState<WalletAddress[]>([]);
@@ -28,6 +36,11 @@ export function useWalletChecker({
     checked: 0,
     withBalance: 0
   });
+  
+  // State mới dành cho chế độ kiểm tra thủ công
+  const [manualSeedPhrase, setManualSeedPhrase] = useState<string>('');
+  const [manualCheckResults, setManualCheckResults] = useState<WalletWithBalance[]>([]);
+  const [isManualChecking, setIsManualChecking] = useState<boolean>(false);
   
   const currentSeedPhrase = useRef<string>('');
   const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -195,6 +208,9 @@ export function useWalletChecker({
     // Cập nhật địa chỉ đang kiểm tra
     setCheckingAddresses(addresses);
     
+    // Phân biệt giữa chế độ tự động (auto) và thủ công (manual)
+    const isManualMode = mode === CheckMode.MANUAL;
+    
     // Thực hiện kiểm tra trong một hàm async tách biệt
     (async () => {
       try {
@@ -206,7 +222,7 @@ export function useWalletChecker({
           }))
         );
         
-        console.log(`Kiểm tra số dư cho ${allAddresses.length} địa chỉ`);
+        console.log(`Kiểm tra số dư cho ${allAddresses.length} địa chỉ (chế độ: ${isManualMode ? 'thủ công' : 'tự động'})`);
         
         // Gửi yêu cầu kiểm tra số dư SONG SONG
         const response = await apiRequest('/api/check-balances-parallel', {
@@ -256,7 +272,13 @@ export function useWalletChecker({
               seedPhrase
             }));
             
-            // Cập nhật danh sách ví có số dư để hiển thị
+            // Phân biệt giữa chế độ kiểm tra thủ công và tự động
+            if (isManualMode) {
+              // Trong chế độ thủ công, cập nhật kết quả kiểm tra thủ công
+              setManualCheckResults(prev => [...prev, ...newWallets]);
+            }
+            
+            // Cả hai chế độ đều cập nhật walletsWithBalance (chủ yếu để hiển thị)
             setWalletsWithBalance(prev => [...prev, ...newWallets]);
             
             // Cập nhật số lượng ví có số dư
@@ -265,8 +287,8 @@ export function useWalletChecker({
               withBalance: prev.withBalance + newWallets.length
             }));
             
-            // Nếu có địa chỉ với số dư và autoReset được bật, reset thống kê
-            if (autoReset) {
+            // Nếu có địa chỉ với số dư và autoReset được bật và đang trong chế độ tự động, reset thống kê
+            if (autoReset && !isManualMode) {
               resetStats();
             }
           }
@@ -468,6 +490,12 @@ export function useWalletChecker({
     toggleSearching,
     resetStats,
     manualCheck,
-    currentSeedPhrase: currentSeedPhrase.current
+    currentSeedPhrase: currentSeedPhrase.current,
+    // Thêm các trạng thái và các hàm mới cho chế độ kiểm tra thủ công
+    manualSeedPhrase,
+    setManualSeedPhrase,
+    manualCheckResults,
+    isManualChecking,
+    mode
   };
 }
