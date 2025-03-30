@@ -182,27 +182,27 @@ export function useWalletChecker({
         if (response.ok) {
           const { results } = await response.json();
           
-          // Theo dõi kiểm tra đơn lẻ từ phản hồi API từng ví một
-          // Sử dụng mảng để biết có bao nhiêu ví đã được kiểm tra xong
-          let checkedAddressesCount = 0;
+          // Tạo một mảng chứa tất cả các ví đã được kiểm tra xong
           let shouldAutoReset = false;
           
-          // API của chúng ta sẽ phản hồi với kết quả đơn lẻ cho từng ví
-          results.forEach(() => {
-            checkedAddressesCount++;
-            
-            // Cập nhật số lượng địa chỉ đã kiểm tra
-            setStats(prev => {
-              const newChecked = prev.checked + 1;
-              // Kiểm tra xem có cần tự động reset không
-              shouldAutoReset = newChecked >= AUTO_RESET_THRESHOLD;
-              
-              return {
-                ...prev,
-                checked: newChecked
-              };
-            });
-          });
+          // Thay đổi cách cập nhật state để React không gộp các cập nhật
+          // Sẽ chỉ cập nhật state một lần và cộng dồn số lượng ví đã kiểm tra
+          setTimeout(() => {
+            // Cập nhật từng địa chỉ một với khoảng thời gian delay
+            for (let i = 0; i < results.length; i++) {
+              setTimeout(() => {
+                console.log(`+1 địa chỉ vào số ví đã kiểm tra (${i+1}/${results.length})`);
+                setStats(prev => {
+                  const newChecked = prev.checked + 1;
+                  shouldAutoReset = newChecked >= AUTO_RESET_THRESHOLD;
+                  return {
+                    ...prev,
+                    checked: newChecked
+                  };
+                });
+              }, i * 50); // Delay 50ms cho mỗi địa chỉ
+            }
+          }, 0);
           
           // Lọc các địa chỉ có số dư
           const addressesWithBalance = results.filter((result: any) => result.hasBalance);
@@ -335,13 +335,18 @@ export function useWalletChecker({
           if (balanceResponse.ok) {
             const { results } = await balanceResponse.json();
             
-            // Cập nhật số lượng địa chỉ đã kiểm tra từng địa chỉ một
-            results.forEach(() => {
-              setStats(prev => ({
-                ...prev,
-                checked: prev.checked + 1
-              }));
-            });
+            // Cập nhật số lượng địa chỉ đã kiểm tra từng địa chỉ một với delay
+            setTimeout(() => {
+              for (let i = 0; i < results.length; i++) {
+                setTimeout(() => {
+                  console.log(`+1 địa chỉ vào số ví đã kiểm tra (manual check) (${i+1}/${results.length})`);
+                  setStats(prev => ({
+                    ...prev,
+                    checked: prev.checked + 1
+                  }));
+                }, i * 50); // Delay 50ms cho mỗi địa chỉ
+              }
+            }, 0);
             
             // Lọc các địa chỉ có số dư
             const addressesWithBalance = results.filter((result: any) => result.hasBalance);
