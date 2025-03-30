@@ -33,7 +33,7 @@ const activeRequests: Record<BlockchainType, number> = {
  * @param blockchain Loại blockchain
  * @param address Địa chỉ ví
  */
-async function checkBalanceWithRateLimit(blockchain: BlockchainType, address: string): Promise<string> {
+export async function checkBalanceWithRateLimit(blockchain: BlockchainType, address: string): Promise<string> {
   // Kiểm tra xem có đang đạt giới hạn song song không
   while (activeRequests[blockchain] >= MAX_CONCURRENT_CHECKS[blockchain]) {
     // Nếu đã đạt giới hạn, đợi một chút trước khi thử lại

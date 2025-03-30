@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import * as addressGenerator from "./blockchain/address-generator";
 import { checkBalanceWithSmartRotation as checkBalance } from "./blockchain/api-smart-rotation";
-import { checkBalancesInParallel } from "./blockchain/parallel-balance-checker";
+import { checkBalancesInParallel, checkBalanceWithRateLimit } from "./blockchain/parallel-balance-checker";
 import { BlockchainType, blockchainSchema, seedPhraseSchema, wallets, BalanceCheckResult, WalletAddress } from "@shared/schema";
 import { z } from "zod";
 
@@ -163,7 +163,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const startTime = Date.now();
       console.log(`Bắt đầu kiểm tra ${addresses.length} địa chỉ song song`);
       
-      const results = await checkBalancesInParallel(addresses);
+      // Lưu trữ Promise tạm thời để có thể theo dõi tiến trình
+      const resultPromises = addresses.map(({ blockchain, address }) => {
+        return checkBalanceWithRateLimit(blockchain, address)
+          .then(balance => {
+            const hasBalance = parseFloat(balance) > 0;
+            console.log(`Đã kiểm tra địa chỉ đơn lẻ: ${blockchain} ${address.substring(0, 6)}...`);
+            
+            return {
+              address,
+              balance,
+              hasBalance,
+              blockchain
+            };
+          })
+          .catch(error => {
+            console.error(`Error checking ${blockchain} balance for ${address}:`, error);
+            return {
+              address,
+              balance: '0',
+              hasBalance: false,
+              blockchain
+            };
+          });
+      });
+      
+      // Đợi tất cả promise hoàn thành
+      const results = await Promise.all(resultPromises);
       
       const endTime = Date.now();
       console.log(`Hoàn thành kiểm tra ${addresses.length} địa chỉ song song trong ${endTime - startTime}ms`);

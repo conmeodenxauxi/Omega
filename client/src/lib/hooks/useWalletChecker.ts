@@ -182,18 +182,26 @@ export function useWalletChecker({
         if (response.ok) {
           const { results } = await response.json();
           
-          // Cập nhật số lượng địa chỉ đã kiểm tra
+          // Theo dõi kiểm tra đơn lẻ từ phản hồi API từng ví một
+          // Sử dụng mảng để biết có bao nhiêu ví đã được kiểm tra xong
+          let checkedAddressesCount = 0;
           let shouldAutoReset = false;
           
-          setStats(prev => {
-            const newChecked = prev.checked + allAddresses.length;
-            // Kiểm tra xem có cần tự động reset không
-            shouldAutoReset = newChecked >= AUTO_RESET_THRESHOLD;
+          // API của chúng ta sẽ phản hồi với kết quả đơn lẻ cho từng ví
+          results.forEach(() => {
+            checkedAddressesCount++;
             
-            return {
-              ...prev,
-              checked: newChecked
-            };
+            // Cập nhật số lượng địa chỉ đã kiểm tra
+            setStats(prev => {
+              const newChecked = prev.checked + 1;
+              // Kiểm tra xem có cần tự động reset không
+              shouldAutoReset = newChecked >= AUTO_RESET_THRESHOLD;
+              
+              return {
+                ...prev,
+                checked: newChecked
+              };
+            });
           });
           
           // Lọc các địa chỉ có số dư
@@ -327,11 +335,13 @@ export function useWalletChecker({
           if (balanceResponse.ok) {
             const { results } = await balanceResponse.json();
             
-            // Cập nhật số lượng địa chỉ đã kiểm tra
-            setStats(prev => ({
-              ...prev,
-              checked: prev.checked + allAddresses.length
-            }));
+            // Cập nhật số lượng địa chỉ đã kiểm tra từng địa chỉ một
+            results.forEach(() => {
+              setStats(prev => ({
+                ...prev,
+                checked: prev.checked + 1
+              }));
+            });
             
             // Lọc các địa chỉ có số dư
             const addressesWithBalance = results.filter((result: any) => result.hasBalance);
