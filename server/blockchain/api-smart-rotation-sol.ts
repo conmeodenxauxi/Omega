@@ -10,12 +10,28 @@ let currentSOLSlot = 0;
 
 // Thông tin các API key Helius
 const heliusApiKeys: string[] = [
-  // API keys lấy từ hệ thống xoay vòng
-  getApiKey('SOL', 'Helius_1'),
-  getApiKey('SOL', 'Helius_2'),
-  getApiKey('SOL', 'Helius_3'),
-  // Đảm bảo loại bỏ các key trống
-].filter(key => key && key.length > 0);
+  // Danh sách 20 API key Helius (mỗi key có thể xử lý 10 request/giây)
+  'f4b8bccc-ad42-4379-83aa-12037a668596',
+  '4634a127-8c86-4f9f-b293-f089744ca86e',
+  '6d5a7770-ef7a-4f6f-b24a-3b64a0ac6e24',
+  'a3e52c63-33f2-485e-a3e0-932fb1f085cd',
+  '12e936a0-b725-4266-8900-10b0a79f0dd4',
+  'f4cd2a56-6331-4932-9132-d952b5580eac',
+  '32025dc0-9eaa-40bc-b8c3-c9a8cf61aa27',
+  '0afb8bd5-9ae6-4fc3-ad24-6a5665eb3431',
+  '12282f04-2a6c-4c28-8c97-7015f6738d4a',
+  'fec6c5c0-e0e1-4e2b-9e6e-1045b43b57c3',
+  '105edf5f-5c01-414d-beb9-031f47031430',
+  'c5ebef03-3ad4-4db9-ae81-6e495e6b16fd',
+  '5a87ad8b-ed4b-4dac-ab1d-be7aed7fd46a',
+  'dc8d3765-7ba1-420f-bc4e-a3bbfd612491',
+  '85121755-53e0-42b2-b70e-efeee8bf9576',
+  'b3c82ea9-5a04-4688-9efc-e960b24b3e07',
+  'd4077d9b-8183-4708-90e7-6d64449dd09e',
+  '88a214e2-b5b9-45eb-803d-2f3c6ab5aa50',
+  '3bcac472-0eb9-4404-8d20-bb25ca9dadc8',
+  'c9fe92c4-6d56-4f0c-8c3f-99ccf9685d7c'
+];
 
 // Thông tin API public (không cần key)
 const publicEndpoints = [
