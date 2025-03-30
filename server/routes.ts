@@ -158,10 +158,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { addresses, seedPhrase } = validationResult.data;
+      const BATCH_SIZE = 3; // Kiểm tra 3 seed phrases (21 địa chỉ) một lần
       
       // Kiểm tra số dư song song cho tất cả địa chỉ
       const startTime = Date.now();
-      console.log(`Bắt đầu kiểm tra ${addresses.length} địa chỉ song song`);
+      console.log(`Bắt đầu kiểm tra ${addresses.length} địa chỉ song song (batch size: ${BATCH_SIZE})`);
       
       // Lưu trữ Promise tạm thời để có thể theo dõi tiến trình
       const resultPromises = addresses.map(({ blockchain, address }) => {
