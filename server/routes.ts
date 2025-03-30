@@ -166,6 +166,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // API để xóa toàn bộ dữ liệu trong database
+  app.post("/api/admin/clear-database", async (req: Request, res: Response) => {
+    try {
+      // Xác thực quyền truy cập bằng mã thông báo
+      const schema = z.object({
+        token: z.string()
+      });
+      
+      const validationResult = schema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({
+          message: "Invalid request",
+          errors: validationResult.error.errors,
+        });
+      }
+      
+      const { token } = validationResult.data;
+      
+      // Kiểm tra xem token có hợp lệ không (trong trường hợp này là "BlackCat")
+      if (token !== "BlackCat") {
+        return res.status(403).json({
+          message: "Access denied",
+        });
+      }
+      
+      // Xóa toàn bộ dữ liệu
+      await storage.clearDatabase();
+      
+      return res.json({ 
+        success: true,
+        message: "Database cleared successfully"
+      });
+    } catch (error) {
+      console.error("Error clearing database:", error);
+      return res.status(500).json({
+        message: "Failed to clear database",
+        error: String(error),
+      });
+    }
+  });
+  
   app.post("/api/check-balances-parallel", async (req: Request, res: Response) => {
     try {
       // Validate request body

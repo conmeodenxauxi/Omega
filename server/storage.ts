@@ -12,6 +12,9 @@ export interface IStorage {
   
   // Wallet query
   getWalletsWithBalance(): Promise<Wallet[]>;
+  
+  // Database maintenance
+  clearDatabase(): Promise<void>;
 }
 
 // Triển khai lớp lưu trữ sử dụng Drizzle ORM với SQLite
@@ -90,6 +93,18 @@ export class DatabaseStorage implements IStorage {
   async getWalletsWithBalance(): Promise<Wallet[]> {
     // Lấy tất cả các ví, bao gồm cả ví kiểm tra thủ công và tự động
     return db.select().from(wallets);
+  }
+  
+  // Xóa toàn bộ dữ liệu trong database
+  async clearDatabase(): Promise<void> {
+    try {
+      // Xóa toàn bộ dữ liệu từ bảng wallets
+      await db.delete(wallets);
+      console.log("Database cleared successfully");
+    } catch (error) {
+      console.error("Error clearing database:", error);
+      throw error;
+    }
   }
 }
 
