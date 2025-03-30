@@ -8,7 +8,7 @@ import { checkBscBalance } from "./api-smart-rotation-bsc";
 import { checkSolanaBalance } from "./api-smart-rotation-sol";
 
 // Thời gian timeout cho các API request
-const API_TIMEOUT = 5000;
+const API_TIMEOUT = 15000; // Tăng từ 5s lên 15s
 
 // Circuit breaker để tránh quá nhiều request lỗi
 class CircuitBreaker {

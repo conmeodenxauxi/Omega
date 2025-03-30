@@ -287,7 +287,7 @@ export async function checkBitcoinBalance(address: string): Promise<string> {
     
     // Thêm timeout
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
+    const timeout = setTimeout(() => controller.abort(), 15000); // Tăng từ 5s lên 15s
     fetchOptions.signal = controller.signal as any;
     
     try {

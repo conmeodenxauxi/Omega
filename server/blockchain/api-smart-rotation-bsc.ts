@@ -153,17 +153,34 @@ export async function checkBscBalance(address: string): Promise<string> {
       fetchOptions.body = apiConfig.body;
     }
     
-    // Thực hiện request
-    const response = await fetch(apiConfig.url, fetchOptions);
-    const data = await response.json();
+    // Thêm timeout
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000); // 15 giây timeout
+    fetchOptions.signal = controller.signal as any;
     
-    // Xử lý phản hồi
-    const balance = parseBscApiResponse(apiConfig.name, data);
-    
-    console.log(`BSC balance from ${apiConfig.name}: ${balance}`);
-    return balance;
+    try {
+      // Thực hiện request
+      const response = await fetch(apiConfig.url, fetchOptions);
+      clearTimeout(timeout);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      // Xử lý phản hồi
+      const balance = parseBscApiResponse(apiConfig.name, data);
+      
+      console.log(`BSC balance from ${apiConfig.name}: ${balance}`);
+      return balance;
+    } catch (error) {
+      console.error(`Error fetching from ${apiConfig.name}:`, error);
+      clearTimeout(timeout);
+      return '0';
+    }
   } catch (error) {
-    console.error(`Error fetching from ${error instanceof Error ? error.message : 'unknown'}`);
+    console.error(`Error checking BSC balance:`, error);
     return '0';
   }
 }

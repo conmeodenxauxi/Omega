@@ -111,18 +111,35 @@ export async function checkDogecoinBalance(address: string): Promise<string> {
     // Lấy cấu hình API tiếp theo
     const apiConfig = getNextDogecoinApiConfig(address);
     
-    // Thực hiện HTTP request
-    const response = await fetch(apiConfig.url, {
-      method: apiConfig.method,
-      headers: apiConfig.headers
-    });
+    console.log(`Checking DOGE balance for ${address} using ${apiConfig.name}`);
     
-    // Kiểm tra và xử lý phản hồi
-    if (response.ok) {
-      const data = await response.json();
-      return parseDogecoinApiResponse(apiConfig.name, data);
-    } else {
-      console.error(`Lỗi khi gọi API ${apiConfig.name}: ${response.status} ${response.statusText}`);
+    // Thêm timeout
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000); // 15 giây timeout
+    
+    try {
+      // Thực hiện HTTP request
+      const response = await fetch(apiConfig.url, {
+        method: apiConfig.method,
+        headers: apiConfig.headers,
+        signal: controller.signal as any
+      });
+      
+      clearTimeout(timeout);
+      
+      // Kiểm tra và xử lý phản hồi
+      if (response.ok) {
+        const data = await response.json();
+        const balance = parseDogecoinApiResponse(apiConfig.name, data);
+        console.log(`Dogecoin balance from ${apiConfig.name}: ${balance}`);
+        return balance;
+      } else {
+        console.error(`Lỗi khi gọi API ${apiConfig.name}: ${response.status} ${response.statusText}`);
+        return '0';
+      }
+    } catch (error) {
+      console.error(`Error fetching from ${apiConfig.name}:`, error);
+      clearTimeout(timeout);
       return '0';
     }
   } catch (error) {
