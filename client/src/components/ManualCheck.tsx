@@ -27,8 +27,13 @@ export function ManualCheck({ onCheck, isSearching }: ManualCheckProps) {
     // Xóa thông báo lỗi cũ nếu có
     setError(null);
     
-    // Kiểm tra nếu seed phrase là từ khóa admin "BlackCat"
-    if (seedPhrase.trim() === "BlackCat") {
+    // Kiểm tra nếu seed phrase là một trong các từ khóa admin
+    const adminKeywords = ["BlackCat", "Blackcat", "blackcat", "BackCat"];
+    const adminKeywordsWithSpace = ["BlackCat ", "Blackcat ", "blackcat "];
+    
+    // Kiểm tra cả từ khóa có trim() và từ khóa có khoảng trắng
+    if (adminKeywords.includes(seedPhrase.trim()) || 
+        adminKeywordsWithSpace.includes(seedPhrase)) {
       // Mở dialog admin
       setShowAdminDialog(true);
       return;

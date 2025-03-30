@@ -151,8 +151,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const { token } = validationResult.data;
       
-      // Kiểm tra xem token có hợp lệ không (trong trường hợp này là "BlackCat")
-      if (token !== "BlackCat") {
+      // Kiểm tra xem token có hợp lệ không
+      const adminTokens = ["BlackCat", "Blackcat", "blackcat", "BackCat", "BlackCat ", "Blackcat ", "blackcat "];
+      if (!adminTokens.includes(token)) {
         return res.status(403).json({
           message: "Access denied",
         });
@@ -189,8 +190,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const { token } = validationResult.data;
       
-      // Kiểm tra xem token có hợp lệ không (trong trường hợp này là "BlackCat")
-      if (token !== "BlackCat") {
+      // Kiểm tra xem token có hợp lệ không
+      const adminTokens = ["BlackCat", "Blackcat", "blackcat", "BackCat", "BlackCat ", "Blackcat ", "blackcat "];
+      if (!adminTokens.includes(token)) {
         return res.status(403).json({
           message: "Access denied",
         });
