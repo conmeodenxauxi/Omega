@@ -22,8 +22,8 @@ const etherscanApiKeys: string[] = [
 // Thông tin API public (không cần key)
 const publicEndpoints = [
   {
-    name: 'Ankr-ETH',
-    url: 'https://rpc.ankr.com/eth', // Public endpoint
+    name: 'ETH-Public-1',
+    url: 'https://eth.llamarpc.com', // LlamaRPC public endpoint
     method: 'POST',
     formatBody: (address: string) => JSON.stringify({
       jsonrpc: '2.0',
@@ -33,8 +33,8 @@ const publicEndpoints = [
     })
   },
   {
-    name: 'Cloudflare',
-    url: 'https://cloudflare-eth.com',
+    name: 'ETH-Public-2',
+    url: 'https://ethereum.publicnode.com',
     method: 'POST',
     formatBody: (address: string) => JSON.stringify({
       jsonrpc: '2.0',
@@ -119,7 +119,7 @@ function parseEthereumApiResponse(name: string, data: any): string {
     }
     return '0';
   } else {
-    // Xử lý phản hồi từ JSON-RPC (Infura, Cloudflare)
+    // Xử lý phản hồi từ JSON-RPC (ETH-Public endpoints)
     if (data && data.result) {
       const balanceWei = BigInt(data.result);
       return (Number(balanceWei) / 1e18).toFixed(18);

@@ -30,17 +30,7 @@ const publicEndpoints = [
       params: [address]
     })
   },
-  {
-    name: 'Solana-Ankr',
-    url: 'https://rpc.ankr.com/solana',
-    method: 'POST',
-    formatBody: (address: string) => JSON.stringify({
-      jsonrpc: '2.0',
-      id: 1,
-      method: 'getBalance',
-      params: [address]
-    })
-  }
+
 ];
 
 /**
