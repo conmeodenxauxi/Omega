@@ -2,7 +2,6 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import * as addressGenerator from "./blockchain/address-generator";
-import { getCachedBalance, setCachedBalance } from "./blockchain/api";
 import { checkBalanceWithSmartRotation as checkBalance } from "./blockchain/api-smart-rotation";
 import { BlockchainType, blockchainSchema, seedPhraseSchema, wallets, BalanceCheckResult, WalletAddress } from "@shared/schema";
 import { z } from "zod";
@@ -73,19 +72,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { blockchain, address } = addressData;
 
         try {
-          // Check if we already have a cached balance
-          const cachedBalance = getCachedBalance(blockchain, address);
+          // Check balance from APIs
+          const balance = await checkBalance(blockchain, address);
           
-          let balance;
-          if (cachedBalance !== null) {
-            balance = cachedBalance;
-          } else {
-            // Check balance from APIs
-            balance = await checkBalance(blockchain, address);
-            // Cache the result
-            setCachedBalance(blockchain, address, balance);
-          }
-
           const hasBalance = parseFloat(balance) > 0;
           results.push({
             address,

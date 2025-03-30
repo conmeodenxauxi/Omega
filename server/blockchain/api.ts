@@ -2,15 +2,6 @@ import { BlockchainType } from "@shared/schema";
 import fetch, { RequestInit } from "node-fetch";
 import { getApiKey } from "./api-keys";
 
-// Cache để lưu trữ kết quả kiểm tra số dư với timestamp
-const balanceCache = new Map<string, { balance: string, timestamp: number }>();
-
-// Thời gian cache (1 giờ)
-const CACHE_TTL = 60 * 60 * 1000;
-
-// Cache cho request đang chờ để tránh duplicate requests
-const pendingRequests = new Map<string, Promise<string>>();
-
 // Thời gian timeout cho các API request
 const API_TIMEOUT = 5000;
 
@@ -465,117 +456,49 @@ export async function checkBalance(
   blockchain: BlockchainType,
   address: string
 ): Promise<string> {
-  // Kiểm tra cache trước
-  const cacheKey = `${blockchain}:${address}`;
-  const cachedBalance = getCachedBalance(blockchain, address);
-  if (cachedBalance) {
-    console.log(`Using cached balance for ${blockchain}:${address}: ${cachedBalance}`);
-    return cachedBalance;
-  }
-  
-  // Kiểm tra xem có request đang chờ không
-  let pendingRequest = pendingRequests.get(cacheKey);
-  if (pendingRequest) {
-    console.log(`Reusing pending request for ${blockchain}:${address}`);
-    return pendingRequest;
-  }
-  
   // Kiểm tra circuit breaker
   if (!circuitBreakerManager.canRequest(blockchain.toLowerCase())) {
     console.log(`Circuit breaker open for ${blockchain}. Skipping request.`);
     return '0';
   }
   
-  // Tạo mới request và lưu vào danh sách đang chờ
-  pendingRequest = (async () => {
-    try {
-      let result: BalanceResponse;
-      
-      // Thực hiện kiểm tra theo loại blockchain
-      switch (blockchain) {
-        case 'BTC':
-          result = await getBTCBalance(address);
-          break;
-        case 'ETH':
-          result = await getETHBalance(address);
-          break;
-        case 'BSC':
-          result = await getBSCBalance(address);
-          break;
-        case 'SOL':
-          result = await getSOLBalance(address);
-          break;
-        case 'DOGE':
-          result = await getDOGEBalance(address);
-          break;
-        default:
-          return '0';
-      }
-      
-      // Parse kết quả và lưu vào cache
-      const balance = await parseBalanceResponse(blockchain, result);
-      
-      if (parseFloat(balance) > 0) {
-        console.log(`Found positive balance for ${blockchain}:${address}: ${balance}`);
-        setCachedBalance(blockchain, address, balance);
-      }
-      
-      circuitBreakerManager.recordSuccess(blockchain.toLowerCase());
-      return balance;
-    } catch (error) {
-      console.error(`Error checking balance for ${blockchain}:${address}:`, error);
-      circuitBreakerManager.recordFailure(blockchain.toLowerCase());
-      return '0';
-    } finally {
-      // Đảm bảo xóa khỏi danh sách chờ nếu không có cache
-      if (!balanceCache.has(cacheKey)) {
-        pendingRequests.delete(cacheKey);
-      }
+  try {
+    let result: BalanceResponse;
+    
+    // Thực hiện kiểm tra theo loại blockchain
+    switch (blockchain) {
+      case 'BTC':
+        result = await getBTCBalance(address);
+        break;
+      case 'ETH':
+        result = await getETHBalance(address);
+        break;
+      case 'BSC':
+        result = await getBSCBalance(address);
+        break;
+      case 'SOL':
+        result = await getSOLBalance(address);
+        break;
+      case 'DOGE':
+        result = await getDOGEBalance(address);
+        break;
+      default:
+        return '0';
     }
-  })();
-  
-  // Lưu promise vào danh sách đang chờ
-  pendingRequests.set(cacheKey, pendingRequest);
-  return pendingRequest;
+    
+    // Parse kết quả
+    const balance = await parseBalanceResponse(blockchain, result);
+    
+    if (parseFloat(balance) > 0) {
+      console.log(`Found positive balance for ${blockchain}:${address}: ${balance}`);
+    }
+    
+    circuitBreakerManager.recordSuccess(blockchain.toLowerCase());
+    return balance;
+  } catch (error) {
+    console.error(`Error checking balance for ${blockchain}:${address}:`, error);
+    circuitBreakerManager.recordFailure(blockchain.toLowerCase());
+    return '0';
+  }
 }
 
-// Lấy số dư từ cache
-export function getCachedBalance(blockchain: BlockchainType, address: string): string | null {
-  const cacheKey = `${blockchain}:${address}`;
-  const cacheEntry = balanceCache.get(cacheKey);
-  
-  if (cacheEntry) {
-    const now = Date.now();
-    // Kiểm tra xem cache có còn hiệu lực không
-    if (now - cacheEntry.timestamp < CACHE_TTL) {
-      return cacheEntry.balance;
-    } else {
-      // Cache đã hết hạn, xóa đi
-      balanceCache.delete(cacheKey);
-    }
-  }
-  
-  // Kiểm tra xem có request đang chờ xử lý không
-  const pendingRequest = pendingRequests.get(cacheKey);
-  if (pendingRequest) {
-    console.log(`Using pending request for ${blockchain}:${address}`);
-    return null; // Trả về null để biết rằng cần đợi kết quả request đang chờ
-  }
-  
-  return null;
-}
-
-// Lưu số dư vào cache
-export function setCachedBalance(blockchain: BlockchainType, address: string, balance: string): void {
-  const cacheKey = `${blockchain}:${address}`;
-  const now = Date.now();
-  
-  // Lưu vào cache với timestamp
-  balanceCache.set(cacheKey, { 
-    balance, 
-    timestamp: now 
-  });
-  
-  // Xóa khỏi danh sách đang chờ
-  pendingRequests.delete(cacheKey);
-}
