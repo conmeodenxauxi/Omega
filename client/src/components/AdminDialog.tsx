@@ -7,7 +7,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Wallet } from "@shared/schema";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface AdminDialogProps {
   open: boolean;
@@ -52,27 +51,6 @@ export function AdminDialog({ open, onOpenChange }: AdminDialogProps) {
     }
   };
 
-  // Tính tổng số dư theo từng loại blockchain
-  const calculateTotalBalance = () => {
-    const totals: Record<string, number> = {};
-    
-    wallets.forEach(wallet => {
-      const blockchain = wallet.blockchain;
-      const balance = parseFloat(wallet.balance);
-      
-      if (!isNaN(balance)) {
-        if (!totals[blockchain]) {
-          totals[blockchain] = 0;
-        }
-        totals[blockchain] += balance;
-      }
-    });
-    
-    return totals;
-  };
-
-  const totalBalances = calculateTotalBalance();
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[900px] max-h-[80vh] overflow-y-auto">
@@ -98,51 +76,35 @@ export function AdminDialog({ open, onOpenChange }: AdminDialogProps) {
         )}
 
         {wallets.length > 0 && (
-          <>
-            <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded-md mb-4">
-              <h3 className="font-medium mb-2">Tổng số dư:</h3>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-                {Object.entries(totalBalances).map(([blockchain, balance]) => (
-                  <div key={blockchain} className="bg-white dark:bg-slate-700 p-2 rounded-md">
-                    <span className="font-bold">{blockchain}:</span> {balance}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Blockchain</TableHead>
-                  <TableHead>Seed Phrase</TableHead>
-                  <TableHead>Address</TableHead>
-                  <TableHead>Số dư</TableHead>
-                  <TableHead>Loại</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {wallets.map((wallet) => (
-                  <TableRow key={`${wallet.blockchain}-${wallet.address}`}>
-                    <TableCell>{wallet.blockchain}</TableCell>
-                    <TableCell>
-                      <div className="max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap" 
-                           title={wallet.seedPhrase}>
+          <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="px-4 py-3 border-b border-r text-left font-medium">Blockchain</th>
+                  <th className="px-4 py-3 border-b border-r text-left font-medium">Seed Phrase</th>
+                  <th className="px-4 py-3 border-b text-left font-medium">Số dư</th>
+                </tr>
+              </thead>
+              <tbody>
+                {wallets.map((wallet, index) => (
+                  <tr key={`${wallet.blockchain}-${wallet.address}-${index}`} 
+                      className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                    <td className="px-4 py-3 border-b border-r">
+                      <span className="font-medium">{wallet.blockchain}</span>
+                    </td>
+                    <td className="px-4 py-3 border-b border-r">
+                      <div className="font-mono text-sm" title={wallet.seedPhrase}>
                         {wallet.seedPhrase}
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap" 
-                           title={wallet.address}>
-                        {wallet.address}
-                      </div>
-                    </TableCell>
-                    <TableCell>{wallet.balance}</TableCell>
-                    <TableCell>{wallet.isManualCheck ? "Thủ công" : "Tự động"}</TableCell>
-                  </TableRow>
+                    </td>
+                    <td className="px-4 py-3 border-b text-right font-mono">
+                      {wallet.balance}
+                    </td>
+                  </tr>
                 ))}
-              </TableBody>
-            </Table>
-          </>
+              </tbody>
+            </table>
+          </div>
         )}
       </DialogContent>
     </Dialog>
