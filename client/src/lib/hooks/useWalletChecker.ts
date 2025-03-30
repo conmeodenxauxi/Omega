@@ -8,24 +8,16 @@ import { getQueryFn, apiRequest } from '@/lib/queryClient';
 const DEFAULT_CHECK_INTERVAL = 1000; // Tốc độ tạo seed mặc định (ms)
 const DEFAULT_BUFFER_SIZE = 9; // Giới hạn tạo seed = seeds checked + buffer
 
-// Định nghĩa chế độ kiểm tra
-export enum CheckMode {
-  AUTO = 'auto',   // Kiểm tra tự động với seed phrases ngẫu nhiên
-  MANUAL = 'manual' // Kiểm tra thủ công với seed phrase người dùng nhập
-}
-
 interface WalletCheckerOptions {
   selectedBlockchains: BlockchainType[];
   seedPhraseLength: (12 | 24)[];
   autoReset: boolean;
-  mode?: CheckMode; // Chế độ kiểm tra (mặc định là AUTO)
 }
 
 export function useWalletChecker({
   selectedBlockchains,
   seedPhraseLength,
-  autoReset,
-  mode = CheckMode.AUTO // Mặc định là kiểm tra tự động
+  autoReset
 }: WalletCheckerOptions) {
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [currentAddresses, setCurrentAddresses] = useState<WalletAddress[]>([]);
@@ -36,11 +28,6 @@ export function useWalletChecker({
     checked: 0,
     withBalance: 0
   });
-  
-  // State mới dành cho chế độ kiểm tra thủ công
-  const [manualSeedPhrase, setManualSeedPhrase] = useState<string>('');
-  const [manualCheckResults, setManualCheckResults] = useState<WalletWithBalance[]>([]);
-  const [isManualChecking, setIsManualChecking] = useState<boolean>(false);
   
   const currentSeedPhrase = useRef<string>('');
   const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
