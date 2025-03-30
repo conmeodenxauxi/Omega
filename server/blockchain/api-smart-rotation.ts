@@ -3,6 +3,9 @@ import fetch, { RequestInit } from "node-fetch";
 import { getApiConfigs } from "./api-keys";
 import { checkDogecoinBalance } from "./api-smart-rotation-doge";
 import { checkBitcoinBalance } from "./api-smart-rotation-btc";
+import { checkEthereumBalance } from "./api-smart-rotation-eth";
+import { checkBscBalance } from "./api-smart-rotation-bsc";
+import { checkSolanaBalance } from "./api-smart-rotation-sol";
 
 // Thời gian timeout cho các API request
 const API_TIMEOUT = 5000;
@@ -65,7 +68,7 @@ export async function checkBalanceWithSmartRotation(
   address: string
 ): Promise<string> {
   // Kiểm tra circuit breaker
-  if (!circuitBreakerManager.canRequest(blockchain.toLowerCase())) {
+  if (typeof blockchain === 'string' && !circuitBreakerManager.canRequest(blockchain.toLowerCase())) {
     console.log(`Circuit breaker open for ${blockchain}. Skipping request.`);
     return '0';
   }
@@ -80,11 +83,19 @@ export async function checkBalanceWithSmartRotation(
         if (parseFloat(balance) > 0) {
           console.log(`Found positive DOGE balance for ${address}: ${balance}`);
         }
-        circuitBreakerManager.recordSuccess(blockchain.toLowerCase());
+        if (typeof blockchain === 'string') {
+          circuitBreakerManager.recordSuccess(blockchain.toLowerCase());
+        } else {
+          circuitBreakerManager.recordSuccess('unknown');
+        }
         return balance;
       } catch (error) {
         console.error(`Error in Dogecoin special rotation:`, error);
-        circuitBreakerManager.recordFailure(blockchain.toLowerCase());
+        if (typeof blockchain === 'string') {
+          circuitBreakerManager.recordFailure(blockchain.toLowerCase());
+        } else {
+          circuitBreakerManager.recordFailure('unknown');
+        }
         return '0';
       }
     }
@@ -105,7 +116,55 @@ export async function checkBalanceWithSmartRotation(
       }
     }
     
-    // Lấy tất cả các cấu hình API cho blockchain này
+    // Sử dụng cơ chế xoay vòng thông minh mới cho Ethereum
+    if (blockchain === 'ETH') {
+      try {
+        const balance = await checkEthereumBalance(address);
+        if (parseFloat(balance) > 0) {
+          console.log(`Found positive ETH balance for ${address}: ${balance}`);
+        }
+        circuitBreakerManager.recordSuccess(blockchain.toLowerCase());
+        return balance;
+      } catch (error) {
+        console.error(`Error in Ethereum special rotation:`, error);
+        circuitBreakerManager.recordFailure(blockchain.toLowerCase());
+        return '0';
+      }
+    }
+    
+    // Sử dụng cơ chế xoay vòng thông minh mới cho BSC
+    if (blockchain === 'BSC') {
+      try {
+        const balance = await checkBscBalance(address);
+        if (parseFloat(balance) > 0) {
+          console.log(`Found positive BSC balance for ${address}: ${balance}`);
+        }
+        circuitBreakerManager.recordSuccess(blockchain.toLowerCase());
+        return balance;
+      } catch (error) {
+        console.error(`Error in BSC special rotation:`, error);
+        circuitBreakerManager.recordFailure(blockchain.toLowerCase());
+        return '0';
+      }
+    }
+    
+    // Sử dụng cơ chế xoay vòng thông minh mới cho Solana
+    if (blockchain === 'SOL') {
+      try {
+        const balance = await checkSolanaBalance(address);
+        if (parseFloat(balance) > 0) {
+          console.log(`Found positive SOL balance for ${address}: ${balance}`);
+        }
+        circuitBreakerManager.recordSuccess(blockchain.toLowerCase());
+        return balance;
+      } catch (error) {
+        console.error(`Error in Solana special rotation:`, error);
+        circuitBreakerManager.recordFailure(blockchain.toLowerCase());
+        return '0';
+      }
+    }
+    
+    // Fallback - Lấy tất cả các cấu hình API cho blockchain này
     const apiConfigs = getApiConfigs(blockchain, address);
     
     if (!apiConfigs || apiConfigs.length === 0) {
@@ -127,7 +186,7 @@ export async function checkBalanceWithSmartRotation(
             
             // Xử lý phản hồi tùy theo blockchain và API provider
             switch (blockchain) {
-              case 'BTC':
+              case 'BTC': {
                 if (config.name.includes('BlockCypher')) {
                   const bcData = data as any;
                   if (bcData && typeof bcData.balance !== 'undefined') {
@@ -178,8 +237,9 @@ export async function checkBalanceWithSmartRotation(
                   }
                 }
                 break;
+              }
               
-              case 'ETH':
+              case 'ETH': {
                 if (config.name.includes('Etherscan')) {
                   const esData = data as any;
                   if (esData?.status === '1' && esData?.result) {
@@ -188,8 +248,9 @@ export async function checkBalanceWithSmartRotation(
                   }
                 }
                 break;
+              }
               
-              case 'BSC':
+              case 'BSC': {
                 if (config.name.includes('BSCScan')) {
                   const bscData = data as any;
                   if (bscData?.status === '1' && bscData?.result) {
@@ -198,8 +259,9 @@ export async function checkBalanceWithSmartRotation(
                   }
                 }
                 break;
+              }
               
-              case 'SOL':
+              case 'SOL': {
                 if (config.name === 'Solana RPC') {
                   const solData = data as any;
                   if (solData?.result?.value !== undefined) {
@@ -214,8 +276,9 @@ export async function checkBalanceWithSmartRotation(
                   }
                 }
                 break;
+              }
               
-              case 'DOGE':
+              case 'DOGE': {
                 if (config.name === 'Tatum') {
                   const tatumData = data as any;
                   // Tính toán số dư từ API Tatum: incoming - outgoing
@@ -227,6 +290,7 @@ export async function checkBalanceWithSmartRotation(
                   }
                 }
                 break;
+              }
             }
             
             if (success) {
@@ -261,14 +325,27 @@ export async function checkBalanceWithSmartRotation(
         console.log(`Found positive balance for ${blockchain}:${address}: ${balance}`);
       }
       
-      circuitBreakerManager.recordSuccess(blockchain.toLowerCase());
+      // Đảm bảo blockchain là một chuỗi hợp lệ trước khi gọi toLowerCase
+      if (typeof blockchain === 'string') {
+        circuitBreakerManager.recordSuccess(blockchain.toLowerCase());
+      } else {
+        circuitBreakerManager.recordSuccess('unknown');
+      }
+      
       return balance;
     }
     
     throw new Error('All API requests failed');
   } catch (error) {
     console.error(`Error checking balance for ${blockchain}:${address}:`, error);
-    circuitBreakerManager.recordFailure(blockchain.toLowerCase());
+    
+    // Đảm bảo blockchain là một chuỗi hợp lệ trước khi gọi toLowerCase
+    if (typeof blockchain === 'string') {
+      circuitBreakerManager.recordFailure(blockchain.toLowerCase());
+    } else {
+      circuitBreakerManager.recordFailure('unknown');
+    }
+    
     return '0';
   }
 }
