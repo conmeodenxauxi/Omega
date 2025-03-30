@@ -12,11 +12,11 @@ import { checkDogecoinBalance } from './api-smart-rotation-doge';
 
 // Thiết lập mức độ song song tối đa cho mỗi blockchain
 const MAX_CONCURRENT_CHECKS = {
-  BTC: 5,  // Tối đa 5 request song song cho BTC
-  ETH: 5,  // Tối đa 5 request song song cho ETH
-  BSC: 5,  // Tối đa 5 request song song cho BSC
-  SOL: 10, // Tối đa 10 request song song cho SOL (với 20 Helius API keys)
-  DOGE: 3  // Tối đa 3 request song song cho DOGE
+  BTC: 12,  // Tối đa 12 request song song cho BTC
+  ETH: 4,   // Tối đa 4 request song song cho ETH
+  BSC: 4,   // Tối đa 4 request song song cho BSC
+  SOL: 4,   // Tối đa 4 request song song cho SOL (với 20 Helius API keys)
+  DOGE: 4   // Tối đa 4 request song song cho DOGE
 };
 
 // Quản lý số lượng request đang xử lý cho mỗi blockchain
