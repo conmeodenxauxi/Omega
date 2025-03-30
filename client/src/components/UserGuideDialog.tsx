@@ -23,11 +23,11 @@ export function UserGuideDialog() {
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-center text-xl mb-2">Bản Omega</DialogTitle>
+          <DialogTitle className="text-center text-2xl mb-3 font-bold text-black">Bản 🐈‍⬛ Omega</DialogTitle>
           <DialogDescription asChild>
-            <div className="text-left">
-              <div className="text-base font-medium mb-2">I/ Hướng dẫn sử dụng</div>
-              <ol className="list-decimal pl-6 space-y-2">
+            <div className="text-left text-black">
+              <div className="text-lg font-medium mb-3">I/ Hướng dẫn sử dụng</div>
+              <ol className="list-decimal pl-6 space-y-3 text-base">
                 <li>
                   <span className="font-medium">Ticker tự động reset</span>
                   <div>Xóa cache sau khi kiểm tra được 7000 địa chỉ</div>
