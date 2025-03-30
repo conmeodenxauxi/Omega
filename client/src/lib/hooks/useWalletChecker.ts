@@ -54,7 +54,10 @@ export function useWalletChecker({
     setCheckingAddresses([]);
   }, []);
   
-  // Hàm chỉ để tạo seed phrase mới
+  // Thiết lập kích thước batch - số lượng seed phrase được tạo và kiểm tra cùng lúc
+  const BATCH_SIZE = 3; // Tạo và kiểm tra 3 seed phrases một lúc
+
+  // Hàm để tạo các seed phrases mới theo batch
   const generateSeed = useCallback(async () => {
     if (!isSearchingRef.current || selectedBlockchains.length === 0) {
       console.log("Không tạo seed: isSearchingRef =", isSearchingRef.current, ", selectedBlockchains =", selectedBlockchains.length);
@@ -76,62 +79,78 @@ export function useWalletChecker({
     }
     
     try {
-      console.log("Bắt đầu tạo seed phrase mới");
+      console.log(`Bắt đầu tạo ${BATCH_SIZE} seed phrases mới (batch processing)`);
       
-      // Chọn ngẫu nhiên từ danh sách độ dài seed phrase
-      const randomIndex = Math.floor(Math.random() * seedPhraseLength.length);
-      const wordCount = seedPhraseLength[randomIndex];
+      // Tạo một mảng chứa BATCH_SIZE seed phrases
+      const seedPhraseBatch = [];
+      const seedAddresses = [];
       
-      // Tạo seed phrase mới
-      const seedPhrase = await generateSeedPhrase(wordCount);
-      currentSeedPhrase.current = seedPhrase;
-      
-      // Reset current addresses
-      resetCurrentAddresses();
-      
-      if (!isSearchingRef.current) {
-        console.log("Không còn tìm kiếm - hủy bỏ xử lý seed phrase mới");
-        return;
-      }
-      
-      // Tạo địa chỉ cho các blockchain đã chọn
-      const response = await apiRequest('/api/generate-addresses', {
-        method: 'POST',
-        body: JSON.stringify({
-          seedPhrase,
-          blockchains: selectedBlockchains
-        })
-      });
-      
-      if (!isSearchingRef.current) {
-        console.log("Không còn tìm kiếm - hủy bỏ xử lý kết quả API");
-        return;
-      }
-      
-      if (response.ok) {
-        const { addresses } = await response.json();
-        setCurrentAddresses(addresses);
+      // Tạo BATCH_SIZE seed phrases
+      for (let i = 0; i < BATCH_SIZE; i++) {
+        // Chọn ngẫu nhiên từ danh sách độ dài seed phrase
+        const randomIndex = Math.floor(Math.random() * seedPhraseLength.length);
+        const wordCount = seedPhraseLength[randomIndex];
         
-        // Cập nhật thống kê
-        setStats(prev => ({
-          ...prev,
-          created: prev.created + 1
-        }));
+        // Tạo seed phrase mới
+        const seedPhrase = await generateSeedPhrase(wordCount);
+        if (i === 0) {
+          // Lưu seed phrase đầu tiên để hiển thị trên UI
+          currentSeedPhrase.current = seedPhrase;
+        }
         
-        // Gọi hàm kiểm tra số dư song song (không đợi kết quả)
-        checkBalances(addresses, seedPhrase);
+        seedPhraseBatch.push(seedPhrase);
         
-        // Lên lịch tạo seed tiếp theo ngay lập tức
-        if (isSearchingRef.current) {
-          setTimeout(() => {
-            if (isSearchingRef.current) {
-              generateSeed();
-            }
-          }, DEFAULT_CHECK_INTERVAL);
+        // Tạo địa chỉ cho từng seed phrase
+        if (!isSearchingRef.current) {
+          console.log("Không còn tìm kiếm - hủy bỏ xử lý seed phrase mới");
+          return;
+        }
+
+        // Tạo địa chỉ cho các blockchain đã chọn
+        const response = await apiRequest('/api/generate-addresses', {
+          method: 'POST',
+          body: JSON.stringify({
+            seedPhrase,
+            blockchains: selectedBlockchains
+          })
+        });
+        
+        if (!isSearchingRef.current) {
+          console.log("Không còn tìm kiếm - hủy bỏ xử lý kết quả API");
+          return;
+        }
+        
+        if (response.ok) {
+          const { addresses } = await response.json();
+          seedAddresses.push({ seedPhrase, addresses });
+          
+          // Cập nhật thống kê cho mỗi seed phrase được tạo
+          setStats(prev => ({
+            ...prev,
+            created: prev.created + 1
+          }));
         }
       }
+      
+      // Reset current addresses và thay thế bằng seed đầu tiên để hiển thị
+      setCurrentAddresses(seedAddresses.length > 0 ? seedAddresses[0].addresses : []);
+      
+      // Xử lý song song tất cả các seed phrases trong batch
+      for (const seedData of seedAddresses) {
+        // Gọi hàm kiểm tra số dư song song (không đợi kết quả)
+        checkBalances(seedData.addresses, seedData.seedPhrase);
+      }
+      
+      // Lên lịch tạo batch tiếp theo
+      if (isSearchingRef.current) {
+        setTimeout(() => {
+          if (isSearchingRef.current) {
+            generateSeed();
+          }
+        }, DEFAULT_CHECK_INTERVAL);
+      }
     } catch (error) {
-      console.error('Error generating seed phrase:', error);
+      console.error('Error generating seed phrase batch:', error);
       
       // Nếu có lỗi, thử lại sau một khoảng thời gian
       if (isSearchingRef.current) {
@@ -142,7 +161,7 @@ export function useWalletChecker({
         }, DEFAULT_CHECK_INTERVAL);
       }
     }
-  }, [selectedBlockchains, seedPhraseLength, resetCurrentAddresses]);
+  }, [selectedBlockchains, seedPhraseLength]);
   
   // Hàm chạy vòng lặp tìm kiếm
   const generateAndCheck = useCallback(() => {
