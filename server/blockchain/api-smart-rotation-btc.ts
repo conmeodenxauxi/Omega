@@ -6,6 +6,7 @@
 import { BlockchainType } from "@shared/schema";
 import fetch, { RequestInit } from "node-fetch";
 import { getApiKey, blockchainEndpoints } from "./api-keys";
+import { checkWithBackoff } from "./api-smart-rotation-utils";
 
 // Index hiện tại trong vòng xoay BTC
 let btcRotationIndex = 0;
@@ -277,41 +278,51 @@ export async function checkBitcoinBalance(address: string): Promise<string> {
     
     console.log(`Checking BTC balance for ${address} using ${apiConfig.name}`);
     
-    // Thực hiện request
-    const fetchOptions: RequestInit = {
-      method: apiConfig.method,
-      headers: apiConfig.headers
-    };
-    
-    if (apiConfig.method === 'POST' && apiConfig.body) {
-      fetchOptions.body = apiConfig.body;
-    }
-    
-    // Thêm timeout
-    const controller = new AbortController();
-    // Đặt timeout dài hơn cho BlockCypher do thường xuyên gặp lỗi timeout
-    const timeoutDuration = apiConfig.name.includes('BlockCypher') ? 30000 : 15000;
-    const timeout = setTimeout(() => controller.abort(), timeoutDuration);
-    fetchOptions.signal = controller.signal as any;
-    
-    try {
-      const response = await fetch(apiConfig.url, fetchOptions);
-      clearTimeout(timeout);
+    // Sử dụng checkWithBackoff để xử lý các trường hợp bị rate limit
+    return await checkWithBackoff(async () => {
+      // Thực hiện request
+      const fetchOptions: RequestInit = {
+        method: apiConfig.method,
+        headers: apiConfig.headers
+      };
       
-      if (!response.ok) {
-        throw new Error(`HTTP error: ${response.status}`);
+      if (apiConfig.method === 'POST' && apiConfig.body) {
+        fetchOptions.body = apiConfig.body;
       }
       
-      const data = await response.json();
-      const balance = parseBitcoinApiResponse(apiConfig.name, data, address);
+      // Thêm timeout
+      const controller = new AbortController();
+      // Giảm timeout từ 15s xuống 5s cho các API BTC
+      const timeoutDuration = apiConfig.name.includes('BlockCypher') ? 15000 : 5000; // 5 giây thay vì 15
+      const timeout = setTimeout(() => controller.abort(), timeoutDuration);
+      fetchOptions.signal = controller.signal as any;
       
-      console.log(`Bitcoin balance from ${apiConfig.name}: ${balance}`);
-      return balance;
-    } catch (error) {
-      console.error(`Error fetching from ${apiConfig.name}:`, error);
-      clearTimeout(timeout);
-      return '0';
-    }
+      try {
+        const response = await fetch(apiConfig.url, fetchOptions);
+        clearTimeout(timeout);
+        
+        if (!response.ok) {
+          // Nếu bị rate limit, ném lỗi để kích hoạt cơ chế backoff
+          if (response.status === 429) {
+            throw { status: 429, message: 'Rate limited' };
+          }
+          throw new Error(`HTTP error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const balance = parseBitcoinApiResponse(apiConfig.name, data, address);
+        
+        console.log(`Bitcoin balance from ${apiConfig.name}: ${balance}`);
+        return balance;
+      } catch (error) {
+        console.error(`Error fetching from ${apiConfig.name}:`, error);
+        clearTimeout(timeout);
+        throw error; // Ném lỗi để cơ chế backoff hoạt động nếu cần
+      }
+    }).catch(error => {
+      console.error(`All retries failed for ${apiConfig.name}:`, error);
+      return '0'; // Trả về 0 nếu tất cả các lần thử đều thất bại
+    });
   } catch (error) {
     console.error(`Error checking Bitcoin balance:`, error);
     return '0';

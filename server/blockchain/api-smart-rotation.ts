@@ -6,6 +6,7 @@ import { checkBitcoinBalance } from "./api-smart-rotation-btc";
 import { checkEthereumBalance } from "./api-smart-rotation-eth";
 import { checkBscBalance } from "./api-smart-rotation-bsc";
 import { checkSolanaBalance } from "./api-smart-rotation-sol";
+import { checkWithBackoff, timeoutPromise } from "./api-smart-rotation-utils";
 
 // Thời gian timeout cho các API request
 const API_TIMEOUT = 15000; // Tăng từ 5s lên 15s
@@ -45,13 +46,6 @@ class CircuitBreaker {
 }
 
 const circuitBreakerManager = new CircuitBreaker();
-
-// Promise với timeout
-const timeoutPromise = (ms: number) => {
-  return new Promise<never>((_, reject) => {
-    setTimeout(() => reject(new Error('Request timed out')), ms);
-  });
-};
 
 // Định dạng kết quả kiểm tra số dư
 interface BalanceResponse {

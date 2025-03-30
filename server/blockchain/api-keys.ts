@@ -5,6 +5,13 @@
 
 import { BlockchainType } from '../../shared/schema';
 
+// Phân nhóm API theo độ tin cậy
+const apiTiers = {
+  tier1: ['GetBlock', 'Etherscan', 'BSCScan', 'Helius'], // Ổn định nhất
+  tier2: ['Tatum', 'NowNodes'],                          // Ổn định trung bình
+  tier3: ['BlockCypher', 'Blockchair']                   // Dễ bị rate limit
+};
+
 /**
  * Đại diện cho một API endpoint và key cấu hình
  */
@@ -340,11 +347,26 @@ export function getNextEndpoint(blockchain: BlockchainType): ApiEndpoint {
     throw new Error(`Không có endpoint nào cho blockchain: ${blockchain}`);
   }
 
+  // Phân loại endpoints theo tier
+  const tier1Endpoints = endpoints.filter(e => apiTiers.tier1.some(name => e.name.includes(name)));
+  const tier2Endpoints = endpoints.filter(e => apiTiers.tier2.some(name => e.name.includes(name)));
+  const tier3Endpoints = endpoints.filter(e => apiTiers.tier3.some(name => e.name.includes(name)));
+  const otherEndpoints = endpoints.filter(e => 
+    !apiTiers.tier1.some(name => e.name.includes(name)) && 
+    !apiTiers.tier2.some(name => e.name.includes(name)) && 
+    !apiTiers.tier3.some(name => e.name.includes(name))
+  );
+  
+  // Ưu tiên sử dụng API tier1 trước
+  let selectedEndpoints = tier1Endpoints.length > 0 ? tier1Endpoints : 
+                          tier2Endpoints.length > 0 ? tier2Endpoints :
+                          tier3Endpoints.length > 0 ? tier3Endpoints : otherEndpoints;
+  
   // Sắp xếp endpoints theo số lần gọi, ưu tiên endpoint ít được sử dụng nhất
-  endpoints.sort((a, b) => a.callCount - b.callCount);
+  selectedEndpoints.sort((a, b) => a.callCount - b.callCount);
   
   // Lấy endpoint có số lần gọi ít nhất
-  const endpoint = endpoints[0];
+  const endpoint = selectedEndpoints[0];
   
   // Tăng số lần gọi
   endpoint.callCount++;
