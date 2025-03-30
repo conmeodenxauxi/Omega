@@ -10,12 +10,17 @@ let currentETHSlot = 0;
 
 // Thông tin các API key Etherscan
 const etherscanApiKeys: string[] = [
-  // API keys lấy từ hệ thống xoay vòng
-  getApiKey('ETH', 'Etherscan_1'),
-  getApiKey('ETH', 'Etherscan_2'),
-  getApiKey('ETH', 'Etherscan_3'),
-  getApiKey('ETH', 'Etherscan_4'),
-  getApiKey('ETH', 'Etherscan_5'),
+  // Danh sách API key Etherscan
+  '6HR4FUXUD5FH36DDKTK9TA3B5WKWR44YP7',
+  'HPMEDCEEEA7E6J88PG9M537WEQKG4KCCB5',
+  'K1M8UDC11K6S1V7VEQ935EJ7FEE4HPM2NU',
+  'IXJ5QWRMTS7PN6VWZBPYB5JU2NXF4E2VTN',
+  'VRQ3TVXNRCRRATUWSWIESHT4KGU2QR4GH4',
+  '2GQ4QNFWYIZZCESJ3D25DBDG7PYHQPGEW2',
+  'RNGF5FWH61KIVIESQHKKTA1NFUHRVPQCX6',
+  'XE1PPFNEFWF4QMRIF969ITHBXXSFPBRKDR',
+  'JIBT19A992QRZIS91MM1WYDPESS3R64ACX',
+  'K2GNPYITPPVNFYYX837KWMCJICPNAJMVSG',
   // Đảm bảo loại bỏ các key trống
 ].filter(key => key && key.length > 0);
 
