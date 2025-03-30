@@ -24,7 +24,7 @@ export function UserGuideDialog() {
       <DialogContent className="sm:max-w-lg text-black">
         <DialogHeader>
           <DialogTitle className="text-center text-2xl mb-3 font-bold text-black">🐈‍⬛ Bản Omega</DialogTitle>
-          <DialogDescription asChild>
+          <DialogDescription className="!text-black" asChild>
             <div className="text-left text-black">
               <div className="text-lg font-medium mb-3">I/ Hướng dẫn sử dụng</div>
               <ol className="list-decimal pl-6 space-y-3 text-base">
