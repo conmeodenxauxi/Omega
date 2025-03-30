@@ -221,24 +221,51 @@ export function useWalletChecker({
         if (response.ok) {
           const { results } = await response.json();
           
-          // Tạo một mảng chứa tất cả các ví đã được kiểm tra xong
-          let shouldAutoReset = false;
-          
           // Thay đổi cách cập nhật state để React không gộp các cập nhật
           // Sẽ chỉ cập nhật state một lần và cộng dồn số lượng ví đã kiểm tra
           setTimeout(() => {
-            // Cập nhật từng địa chỉ một với khoảng thời gian delay
+            // Kiểm tra xem số lượng ví đã kiểm tra sau khi thêm mới có vượt ngưỡng không
+            setStats(prev => {
+              const newChecked = prev.checked + results.length;
+              console.log(`Tổng số ví đã kiểm tra: ${newChecked}/${AUTO_RESET_THRESHOLD} (ngưỡng reset)`);
+              
+              // Nếu đạt hoặc vượt ngưỡng, kích hoạt reset
+              if (newChecked >= AUTO_RESET_THRESHOLD) {
+                console.log(`Đã đạt đến ngưỡng ${AUTO_RESET_THRESHOLD} ví đã kiểm tra. Tự động reset và khởi động lại sau 3 giây.`);
+                
+                // Tạm dừng tìm kiếm
+                setIsSearching(false);
+                isSearchingRef.current = false;
+                
+                // Reset thống kê (nhưng không xóa danh sách ví có số dư)
+                setCurrentAddresses([]);
+                setCheckingAddresses([]);
+                
+                // Bắt đầu lại sau 3 giây
+                setTimeout(() => {
+                  console.log("Tự động bắt đầu lại sau khi reset.");
+                  setIsSearching(true);
+                  isSearchingRef.current = true;
+                }, 3000);
+                
+                return {
+                  created: 0,
+                  checked: 0,
+                  withBalance: prev.withBalance
+                };
+              }
+              
+              // Nếu chưa đạt ngưỡng, cập nhật số lượng đã kiểm tra
+              return {
+                ...prev,
+                checked: newChecked
+              };
+            });
+            
+            // Hiển thị thêm chi tiết cho từng địa chỉ
             for (let i = 0; i < results.length; i++) {
               setTimeout(() => {
                 console.log(`+1 địa chỉ vào số ví đã kiểm tra (${i+1}/${results.length})`);
-                setStats(prev => {
-                  const newChecked = prev.checked + 1;
-                  shouldAutoReset = newChecked >= AUTO_RESET_THRESHOLD;
-                  return {
-                    ...prev,
-                    checked: newChecked
-                  };
-                });
               }, i * 50); // Delay 50ms cho mỗi địa chỉ
             }
           }, 0);
@@ -268,30 +295,7 @@ export function useWalletChecker({
             // Đã xóa chức năng reset khi tìm thấy ví có số dư theo yêu cầu
           }
           
-          // Kiểm tra nếu đã đạt đến ngưỡng tự động reset
-          if (shouldAutoReset) {
-            console.log(`Đã đạt đến ngưỡng ${AUTO_RESET_THRESHOLD} ví đã kiểm tra. Tự động reset và khởi động lại sau 3 giây.`);
-            
-            // Tạm dừng tìm kiếm
-            setIsSearching(false);
-            isSearchingRef.current = false;
-            
-            // Reset thống kê (nhưng không xóa danh sách ví có số dư)
-            setCurrentAddresses([]);
-            setCheckingAddresses([]);
-            setStats({
-              created: 0,
-              checked: 0,
-              withBalance: 0
-            });
-            
-            // Bắt đầu lại sau 3 giây
-            setTimeout(() => {
-              console.log("Tự động bắt đầu lại sau khi reset.");
-              setIsSearching(true);
-              isSearchingRef.current = true;
-            }, 3000);
-          }
+          // Phần kiểm tra ngưỡng đã được chuyển lên đoạn mã trước đó
         }
       } catch (error) {
         console.error('Error checking balances:', error);
