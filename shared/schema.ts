@@ -1,58 +1,7 @@
-import { sqliteTable, text, integer, blob } from "drizzle-orm/sqlite-core";
-import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const users = sqliteTable("users", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-});
-
-export const wallets = sqliteTable("wallets", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  blockchain: text("blockchain").notNull(), // "BTC", "ETH", "BSC", "SOL", "DOGE"
-  address: text("address").notNull(),
-  balance: text("balance").notNull(), // Store as string to maintain precision
-  seedPhrase: text("seed_phrase").notNull(),
-  path: text("derivation_path"),
-  createdAt: integer("created_at", { mode: 'timestamp' }).notNull().defaultNow(),
-  metadata: text("metadata", { mode: 'json' }), // For additional blockchain-specific data
-});
-
-export const manualSeedPhrases = sqliteTable("manual_seed_phrases", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  seedPhrase: text("seed_phrase").notNull(),
-  createdAt: integer("created_at", { mode: 'timestamp' }).notNull().defaultNow(),
-  hasBeenChecked: integer("has_been_checked", { mode: 'boolean' }).notNull().default(true),
-});
-
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-});
-
-export const insertWalletSchema = createInsertSchema(wallets).pick({
-  blockchain: true,
-  address: true,
-  balance: true,
-  seedPhrase: true,
-  path: true,
-  metadata: true,
-});
-
-export const insertManualSeedPhraseSchema = createInsertSchema(manualSeedPhrases).pick({
-  seedPhrase: true,
-  hasBeenChecked: true,
-});
-
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
-
-export type InsertWallet = z.infer<typeof insertWalletSchema>;
-export type Wallet = typeof wallets.$inferSelect;
-
-export type InsertManualSeedPhrase = z.infer<typeof insertManualSeedPhraseSchema>;
-export type ManualSeedPhrase = typeof manualSeedPhrases.$inferSelect;
+// Định nghĩa các kiểu dữ liệu cần thiết cho ứng dụng
+// Bảng dữ liệu đã bị xóa vì lý do bảo mật
 
 // Custom types for the application
 export type BlockchainType = "BTC" | "ETH" | "BSC" | "SOL" | "DOGE";

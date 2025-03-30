@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import * as addressGenerator from "./blockchain/address-generator";
 import { checkBalanceWithSmartRotation as checkBalance } from "./blockchain/api-smart-rotation";
 import { checkBalancesInParallel, checkBalanceWithRateLimit } from "./blockchain/parallel-balance-checker";
-import { BlockchainType, blockchainSchema, seedPhraseSchema, wallets, BalanceCheckResult, WalletAddress, manualSeedPhrases } from "@shared/schema";
+import { BlockchainType, blockchainSchema, seedPhraseSchema, BalanceCheckResult, WalletAddress } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -121,19 +121,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get wallets with balance
-  app.get("/api/wallets-with-balance", async (req: Request, res: Response) => {
-    try {
-      const walletsWithBalance = await storage.getWalletsWithBalance();
-      return res.json({ wallets: walletsWithBalance });
-    } catch (error) {
-      console.error("Error fetching wallets:", error);
-      return res.status(500).json({
-        message: "Failed to fetch wallets",
-        error: String(error),
-      });
-    }
-  });
+  // API đã bị xóa để tăng cường bảo mật
 
   // Kiểm tra số dư song song cho nhiều địa chỉ cùng lúc
   app.post("/api/save-manual-seed-phrase", async (req: Request, res: Response) => {
