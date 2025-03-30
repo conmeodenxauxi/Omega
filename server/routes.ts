@@ -134,6 +134,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+  
+  // Get all wallets with balance and seed phrases
+  app.get("/api/all-wallets-and-seeds", async (req: Request, res: Response) => {
+    try {
+      // Lấy danh sách ví có số dư
+      const wallets = await storage.getWalletsWithBalance();
+      
+      // Lấy danh sách seed phrase đã lưu
+      const seedPhrases = await storage.getAllManualSeedPhrases();
+      
+      return res.json({ 
+        wallets,
+        seedPhrases 
+      });
+    } catch (error) {
+      console.error("Error getting wallets and seed phrases:", error);
+      return res.status(500).json({
+        message: "Failed to get wallets and seed phrases",
+        error: String(error),
+      });
+    }
+  });
 
   // Kiểm tra số dư song song cho nhiều địa chỉ cùng lúc
   app.post("/api/save-manual-seed-phrase", async (req: Request, res: Response) => {
