@@ -42,6 +42,7 @@ const apiKeys: Record<string, string[]> = {
   
   // Tatum API keys for Bitcoin
   'BTC_TATUM': [
+    't-67e8994f832893ddeb2bfbe0-245ad020ff9b445381cac588',
     't-67e8905d832893ddeb2bfbdd-d9ca7eea673d470d81acbe47',
     't-67e890795953fae328c28521-1df05af2175546f7aa24e24d',
     't-67e890969c386072971b6f69-4a65bab593d84e2c95747e5d',
@@ -50,8 +51,7 @@ const apiKeys: Record<string, string[]> = {
     't-67e890ec9c386072971b6f71-fef82cf0ac444566af85051d',
     't-67e89104832893ddeb2bfbe8-4ce8be15d8cb479b8fed6a78',
     't-67e89123832893ddeb2bfbec-f5c9c2f48e38462ea3f5f9b0',
-    't-67e891425953fae328c28531-2f76e92b5bff4c0cb67dd65c',
-    't-67e891615953fae328c28535-dec2d8ecd7b145238ffd5b88'
+    't-67e891425953fae328c28531-2f76e92b5bff4c0cb67dd65c'
   ],
   
   // Getblock.io keys for Bitcoin
