@@ -26,7 +26,7 @@ export interface ApiEndpoint {
 /**
  * Lưu trữ API keys theo blockchain và provider
  */
-const apiKeys: Record<string, string[]> = {
+export const apiKeys: Record<string, string[]> = {
   // Bitcoin API keys
   'BTC_BLOCKCYPHER': [
     'bcb10430b01a484c88cd0dede458ab5c',
@@ -154,8 +154,7 @@ const apiKeys: Record<string, string[]> = {
   
   // Solana API Keys (Helius.xyz)
   'SOL_HELIUS': [
-    // 20 Helius API keys + API key được cấp bởi user
-    process.env.HELIUS_API_KEY || '',
+    // 20 Helius API keys đã xác nhận hoạt động
     '7f2bdca6-6f7c-4f80-9f51-3de6c53d8bcc',
     '47747d9c-3ec1-4343-af1d-1c40b9d14ff6',
     'df99fe42-24c8-4e31-849e-7363f8c68f97',
