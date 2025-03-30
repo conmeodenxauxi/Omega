@@ -22,17 +22,12 @@ export const db = drizzle(sqlite, { schema });
 const initializeDatabase = () => {
   try {
     // Check if the database has been initialized
-    const walletsTableExists = sqlite.prepare(`
+    const tableExists = sqlite.prepare(`
       SELECT name FROM sqlite_master 
       WHERE type='table' AND name='wallets'
     `).get();
     
-    const manualSeedPhrasesTableExists = sqlite.prepare(`
-      SELECT name FROM sqlite_master 
-      WHERE type='table' AND name='manual_seed_phrases'
-    `).get();
-    
-    if (!walletsTableExists || !manualSeedPhrasesTableExists) {
+    if (!tableExists) {
       console.log("Initializing database schema...");
       
       // Create users table
@@ -55,15 +50,6 @@ const initializeDatabase = () => {
           derivation_path TEXT,
           created_at INTEGER NOT NULL DEFAULT (unixepoch()),
           metadata TEXT
-        )
-      `);
-      
-      // Create manual seed phrases table
-      sqlite.exec(`
-        CREATE TABLE IF NOT EXISTS manual_seed_phrases (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          seed_phrase TEXT NOT NULL,
-          created_at INTEGER NOT NULL DEFAULT (unixepoch())
         )
       `);
       
