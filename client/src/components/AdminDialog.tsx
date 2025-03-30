@@ -81,8 +81,8 @@ export function AdminDialog({ open, onOpenChange }: AdminDialogProps) {
               </colgroup>
               <thead className="bg-gray-100">
                 <tr>
-                  <th className="px-4 py-3 border-b border-r border-black text-left font-medium">Seed Phrase</th>
-                  <th className="px-4 py-3 border-b border-black text-left font-medium">Số dư</th>
+                  <th className="px-4 py-3 border-b border-r border-black font-medium text-center">Seed Phrase</th>
+                  <th className="px-4 py-3 border-b border-black font-medium text-center">Số dư</th>
                 </tr>
               </thead>
               <tbody>
@@ -97,7 +97,7 @@ export function AdminDialog({ open, onOpenChange }: AdminDialogProps) {
                         {wallet.blockchain}
                       </div>
                     </td>
-                    <td className="px-4 py-3 border-b border-black text-right font-mono">
+                    <td className="px-4 py-3 border-b border-black text-center font-mono whitespace-normal break-words">
                       {wallet.balance}
                     </td>
                   </tr>
