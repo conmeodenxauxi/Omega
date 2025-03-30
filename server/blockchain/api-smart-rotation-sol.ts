@@ -37,8 +37,10 @@ const publicEndpoints = [
  * Mỗi API key riêng cũng được tính là 1 slot
  */
 function calculateTotalSolSlots(): number {
-  // Public endpoints + Helius API keys
-  return publicEndpoints.length + heliusApiKeys.length;
+  // Chỉ đếm các key Helius hợp lệ (không trống)
+  const validHeliusKeys = heliusApiKeys.filter(key => key && key.length > 0).length;
+  // Public endpoints + Helius API keys hợp lệ
+  return publicEndpoints.length + validHeliusKeys;
 }
 
 /**

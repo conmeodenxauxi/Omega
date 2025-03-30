@@ -154,7 +154,8 @@ const apiKeys: Record<string, string[]> = {
   
   // Solana API Keys (Helius.xyz)
   'SOL_HELIUS': [
-    // 20 Helius API keys
+    // 20 Helius API keys + API key được cấp bởi user
+    process.env.HELIUS_API_KEY || '',
     '7f2bdca6-6f7c-4f80-9f51-3de6c53d8bcc',
     '47747d9c-3ec1-4343-af1d-1c40b9d14ff6',
     'df99fe42-24c8-4e31-849e-7363f8c68f97',
