@@ -1,6 +1,7 @@
 import { BlockchainType } from "@shared/schema";
 import fetch, { RequestInit } from "node-fetch";
 import { getApiConfigs } from "./api-keys";
+import { checkDogecoinBalance } from "./api-smart-rotation-doge";
 
 // Cache để lưu trữ kết quả kiểm tra số dư với timestamp
 const balanceCache = new Map<string, { balance: string, timestamp: number }>();
@@ -96,6 +97,24 @@ export async function checkBalanceWithSmartRotation(
   pendingRequest = (async () => {
     try {
       console.log(`Checking ${blockchain} balance for ${address} using smart rotation API`);
+      
+      // Sử dụng cơ chế xoay vòng thông minh riêng cho Dogecoin
+      if (blockchain === 'DOGE') {
+        try {
+          const balance = await checkDogecoinBalance(address);
+          // Lưu vào cache nếu có số dư dương
+          if (parseFloat(balance) > 0) {
+            console.log(`Found positive DOGE balance for ${address}: ${balance}`);
+            setCachedBalance(blockchain, address, balance);
+          }
+          circuitBreakerManager.recordSuccess(blockchain.toLowerCase());
+          return balance;
+        } catch (error) {
+          console.error(`Error in Dogecoin special rotation:`, error);
+          circuitBreakerManager.recordFailure(blockchain.toLowerCase());
+          return '0';
+        }
+      }
       
       // Lấy tất cả các cấu hình API cho blockchain này
       const apiConfigs = getApiConfigs(blockchain, address);

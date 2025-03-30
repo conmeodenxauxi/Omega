@@ -148,6 +148,22 @@ const apiKeys: Record<string, string[]> = {
     't-67e883175953fae328c284e9-464883db18be4955a60a683f',
     't-67e88422832893ddeb2bfbbd-c890492b88b0459fbc51bf16',
     't-67e884e8832893ddeb2bfbc6-3c30b4a88f4b4d00b57a327b'
+  ],
+  
+  // Dogecoin API Keys (NowNodes.io)
+  'DOGE_NOWNODES': [
+    '4eea1226-2f22-44af-9a91-5c61f2c82a9d',
+    'd3f94cf8-8b38-45a3-b9c2-a07f7d8ca8e9',
+    '5167f556-74da-4f98-8952-e9df40ada190',
+    '2b19934f-8ddf-4132-a2cc-1e3394df2598',
+    '34c78e51-3bdc-4671-a387-57eda6bb4618',
+    'eb1a0446-3864-427b-a8a4-2d438f096298',
+    'c0d52e4b-d83d-4c04-bc78-7483a2f4e825',
+    'b3e4104e-e49d-484e-a1b5-ba36d8eddce5',
+    '45f3ea7c-6c05-49d4-8a34-8ad134580713',
+    'af28b384-d0ce-4115-8a8c-0cc933d0d691',
+    'b08feda7-2211-426e-9238-84778de097ea',
+    '2bef078b-8ab5-41f6-bccb-0d900fe6507b'
   ]
 };
 
@@ -286,6 +302,20 @@ const blockchainEndpoints: Record<BlockchainType, ApiEndpoint[]> = {
       method: 'GET',
       needsApiKey: true,
       callCount: 0
+    },
+    // NowNodes.io API cho Dogecoin
+    {
+      name: 'NowNodes',
+      type: 'private',
+      url: '',
+      formatUrl: (address) => `https://dogebook.nownodes.io/api/address/${address}`,
+      formatHeaders: (apiKey) => ({
+        'Content-Type': 'application/json',
+        'api-key': apiKey || ''
+      }),
+      method: 'GET',
+      needsApiKey: true,
+      callCount: 0
     }
   ]
 };
@@ -376,6 +406,9 @@ export function getApiKey(blockchain: BlockchainType, endpointName?: string): st
       break;
     case 'Tatum':
       provider = 'DOGE_TATUM';
+      break;
+    case 'NowNodes':
+      provider = 'DOGE_NOWNODES';
       break;
     default:
       // Endpoint công khai không cần API key
@@ -469,6 +502,9 @@ export function getAllApiConfigs(blockchain: BlockchainType, address: string): A
           break;
         case 'Tatum':
           apiKey = getNextApiKey('DOGE_TATUM');
+          break;
+        case 'NowNodes':
+          apiKey = getNextApiKey('DOGE_NOWNODES');
           break;
       }
     }
