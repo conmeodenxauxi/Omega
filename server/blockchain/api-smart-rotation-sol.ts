@@ -104,28 +104,35 @@ function getNextSolanaApi(address: string): {
  * Xử lý phản hồi từ API Solana, trả về số dư với định dạng thống nhất
  */
 function parseSolanaApiResponse(name: string, data: any): string {
+  console.log(`Xử lý phản hồi từ ${name} với dữ liệu:`, JSON.stringify(data).substring(0, 200));
+  
   if (name === 'Helius') {
     // Xử lý phản hồi từ Helius JSON-RPC
-    if (data && data.result !== undefined) {
-      // Chuyển đổi từ lamports sang SOL (1 SOL = 10^9 lamports)
-      return (data.result / 1e9).toFixed(9);
+    if (data && data.result && data.result.value !== undefined) {
+      // Định dạng phản hồi mới từ Helius JSON-RPC (giống với Solana RPC)
+      console.log(`Phát hiện định dạng Helius JSON-RPC: ${data.result.value} lamports`);
+      return (data.result.value / 1e9).toFixed(9);
     } else if (data && data.error) {
       console.log(`Helius API error: ${JSON.stringify(data.error)}`);
       return '0';
     } else if (data && data.nativeBalance !== undefined) {
       // Cấu trúc cũ: { nativeBalance: number }
+      console.log(`Phát hiện định dạng nativeBalance: ${data.nativeBalance} lamports`);
       return (data.nativeBalance / 1e9).toFixed(9);
     } else if (data && data.tokens && Array.isArray(data.tokens)) {
       // Tìm token SOL trong mảng tokens
       const solToken = data.tokens.find((token: any) => token.tokenAccount === null);
       if (solToken && solToken.amount !== undefined) {
+        console.log(`Phát hiện định dạng tokens array: ${solToken.amount} lamports`);
         return (solToken.amount / 1e9).toFixed(9);
       }
     } else if (data && data.native !== undefined) {
       // Cấu trúc mới: { native: number }
+      console.log(`Phát hiện định dạng native: ${data.native} lamports`);
       return (data.native / 1e9).toFixed(9);
     } else if (data && Array.isArray(data) && data.length > 0 && data[0].lamports !== undefined) {
       // Cấu trúc mảng: [{ lamports: number }]
+      console.log(`Phát hiện định dạng array lamports: ${data[0].lamports} lamports`);
       return (data[0].lamports / 1e9).toFixed(9);
     }
     console.log("Helius response không chứa thông tin số dư đúng định dạng:", JSON.stringify(data).substring(0, 200));
@@ -134,8 +141,10 @@ function parseSolanaApiResponse(name: string, data: any): string {
     // Xử lý phản hồi từ JSON-RPC (Solana-RPC)
     if (data && data.result && data.result.value !== undefined) {
       // Chuyển đổi từ lamports sang SOL (1 SOL = 10^9 lamports)
+      console.log(`Phát hiện định dạng Solana RPC: ${data.result.value} lamports`);
       return (data.result.value / 1e9).toFixed(9);
     }
+    console.log("Solana RPC response không chứa thông tin số dư đúng định dạng:", JSON.stringify(data).substring(0, 200));
     return '0';
   }
 }
