@@ -15,8 +15,10 @@ export function UserGuideDialog() {
     <Dialog>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="h-12 flex flex-col items-center justify-center px-4 py-1 border-4 border-primary rounded-lg">
-          <span className="text-sm font-extrabold leading-tight">Hướng dẫn</span>
-          <span className="text-sm font-bold leading-tight">sử dụng</span>
+          <div className="flex flex-col items-center -space-y-1">
+            <span className="text-sm font-extrabold leading-none">Hướng dẫn</span>
+            <span className="text-sm font-bold leading-none">sử dụng</span>
+          </div>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
