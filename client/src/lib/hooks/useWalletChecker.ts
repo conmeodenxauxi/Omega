@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { BlockchainType } from '@shared/schema';
+import { BlockchainType } from '@/types';
 import { WalletAddress, WalletWithBalance, WalletCheckStats } from '@/types';
 import { generateSeedPhrase } from '@/lib/utils/seed';
 import { getQueryFn, apiRequest } from '@/lib/queryClient';
@@ -308,8 +308,8 @@ export function useWalletChecker({
         // Kiểm tra số dư - với manualCheck cần đợi kết quả
         // Không sử dụng hàm checkBalances hiện tại vì nó không return Promise
         try {
-          const allAddresses = addresses.flatMap(walletAddress => 
-            walletAddress.addresses.map(address => ({
+          const allAddresses = addresses.flatMap((walletAddress: WalletAddress) => 
+            walletAddress.addresses.map((address: string) => ({
               blockchain: walletAddress.blockchain,
               address
             }))

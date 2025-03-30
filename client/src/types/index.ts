@@ -1,4 +1,5 @@
-import { BlockchainType } from '@shared/schema';
+// Define BlockchainType locally
+export type BlockchainType = "BTC" | "ETH" | "BSC" | "SOL" | "DOGE";
 import { LucideIcon } from 'lucide-react';
 
 /**

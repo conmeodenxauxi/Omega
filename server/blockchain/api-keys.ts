@@ -3,7 +3,7 @@
  * Sử dụng rotation pattern thông minh để tránh rate limit
  */
 
-import { BlockchainType } from '@shared/schema';
+import { BlockchainType } from '../../shared/schema';
 
 /**
  * Đại diện cho một API endpoint và key cấu hình

@@ -3,7 +3,7 @@
  * Cho phép kiểm tra đồng thời các địa chỉ, tăng tốc quá trình quét
  */
 
-import { BlockchainType, BalanceCheckResult } from '@shared/schema';
+import { BlockchainType, BalanceCheckResult } from '../../shared/schema';
 import { checkBitcoinBalance } from './api-smart-rotation-btc';
 import { checkEthereumBalance } from './api-smart-rotation-eth';
 import { checkBscBalance } from './api-smart-rotation-bsc';

@@ -3,7 +3,7 @@
  * Cho phép kiểm tra đồng thời số dư trên nhiều blockchain
  */
 
-import { BlockchainType, BalanceCheckResult } from '@shared/schema';
+import { BlockchainType, BalanceCheckResult } from './shared/schema';
 import { checkBalancesInParallel, checkBalancesByBlockchain } from './server/blockchain/parallel-balance-checker';
 
 /**

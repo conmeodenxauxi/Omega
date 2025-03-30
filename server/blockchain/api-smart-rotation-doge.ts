@@ -3,7 +3,7 @@
  * Kết hợp Tatum và NowNodes với tỷ lệ 3:1
  */
 
-import { BlockchainType } from '@shared/schema';
+import { BlockchainType } from '../../shared/schema';
 import { getApiKey } from './api-keys';
 
 // Đếm số lần gọi để đảm bảo tỷ lệ 3:1
