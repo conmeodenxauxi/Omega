@@ -14,18 +14,18 @@ export function UserGuideDialog() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="h-12 flex flex-col items-center justify-center px-4 py-1 border-4 border-primary rounded-lg">
+        <Button variant="outline" size="sm" className="h-12 flex flex-col items-center justify-center px-4 py-1 border-4 border-black rounded-lg bg-white hover:bg-gray-100">
           <div className="flex flex-col items-center space-y-1">
             <span className="text-sm font-extrabold leading-none">Hướng dẫn</span>
-            <span className="text-sm font-bold leading-none">sử dụng</span>
+            <span className="text-sm font-extrabold leading-none">sử dụng</span>
           </div>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-center text-2xl font-bold mb-3">Bản Omega</DialogTitle>
+          <DialogTitle className="text-center text-2xl font-extrabold mb-3 text-black">🐈‍⬛ Bản Omega</DialogTitle>
           <DialogDescription asChild>
-            <div className="text-left">
+            <div className="text-left text-black">
               <div className="text-lg font-bold mb-3">I/ Hướng dẫn sử dụng</div>
               <ol className="list-decimal pl-6 space-y-3 text-base">
                 <li>
