@@ -35,7 +35,7 @@ export function useWalletChecker({
   const isSearchingRef = useRef<boolean>(false);
   
   // Ngưỡng số lượng ví đã kiểm tra để tự động reset
-  const AUTO_RESET_THRESHOLD = 7000;
+  const AUTO_RESET_THRESHOLD = 100;
   
   // Reset statistics and clear results
   const resetStats = useCallback(() => {
@@ -265,10 +265,7 @@ export function useWalletChecker({
               withBalance: prev.withBalance + newWallets.length
             }));
             
-            // Nếu có địa chỉ với số dư và autoReset được bật, reset thống kê
-            if (autoReset) {
-              resetStats();
-            }
+            // Đã xóa chức năng reset khi tìm thấy ví có số dư theo yêu cầu
           }
           
           // Kiểm tra nếu đã đạt đến ngưỡng tự động reset
