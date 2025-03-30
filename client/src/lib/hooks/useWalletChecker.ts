@@ -79,7 +79,7 @@ export function useWalletChecker({
     }
     
     try {
-      console.log(`Bắt đầu tạo ${BATCH_SIZE} seed phrases mới (batch processing với hiển thị luân phiên 250ms)`);
+      console.log(`Bắt đầu tạo ${BATCH_SIZE} seed phrases mới (batch processing với hiển thị luân phiên 333ms)`);
       
       // Tạo một mảng chứa BATCH_SIZE seed phrases
       const seedPhraseBatch: string[] = [];
@@ -143,8 +143,8 @@ export function useWalletChecker({
           // Tăng index và lên lịch hiển thị seed tiếp theo
           currentIndex++;
           if (currentIndex < seedAddresses.length && isSearchingRef.current) {
-            // Delay 250ms trước khi hiển thị seed tiếp theo
-            setTimeout(showNextSeedAddresses, 250);
+            // Delay 333ms trước khi hiển thị seed tiếp theo
+            setTimeout(showNextSeedAddresses, 333);
           }
         }
       };
