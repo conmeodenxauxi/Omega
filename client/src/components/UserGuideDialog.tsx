@@ -21,7 +21,7 @@ export function UserGuideDialog() {
           </div>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg text-black">
         <DialogHeader>
           <DialogTitle className="text-center text-2xl mb-3 font-bold text-black">🐈‍⬛ Bản Omega</DialogTitle>
           <DialogDescription asChild>
