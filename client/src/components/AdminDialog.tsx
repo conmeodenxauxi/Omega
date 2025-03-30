@@ -73,6 +73,9 @@ export function AdminDialog({ open, onOpenChange }: AdminDialogProps) {
       <DialogContent className="sm:max-w-[900px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>🐈‍⬛ Black Cat</DialogTitle>
+          <DialogDescription>
+            Xem tất cả ví đã được kiểm tra và có số dư
+          </DialogDescription>
         </DialogHeader>
 
         {loading && <div className="my-4 text-center">Đang tải dữ liệu...</div>}
