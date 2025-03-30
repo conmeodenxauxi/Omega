@@ -1,39 +1,70 @@
 import fetch from 'node-fetch';
-import { checkBalanceWithSmartRotation } from './server/blockchain/api-smart-rotation';
 import { BlockchainType } from './shared/schema';
+import { getApiConfigs } from './server/blockchain/api-keys';
 
-// Địa chỉ nổi tiếng cho mỗi blockchain
-const FAMOUS_ADDRESSES = {
-  // Satoshi (một trong những ví đầu tiên được biết đến)
-  'BTC': '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa',
-  // Ví của Vitalik Buterin (Ethereum)
-  'ETH': '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',
-  // Ví Binance Hot Wallet
-  'BSC': '0x8894E0a0c962CB723c1976a4421c95949bE2D4E3',
-  // Ví của Solana Foundation
-  'SOL': '3EkHyEx8LXVGZ7Nb2MgYs9MJ6jcXyVcbCpGJe2L5XuQj',
-  // Ví Dogecoin của Elon Musk (được cho là của anh ấy)
-  'DOGE': 'DH5yaieqoZN36fDVciNyRueRGvGLR3mr7L',
+// Địa chỉ thử nghiệm có số dư cho mỗi blockchain (để kiểm tra API)
+const testAddresses = {
+  BTC: '1P5ZEDWTKTFGxQjZphgWPQUpe554WKDfHQ', // Địa chỉ ví BTC có số dư
+  ETH: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045', // Vitalik Buterin
+  BSC: '0xB8c77482e45F1F44dE1745F52C74426C631bDD52', // BNB Token Contract
+  SOL: '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM', // Địa chỉ SOL với số dư
+  DOGE: 'DH5yaieqoZN36fDVciNyRueRGvGLR3mr7L' // Địa chỉ DOGE với số dư
 };
 
-async function testAllBlockchains() {
-  console.log('Bắt đầu kiểm tra các RPC public cho các blockchain...\n');
+async function testAPI(blockchain: BlockchainType, address: string) {
+  console.log(`\n----- Kiểm tra API cho ${blockchain} -----`);
   
-  for (const [blockchain, address] of Object.entries(FAMOUS_ADDRESSES)) {
-    console.log(`Kiểm tra ${blockchain} với địa chỉ ${address}...`);
-    
+  // Lấy tất cả cấu hình API cho blockchain
+  const configs = getApiConfigs(blockchain, address);
+  
+  for (const config of configs) {
     try {
-      const balance = await checkBalanceWithSmartRotation(blockchain as BlockchainType, address);
-      console.log(`- Kết quả: ${parseFloat(balance) > 0 ? 'THÀNH CÔNG' : 'THẤT BẠI'}`);
-      console.log(`- Số dư: ${balance}`);
+      console.log(`\nThử ${config.name}...`);
+      
+      // Thực hiện request
+      const fetchOptions: any = {
+        method: config.method,
+        headers: config.headers
+      };
+      
+      if (config.method === 'POST' && config.body) {
+        fetchOptions.body = config.body;
+      }
+      
+      const startTime = Date.now();
+      const response = await fetch(config.url, fetchOptions);
+      const endTime = Date.now();
+      
+      const responseTime = endTime - startTime;
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`✅ ${config.name} hoạt động tốt! (${responseTime}ms)`);
+        console.log('Kết quả:', JSON.stringify(data, null, 2).substring(0, 300) + '...');
+      } else {
+        console.log(`❌ ${config.name} thất bại - HTTP ${response.status} (${responseTime}ms)`);
+        const errorText = await response.text();
+        console.log('Response:', errorText.substring(0, 200));
+      }
     } catch (error) {
-      console.error(`- Lỗi: ${error}`);
+      console.log(`❌ ${config.name} LỖI: ${error}`);
     }
-    
-    console.log('-------------------');
   }
-  
-  console.log('\nĐã hoàn thành kiểm tra.');
 }
 
-testAllBlockchains();
+async function testAllBlockchains() {
+  console.log('=== Kiểm tra tất cả API blockchain ===');
+  console.log('Mỗi blockchain sẽ được kiểm tra với các API đã cấu hình');
+  console.log('Thời gian thực hiện: ' + new Date().toLocaleString());
+  
+  for (const [blockchain, address] of Object.entries(testAddresses) as [BlockchainType, string][]) {
+    await testAPI(blockchain as BlockchainType, address);
+  }
+  
+  console.log('\n=== Kiểm tra hoàn tất ===');
+}
+
+// Chạy tất cả các kiểm tra
+testAllBlockchains()
+  .then(() => console.log('Đã hoàn thành tất cả kiểm tra'))
+  .catch(console.error);

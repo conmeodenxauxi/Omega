@@ -1,21 +1,26 @@
 import fetch from 'node-fetch';
 
-// Kiểm tra các API key cuối cùng (16-20)
+// Địa chỉ thử nghiệm Dogecoin có số dư
+const testAddress = 'DH5yaieqoZN36fDVciNyRueRGvGLR3mr7L';
+
+// Danh sách API key Tatum để kiểm tra
 const tatumKeys = [
-  't-67e88227832893ddeb2bfba8-aa301b8f7c554271a8eebc10',
-  't-67e88349832893ddeb2bfbb4-1946d051f1084b5ebcbf6927',
-  't-67e883175953fae328c284e9-464883db18be4955a60a683f',
-  't-67e88422832893ddeb2bfbbd-c890492b88b0459fbc51bf16',
-  't-67e884e8832893ddeb2bfbc6-3c30b4a88f4b4d00b57a327b'
+  't-67e87aff5953fae328c284a2-00409cd135ad4247badffb32',
+  't-67e879369c386072971b6f11-2570f79dc58f410bacdfcfd6',
+  't-67e87c459c386072971b6f1b-8177400282744943842bc637',
+  't-67e87ceb832893ddeb2bfb85-f0e675bd2a5e4d729fa02052',
+  't-67e87d41832893ddeb2bfb8d-87242e2dff6a4a9aa4864197',
+  't-67e87def5953fae328c284ae-a0f9aced6e134936a9ea1f33',
+  't-67e87ed25953fae328c284be-eb439fa5f5724331a5142880',
+  't-67e87eb79c386072971b6f25-48419e24b4a1446a8877e9b2',
+  't-67e87f8b832893ddeb2bfb99-afff5832b65d431aa8ded26c',
+  't-67e87fad9c386072971b6f33-5a969661d2e340e992459d9f',
 ];
 
-// Địa chỉ Dogecoin test để kiểm tra - có thể dùng địa chỉ của một ví Dogecoin có sẵn
-const testAddress = 'DBs4WcRE7eysKwRxHNX88XZVCQ9M6QSUSz'; // Địa chỉ Dogecoin có thể dùng để test
-
-// Hàm kiểm tra từng API key
+// Hàm kiểm tra API key
 async function testTatumKey(apiKey: string, index: number) {
   try {
-    console.log(`\nKiểm tra API key [${index + 1}/5]: ${apiKey.substring(0, 10)}...`);
+    console.log(`\nKiểm tra API key #${index + 1}: ${apiKey.substring(0, 15)}...`);
     
     const url = `https://api.tatum.io/v3/dogecoin/address/balance/${testAddress}`;
     const options = {
@@ -23,106 +28,70 @@ async function testTatumKey(apiKey: string, index: number) {
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey
-      },
-      timeout: 5000 // 5 giây timeout
+      }
     };
     
-    // Sử dụng Promise.race để thêm timeout
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Request timeout after 5s')), 5000)
-    );
+    const startTime = Date.now();
+    const response = await fetch(url, options);
+    const endTime = Date.now();
+    const responseTime = endTime - startTime;
     
-    const fetchPromise = fetch(url, options);
-    const response = await Promise.race([fetchPromise, timeoutPromise]) as Response;
-    const data = await response.json();
-    
-    if (response.status === 200) {
-      console.log(`✅ Key hoạt động! Status: ${response.status} ${response.statusText}`);
-      console.log(`⟳ Thông tin phản hồi:`, JSON.stringify(data, null, 2));
-      return { success: true, key: apiKey, data };
+    if (response.ok) {
+      const data = await response.json();
+      console.log(`✅ API key #${index + 1} còn hợp lệ! (${responseTime}ms)`);
+      console.log(`Số dư: ${data.incoming}`);
+      return true;
     } else {
-      console.log(`❌ Lỗi! Status: ${response.status} ${response.statusText}`);
-      console.log(`⚠️ Lỗi:`, JSON.stringify(data, null, 2));
-      return { success: false, key: apiKey, error: data };
+      const errorText = await response.text();
+      console.log(`❌ API key #${index + 1} đã hết hạn - HTTP ${response.status} (${responseTime}ms)`);
+      console.log(`Lỗi: ${errorText.substring(0, 100)}`);
+      return false;
     }
   } catch (error) {
-    console.log(`❌ Lỗi khi gọi API: ${error.message}`);
-    return { success: false, key: apiKey, error: error.message };
+    console.log(`❌ Lỗi khi kiểm tra API key #${index + 1}: ${error}`);
+    return false;
   }
 }
 
-// Hàm kiểm tra một nhóm API key
+// Kiểm tra từng batch API key để tránh rate limit
 async function testBatch(keys: string[], startIndex: number) {
-  const results = {
-    success: [] as string[],
-    failed: [] as string[]
-  };
+  const results = [];
+  const batchSize = 3; // Kiểm tra 3 key cùng lúc
   
-  for (let i = 0; i < keys.length; i++) {
-    const key = keys[i];
-    try {
-      const result = await testTatumKey(key, startIndex + i);
-      
-      if (result.success) {
-        results.success.push(key);
-      } else {
-        results.failed.push(key);
-      }
-      
-      // Delay giữa các request để tránh rate limit
-      if (i < keys.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
-    } catch (err) {
-      console.log(`❌ Lỗi với key ${key}: ${err.message}`);
-      results.failed.push(key);
+  for (let i = 0; i < keys.length; i += batchSize) {
+    const batch = keys.slice(i, i + batchSize);
+    console.log(`\nĐang kiểm tra batch ${i/batchSize + 1} (${batch.length} keys)...`);
+    
+    const batchResults = await Promise.all(
+      batch.map((key, idx) => testTatumKey(key, startIndex + i + idx))
+    );
+    
+    results.push(...batchResults);
+    
+    // Đợi 2 giây trước khi kiểm tra batch tiếp theo
+    if (i + batchSize < keys.length) {
+      console.log('Đợi 2 giây để tránh rate limit...');
+      await new Promise(resolve => setTimeout(resolve, 2000));
     }
   }
   
   return results;
 }
 
-// Hàm kiểm tra tất cả các key
+// Kiểm tra tất cả key
 async function testAllKeys() {
-  console.log(`Bắt đầu kiểm tra ${tatumKeys.length} API key Tatum cho Dogecoin...`);
+  console.log('=== Kiểm tra tất cả API key Tatum ===');
+  console.log(`Tổng số: ${tatumKeys.length} keys`);
+  console.log(`Thời gian: ${new Date().toLocaleString()}`);
   
-  // Chia thành các nhóm, mỗi nhóm 5 key
-  const batchSize = 5;
-  const totalResults = {
-    success: [] as string[],
-    failed: [] as string[]
-  };
+  const results = await testBatch(tatumKeys, 0);
   
-  for (let i = 0; i < tatumKeys.length; i += batchSize) {
-    console.log(`\n----- Kiểm tra batch ${i/batchSize + 1}/${Math.ceil(tatumKeys.length/batchSize)} -----`);
-    const batch = tatumKeys.slice(i, i + batchSize);
-    const results = await testBatch(batch, i);
-    
-    totalResults.success.push(...results.success);
-    totalResults.failed.push(...results.failed);
-    
-    // Delay giữa các nhóm
-    if (i + batchSize < tatumKeys.length) {
-      console.log("\nĐợi 3 giây trước khi kiểm tra nhóm tiếp theo...");
-      await new Promise(resolve => setTimeout(resolve, 3000));
-    }
-  }
-  
-  // Hiển thị kết quả tổng hợp
-  console.log('\n===== KẾT QUẢ KIỂM TRA =====');
-  console.log(`✅ ${totalResults.success.length}/${tatumKeys.length} key hoạt động tốt`);
-  
-  if (totalResults.failed.length > 0) {
-    console.log(`❌ ${totalResults.failed.length}/${tatumKeys.length} key không hoạt động:`);
-    totalResults.failed.forEach((key, index) => {
-      console.log(`   ${index + 1}. ${key}`);
-    });
-  } else {
-    console.log('✨ Tất cả API key đều hoạt động tốt!');
-  }
+  // Tổng kết
+  const validCount = results.filter(Boolean).length;
+  console.log(`\n=== Kết quả: ${validCount}/${tatumKeys.length} key còn hợp lệ ===`);
 }
 
 // Chạy kiểm tra
-testAllKeys().catch(error => {
-  console.error('Lỗi trong quá trình kiểm tra:', error);
-});
+testAllKeys()
+  .then(() => console.log('Đã hoàn thành kiểm tra API key'))
+  .catch(console.error);
