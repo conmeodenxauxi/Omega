@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Check, RefreshCw, SearchIcon } from "lucide-react";
+import { Check, RefreshCw, SearchIcon, HelpCircle } from "lucide-react";
 import { BlockchainType } from "@shared/schema";
 import { CryptoCheckbox } from "@/components/CryptoCheckbox";
 import { ControlPanel } from "@/components/ControlPanel";
@@ -11,6 +11,7 @@ import { useWalletChecker } from "@/lib/hooks/useWalletChecker";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { UserGuideDialog } from "@/components/UserGuideDialog";
 
 export default function Home() {
   const [selectedBlockchains, setSelectedBlockchains] = useState<BlockchainType[]>([
@@ -59,8 +60,13 @@ export default function Home() {
     <div className="max-w-lg mx-auto p-4 min-h-screen">
       {/* Header */}
       <header className="mb-4 flex justify-between items-center">
-        <h1 className="text-xl font-bold">Ví web3 có số dư</h1>
-        <div className="flex items-center">
+        <div className="flex-none">
+          <UserGuideDialog />
+        </div>
+        <div className="flex-1 text-center">
+          <h1 className="text-xl font-bold">Tìm ví web3 có số dư</h1>
+        </div>
+        <div className="flex items-center flex-none">
           <Checkbox 
             id="auto-reset" 
             checked={autoReset} 
