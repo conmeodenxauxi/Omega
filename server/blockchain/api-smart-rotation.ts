@@ -159,7 +159,19 @@ export async function checkBalanceWithSmartRotation(
                       balance = parseFloat(scData.data.confirmed_balance).toFixed(8);
                       success = true;
                     }
+                  } 
+                  /* Tạm thời vô hiệu hóa do API key không hợp lệ
+                  else if (config.name === 'BTC Tatum') {
+                    const tatumData = data as any;
+                    if (tatumData && typeof tatumData.incoming === 'string' && typeof tatumData.outgoing === 'string') {
+                      const incoming = BigInt(tatumData.incoming);
+                      const outgoing = BigInt(tatumData.outgoing);
+                      const balanceSats = Number(incoming - outgoing);
+                      balance = (balanceSats / 100000000).toFixed(8);
+                      success = true;
+                    }
                   }
+                  */
                   break;
                 
                 case 'ETH':
