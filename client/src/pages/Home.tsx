@@ -64,10 +64,10 @@ export default function Home() {
           <UserGuideDialog />
         </div>
         <div className="flex-1 text-center">
-          <h1 className="text-xl font-bold">Tìm ví web3 có số dư</h1>
+          <h1 className="text-xl font-bold text-black">Tìm ví web3 có số dư</h1>
         </div>
         <div className="flex flex-col items-center flex-none">
-          <label htmlFor="auto-reset" className="text-xs font-medium mb-1">
+          <label htmlFor="auto-reset" className="text-xs font-medium mb-1 text-black">
             Auto reset
           </label>
           <Checkbox 
@@ -79,7 +79,7 @@ export default function Home() {
       </header>
 
       {/* Blockchain Selection */}
-      <div className="mb-4 flex justify-between">
+      <div className="mb-4 flex justify-between text-black">
         {["BTC", "ETH", "BSC", "SOL", "DOGE"].map((blockchain) => (
           <CryptoCheckbox
             key={blockchain}
@@ -93,7 +93,7 @@ export default function Home() {
       </div>
 
       {/* Control Panel và Phrase Length Selection */}
-      <div className="mb-4">
+      <div className="mb-4 text-black">
         <ControlPanel
           isSearching={isSearching}
           stats={stats}
@@ -109,12 +109,12 @@ export default function Home() {
 
       {/* Address Display */}
       <div className="mb-6 p-4 bg-gray-100 rounded-md min-h-[400px] max-w-[600px] mx-auto border-2 border-gray-200">
-        <h2 className="font-medium mb-2">Địa chỉ ví đang kiểm tra:</h2>
+        <h2 className="font-medium mb-2 text-black">Địa chỉ ví đang kiểm tra:</h2>
         <AddressDisplay addresses={checkingAddresses} />
       </div>
 
       {/* Manual Check */}
-      <div className="mb-6">
+      <div className="mb-6 text-black">
         <ManualCheck onCheck={manualCheck} isSearching={isSearching} />
       </div>
 
@@ -122,7 +122,7 @@ export default function Home() {
       <div className="mb-8">
         <div className="bg-gray-100 rounded-md p-4 border-2 border-gray-200">
           <div className="flex justify-between items-center mb-2">
-            <h3 className="font-medium text-base">Ví Web3 Có Số Dư Tìm Thấy</h3>
+            <h3 className="font-medium text-base text-black">Ví Web3 Có Số Dư Tìm Thấy</h3>
             {walletsWithBalance.length > 0 && (
               <Button variant="ghost" size="sm" onClick={handleResetAll} className="h-8 w-8 p-0">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
