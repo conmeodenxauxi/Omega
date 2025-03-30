@@ -26,7 +26,7 @@ export interface ApiEndpoint {
 /**
  * Lưu trữ API keys theo blockchain và provider
  */
-export const apiKeys: Record<string, string[]> = {
+const apiKeys: Record<string, string[]> = {
   // Bitcoin API keys
   'BTC_BLOCKCYPHER': [
     'bcb10430b01a484c88cd0dede458ab5c',
@@ -89,7 +89,29 @@ export const apiKeys: Record<string, string[]> = {
     'IGWA6ZTGJ7YY6C8FVEW1TRHRK6VMKU4C95'
   ],
   
-  // Solana API Keys (Helius) - Được quản lý trong biến môi trường
+  // Solana API Keys (Helius)
+  'SOL_HELIUS': [
+    'f4b8bccc-ad42-4379-83aa-12037a668596',
+    '4634a127-8c86-4f9f-b293-f089744ca86e',
+    '6d5a7770-ef7a-4f6f-b24a-3b64a0ac6e24',
+    'a3e52c63-33f2-485e-a3e0-932fb1f085cd',
+    '12e936a0-b725-4266-8900-10b0a79f0dd4',
+    'f4cd2a56-6331-4932-9132-d952b5580eac',
+    '32025dc0-9eaa-40bc-b8c3-c9a8cf61aa27',
+    '0afb8bd5-9ae6-4fc3-ad24-6a5665eb3431',
+    '12282f04-2a6c-4c28-8c97-7015f6738d4a',
+    'fec6c5c0-e0e1-4e2b-9e6e-1045b43b57c3',
+    '105edf5f-5c01-414d-beb9-031f47031430',
+    'c5ebef03-3ad4-4db9-ae81-6e495e6b16fd',
+    '5a87ad8b-ed4b-4dac-ab1d-be7aed7fd46a',
+    'dc8d3765-7ba1-420f-bc4e-a3bbfd612491',
+    '85121755-53e0-42b2-b70e-efeee8bf9576',
+    'b3c82ea9-5a04-4688-9efc-e960b24b3e07',
+    'd4077d9b-8183-4708-90e7-6d64449dd09e',
+    '88a214e2-b5b9-45eb-803d-2f3c6ab5aa50',
+    '3bcac472-0eb9-4404-8d20-bb25ca9dadc8',
+    'c9fe92c4-6d56-4f0c-8c3f-99ccf9685d7c'
+  ],
   
   // Bitcoin API Keys (Tatum.io)
   'BTC_TATUM': [
@@ -130,31 +152,6 @@ export const apiKeys: Record<string, string[]> = {
     't-67e8827b5953fae328c284e2-0b5d95a69912480aa06d7c1a'
   ],
   
-  // Solana API Keys (Helius)
-  'SOL_HELIUS': [
-    // 20 Helius API keys
-    '7f2bdca6-6f7c-4f80-9f51-3de6c53d8bcc',
-    '47747d9c-3ec1-4343-af1d-1c40b9d14ff6',
-    'df99fe42-24c8-4e31-849e-7363f8c68f97',
-    'ae60722e-3a81-4841-bd41-45fcae92a271',
-    '3e07f178-d169-4250-91f8-16700f2dd88f',
-    '93a77d3d-6115-40aa-9fde-9e932b321318',
-    'b5119a65-96f9-44b9-93e4-6f4c3a73a51d',
-    '701d1c01-710a-442a-8dc8-626d04c78854',
-    'd6389e8e-5730-4c5a-95b1-f73eed140c98',
-    'afc70c2a-8d4a-4e2c-a0d4-5ace73897b73',
-    'b5f2e8c5-d599-4139-95b5-532e56b8ef80',
-    '5d1ed6e4-2f17-4442-9a57-29f9e5d1cc60',
-    'aed2fd41-1d11-4c7a-b8ac-40ef50a0e851',
-    'f9b03a24-89b1-4549-9bf9-4a3c6ebea576',
-    '8c4f6e7a-bb93-4b07-8e67-6c46ddf55e2f',
-    'e4a7ad23-a358-48e5-9830-576e6a7d3890',
-    '38a6f01b-e32b-492c-9a96-29ad3d45b838',
-    'cd2e7fad-15b4-4896-98d5-b9dccb6ca55e',
-    '7b3a5e78-6ff3-402c-b390-7160f755d3d2',
-    '1a8b6c2d-4f9e-40e3-967a-91d2c8f5b0a7'
-  ],
-
   // Dogecoin API Keys (NowNodes.io)
   'DOGE_NOWNODES': [
     '4eea1226-2f22-44af-9a91-5c61f2c82a9d',
@@ -285,18 +282,10 @@ export const blockchainEndpoints: Record<BlockchainType, ApiEndpoint[]> = {
     {
       name: 'Helius',
       type: 'private',
-      url: 'https://mainnet.helius-rpc.com/',
-      method: 'POST',
-      formatHeaders: (apiKey) => ({
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey || ''
-      }),
-      formatBody: (address) => ({
-        jsonrpc: '2.0',
-        id: 1,
-        method: 'getBalance',
-        params: [address]
-      }),
+      url: '',
+      formatUrl: (address, apiKey) => `https://api.helius.xyz/v0/addresses/${address}/balances?api-key=${apiKey}`,
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
       needsApiKey: true,
       callCount: 0
     }

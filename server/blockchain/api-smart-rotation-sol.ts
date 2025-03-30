@@ -8,14 +8,14 @@ import fetch from "node-fetch";
 // Lưu trữ vị trí hiện tại trong bánh xe xoay vòng
 let currentSOLSlot = 0;
 
-// Danh sách API keys Helius - ưu tiên lấy từ biến môi trường
-import { apiKeys } from './api-keys';
-console.log('HELIUS_API_KEY từ biến môi trường:', process.env.HELIUS_API_KEY ? 'Có (bắt đầu bằng: ' + process.env.HELIUS_API_KEY.substring(0, 6) + '...)' : 'Không');
-console.log('API_KEYS[SOL_HELIUS] từ mảng cứng:', apiKeys['SOL_HELIUS'] ? `${apiKeys['SOL_HELIUS'].length} keys` : 'Không');
-const heliusApiKeys: string[] = process.env.HELIUS_API_KEY 
-  ? [process.env.HELIUS_API_KEY]  // Ưu tiên sử dụng API key từ biến môi trường nếu có
-  : apiKeys['SOL_HELIUS'] || [];  // Quay lại sử dụng key từ mảng cố định nếu không có biến môi trường
-console.log('Đã quyết định sử dụng:', heliusApiKeys.length, 'Helius API keys');
+// Thông tin các API key Helius
+const heliusApiKeys: string[] = [
+  // API keys lấy từ hệ thống xoay vòng
+  getApiKey('SOL', 'Helius_1'),
+  getApiKey('SOL', 'Helius_2'),
+  getApiKey('SOL', 'Helius_3'),
+  // Đảm bảo loại bỏ các key trống
+].filter(key => key && key.length > 0);
 
 // Thông tin API public (không cần key)
 const publicEndpoints = [
@@ -39,7 +39,7 @@ const publicEndpoints = [
  * Mỗi API key riêng cũng được tính là 1 slot
  */
 function calculateTotalSolSlots(): number {
-  // Số lượng API endpoints công khai + Số lượng API keys Helius
+  // Public endpoints + Helius API keys
   return publicEndpoints.length + heliusApiKeys.length;
 }
 
@@ -87,22 +87,11 @@ function getNextSolanaApi(address: string): {
   
   console.log(`[SOL Rotation] Đã chọn Helius API với API key ${apiKey.substring(0, 6)}... - Slot ${currentSlot + 1}/${totalSlots}`);
   
-  // Sử dụng JSON-RPC endpoint của Helius để lấy số dư
   return {
     name: 'Helius',
-    // URL chuẩn mới: Không đặt api-key trong query parameter mà đưa vào header
-    url: `https://mainnet.helius-rpc.com/`,
-    method: 'POST',
-    headers: { 
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey
-    },
-    body: JSON.stringify({
-      jsonrpc: '2.0',
-      id: 1,
-      method: 'getBalance',
-      params: [address]
-    })
+    url: `https://api.helius.xyz/v0/addresses/${address}/balances?api-key=${apiKey}`,
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' }
   };
 }
 
@@ -110,47 +99,19 @@ function getNextSolanaApi(address: string): {
  * Xử lý phản hồi từ API Solana, trả về số dư với định dạng thống nhất
  */
 function parseSolanaApiResponse(name: string, data: any): string {
-  console.log(`Xử lý phản hồi từ ${name} với dữ liệu:`, JSON.stringify(data).substring(0, 200));
-  
   if (name === 'Helius') {
-    // Xử lý phản hồi từ Helius JSON-RPC
-    if (data && data.result && data.result.value !== undefined) {
-      // Định dạng phản hồi mới từ Helius JSON-RPC (giống với Solana RPC)
-      console.log(`Phát hiện định dạng Helius JSON-RPC: ${data.result.value} lamports`);
-      return (data.result.value / 1e9).toFixed(9);
-    } else if (data && data.error) {
-      console.log(`Helius API error: ${JSON.stringify(data.error)}`);
-      return '0';
-    } else if (data && data.nativeBalance !== undefined) {
-      // Cấu trúc cũ: { nativeBalance: number }
-      console.log(`Phát hiện định dạng nativeBalance: ${data.nativeBalance} lamports`);
+    // Xử lý phản hồi từ Helius
+    if (data && data.nativeBalance !== undefined) {
+      // Chuyển đổi từ lamports sang SOL (1 SOL = 10^9 lamports)
       return (data.nativeBalance / 1e9).toFixed(9);
-    } else if (data && data.tokens && Array.isArray(data.tokens)) {
-      // Tìm token SOL trong mảng tokens
-      const solToken = data.tokens.find((token: any) => token.tokenAccount === null);
-      if (solToken && solToken.amount !== undefined) {
-        console.log(`Phát hiện định dạng tokens array: ${solToken.amount} lamports`);
-        return (solToken.amount / 1e9).toFixed(9);
-      }
-    } else if (data && data.native !== undefined) {
-      // Cấu trúc mới: { native: number }
-      console.log(`Phát hiện định dạng native: ${data.native} lamports`);
-      return (data.native / 1e9).toFixed(9);
-    } else if (data && Array.isArray(data) && data.length > 0 && data[0].lamports !== undefined) {
-      // Cấu trúc mảng: [{ lamports: number }]
-      console.log(`Phát hiện định dạng array lamports: ${data[0].lamports} lamports`);
-      return (data[0].lamports / 1e9).toFixed(9);
     }
-    console.log("Helius response không chứa thông tin số dư đúng định dạng:", JSON.stringify(data).substring(0, 200));
     return '0';
   } else {
     // Xử lý phản hồi từ JSON-RPC (Solana-RPC)
     if (data && data.result && data.result.value !== undefined) {
       // Chuyển đổi từ lamports sang SOL (1 SOL = 10^9 lamports)
-      console.log(`Phát hiện định dạng Solana RPC: ${data.result.value} lamports`);
       return (data.result.value / 1e9).toFixed(9);
     }
-    console.log("Solana RPC response không chứa thông tin số dư đúng định dạng:", JSON.stringify(data).substring(0, 200));
     return '0';
   }
 }
@@ -178,9 +139,6 @@ export async function checkSolanaBalance(address: string): Promise<string> {
     // Thực hiện request
     const response = await fetch(apiConfig.url, fetchOptions);
     const data = await response.json();
-    
-    // Log dữ liệu phản hồi để debug
-    console.log(`Solana response from ${apiConfig.name}:`, JSON.stringify(data).substring(0, 200));
     
     // Xử lý phản hồi
     const balance = parseSolanaApiResponse(apiConfig.name, data);
