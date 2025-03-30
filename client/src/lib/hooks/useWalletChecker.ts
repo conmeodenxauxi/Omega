@@ -192,8 +192,8 @@ export function useWalletChecker({
   const checkBalances = (addresses: WalletAddress[], seedPhrase: string) => {
     if (!addresses.length) return;
     
-    // Cập nhật địa chỉ đang kiểm tra
-    setCheckingAddresses(addresses);
+    // Không cập nhật địa chỉ đang kiểm tra ở đây nữa để tránh can thiệp vào quá trình luân phiên
+    // setCheckingAddresses(addresses); // Đã loại bỏ để giữ nguyên hiệu ứng luân phiên
     
     // Thực hiện kiểm tra trong một hàm async tách biệt
     (async () => {
