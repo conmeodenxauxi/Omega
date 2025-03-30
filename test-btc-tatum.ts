@@ -76,9 +76,9 @@ async function testDogeTatumApi(address: string) {
   }
 }
 
-// Test với một địa chỉ BTC thực (có số dư)
-console.log("=== TESTING BTC API ===");
-await testBtcTatumApi('1P5ZEDWTKTFGxQjZphgWPQUpe554WKDfHQ');
+// Test với địa chỉ Satoshi
+console.log("=== TESTING BTC API với địa chỉ Satoshi ===");
+await testBtcTatumApi('1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa');
 
 // Test với một địa chỉ DOGE thực
 console.log("\n=== TESTING DOGE API ===");
