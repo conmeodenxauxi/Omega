@@ -14,15 +14,15 @@ export function UserGuideDialog() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-8 flex items-center gap-1">
-          <HelpCircle size={16} />
-          <span>Hướng dẫn sử dụng</span>
+        <Button variant="outline" size="sm" className="h-8 flex flex-col items-center px-1 py-0 border-2 font-bold">
+          <span className="text-xs font-bold leading-tight">Hướng dẫn</span>
+          <span className="text-xs font-medium leading-tight">sử dụng</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="text-center text-xl mb-2">Bản Omega</DialogTitle>
-          <DialogDescription className="text-left">
+          <div className="text-left">
             <div className="text-base font-medium mb-2">I/ Hướng dẫn sử dụng</div>
             <ol className="list-decimal pl-6 space-y-2">
               <li>
@@ -62,7 +62,7 @@ export function UserGuideDialog() {
                 <div>Khi tìm được ví có số dư &gt;0 thì seed phrase và số dư của ví sẽ được hiển thị trên bảng này</div>
               </li>
             </ol>
-          </DialogDescription>
+          </div>
         </DialogHeader>
       </DialogContent>
     </Dialog>

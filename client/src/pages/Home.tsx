@@ -66,15 +66,15 @@ export default function Home() {
         <div className="flex-1 text-center">
           <h1 className="text-xl font-bold">Tìm ví web3 có số dư</h1>
         </div>
-        <div className="flex items-center flex-none">
+        <div className="flex flex-col items-center flex-none">
+          <label htmlFor="auto-reset" className="text-xs font-medium mb-1">
+            Auto reset
+          </label>
           <Checkbox 
             id="auto-reset" 
             checked={autoReset} 
             onCheckedChange={(checked) => setAutoReset(!!checked)} 
           />
-          <label htmlFor="auto-reset" className="ml-2 text-sm font-medium">
-            Tự động reset
-          </label>
         </div>
       </header>
 
