@@ -5,12 +5,15 @@
 ### BlockCypher
 - **Số lượng API key**: 9
 - **Rate limit**: 3 req/giây/key = 27 req/giây
-- **Mô tả**: Public API cho Bitcoin
+- **Giới hạn hàng giờ**: 200 req/giờ/key = 1800 req/giờ
+- **Giới hạn hàng ngày**: 2000 req/ngày/key = 18000 req/ngày
+- **Mô tả**: Private API cho Bitcoin
 
 ### GetBlock
-- **Số lượng API key**: 16
-- **Rate limit**: 1 req/giây/key = 16 req/giây
-- **Mô tả**: Public API cho Bitcoin
+- **Số lượng API key**: 17
+- **Rate limit**: 5 req/giây/key = 85 req/giây
+- **Giới hạn hàng ngày**: 5000 req/ngày/key = 85.000 req/ngày
+- **Mô tả**: Private API cho Bitcoin
 
 ### Tatum
 - **Số lượng API key**: 15 (10 key cũ + 5 key mới)
@@ -25,7 +28,7 @@
 - **Mempool.space**: 3-5 req/giây
 
 ## Tổng rate limit hiện tại cho Bitcoin
-- **Tổng cộng**: ~115 request/giây
+- **Tổng cộng**: ~184 request/giây
 
 ---
 

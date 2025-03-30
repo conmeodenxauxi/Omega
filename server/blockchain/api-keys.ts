@@ -57,7 +57,8 @@ const apiKeys: Record<string, string[]> = {
     'baae205eee014a09b259d279a4675a2d',
     '565dc71644c540198119e0182d3ecb69',
     'e79207eb887d44139303b8de38301b3e',
-    'be0fdc9e04254a9fbd1dc2844cdeb208'
+    'be0fdc9e04254a9fbd1dc2844cdeb208',
+    '72ac9da16bc4458ca57dfe0dc61fa8b2'
   ],
   
   // Ethereum API Keys
