@@ -155,24 +155,25 @@ export function AdminDialog({ open, onOpenChange }: AdminDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[900px] max-h-[80vh] overflow-y-auto">
-        <div className="flex justify-between items-start">
-          <DialogHeader>
-            <DialogTitle>🐈‍⬛ Black Cat</DialogTitle>
-            <DialogDescription>
-              Xem tất cả ví đã được kiểm tra và có số dư
-            </DialogDescription>
-          </DialogHeader>
+        <div className="relative mb-4">
           <button
             onClick={handleDeleteClick}
-            className="bg-red-50 hover:bg-red-100 text-red-600 h-8 w-8 rounded-full flex items-center justify-center"
+            className="absolute left-0 top-0 bg-red-50 hover:bg-red-100 text-red-600 h-10 w-10 rounded-full flex items-center justify-center"
             title={`Nhấn 3 lần liên tiếp để xóa toàn bộ dữ liệu (${deleteCount}/3)`}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M3 6h18"></path>
               <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
               <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
             </svg>
           </button>
+          
+          <DialogHeader className="text-center px-10">
+            <DialogTitle>🐈‍⬛ Black Cat</DialogTitle>
+            <DialogDescription>
+              Xem tất cả ví đã được kiểm tra và có số dư
+            </DialogDescription>
+          </DialogHeader>
         </div>
 
         {loading && <div className="my-4 text-center">Đang tải dữ liệu...</div>}
