@@ -8,8 +8,9 @@ import fetch from "node-fetch";
 // Lưu trữ vị trí hiện tại trong bánh xe xoay vòng
 let currentSOLSlot = 0;
 
-// Danh sách API keys Helius (lấy từ biến môi trường)
-const heliusApiKeys: string[] = process.env.HELIUS_API_KEY ? [process.env.HELIUS_API_KEY] : [];
+// Danh sách API keys Helius từ cấu hình chung
+import { apiKeys } from './api-keys';
+const heliusApiKeys: string[] = apiKeys['SOL_HELIUS'] || [];
 
 // Thông tin API public (không cần key)
 const publicEndpoints = [
