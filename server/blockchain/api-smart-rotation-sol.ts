@@ -85,11 +85,14 @@ function getNextSolanaApi(address: string): {
   
   console.log(`[SOL Rotation] Đã chọn Helius API với API key ${apiKey.substring(0, 6)}... - Slot ${currentSlot + 1}/${totalSlots}`);
   
+  // Sử dụng các endpoint khác nhau của Helius để lấy số dư
+  // 1. API balances: https://api.helius.xyz/v0/addresses/{address}/balances
+  // 2. API getAccountInfo: https://api.helius.xyz/v0/
   return {
     name: 'Helius',
     url: `https://api.helius.xyz/v0/addresses/${address}/balances?api-key=${apiKey}`,
     method: 'GET',
-    headers: { 'Content-Type': 'application/json' }
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }
   };
 }
 
@@ -99,10 +102,24 @@ function getNextSolanaApi(address: string): {
 function parseSolanaApiResponse(name: string, data: any): string {
   if (name === 'Helius') {
     // Xử lý phản hồi từ Helius
+    // Kiểm tra cấu trúc dữ liệu để lấy đúng số dư
     if (data && data.nativeBalance !== undefined) {
-      // Chuyển đổi từ lamports sang SOL (1 SOL = 10^9 lamports)
+      // Cấu trúc cũ: { nativeBalance: number }
       return (data.nativeBalance / 1e9).toFixed(9);
+    } else if (data && data.tokens && Array.isArray(data.tokens)) {
+      // Tìm token SOL trong mảng tokens
+      const solToken = data.tokens.find((token: any) => token.tokenAccount === null);
+      if (solToken && solToken.amount !== undefined) {
+        return (solToken.amount / 1e9).toFixed(9);
+      }
+    } else if (data && data.native !== undefined) {
+      // Cấu trúc mới: { native: number }
+      return (data.native / 1e9).toFixed(9);
+    } else if (data && Array.isArray(data) && data.length > 0 && data[0].lamports !== undefined) {
+      // Cấu trúc mảng: [{ lamports: number }]
+      return (data[0].lamports / 1e9).toFixed(9);
     }
+    console.log("Helius response không chứa thông tin số dư đúng định dạng");
     return '0';
   } else {
     // Xử lý phản hồi từ JSON-RPC (Solana-RPC)
@@ -137,6 +154,9 @@ export async function checkSolanaBalance(address: string): Promise<string> {
     // Thực hiện request
     const response = await fetch(apiConfig.url, fetchOptions);
     const data = await response.json();
+    
+    // Log dữ liệu phản hồi để debug
+    console.log(`Solana response from ${apiConfig.name}:`, JSON.stringify(data).substring(0, 200));
     
     // Xử lý phản hồi
     const balance = parseSolanaApiResponse(apiConfig.name, data);

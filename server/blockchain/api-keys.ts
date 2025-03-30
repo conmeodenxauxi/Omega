@@ -310,7 +310,7 @@ export const blockchainEndpoints: Record<BlockchainType, ApiEndpoint[]> = {
       url: '',
       formatUrl: (address, apiKey) => `https://api.helius.xyz/v0/addresses/${address}/balances?api-key=${apiKey}`,
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       needsApiKey: true,
       callCount: 0
     }
