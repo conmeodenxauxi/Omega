@@ -62,7 +62,7 @@ function calculateTotalBtcSlots(): number {
           try {
             const testKey = getApiKey('BTC', 'GetBlock');
             if (testKey) {
-              slots += endpoint.name === 'GetBlock' ? 17 : 0; // giữ nguyên số thực tế từ api-keys.ts
+              slots += endpoint.name === 'GetBlock' ? 18 : 0; // cập nhật lên 18 cho key mới thêm vào (31/03/2025)
             }
           } catch (error) {
             console.log(`Không có API key nào cho ${endpoint.name}`);
@@ -151,7 +151,7 @@ function getNextBitcoinApi(address: string): {
           keyCount = 3; // Giảm từ 9 xuống 3 slot để tránh quá tải
           break;
         case 'GetBlock':
-          keyCount = 17; // Tổng số key thực tế từ api-keys.ts
+          keyCount = 18; // Cập nhật lên 18 cho key mới thêm vào (31/03/2025)
           break;
         case 'BTC_Tatum':
           keyCount = 15; // Tổng số key thực tế từ api-keys.ts

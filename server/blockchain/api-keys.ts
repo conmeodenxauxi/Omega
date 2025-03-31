@@ -65,7 +65,9 @@ const apiKeys: Record<string, string[]> = {
     '565dc71644c540198119e0182d3ecb69',
     'e79207eb887d44139303b8de38301b3e',
     'be0fdc9e04254a9fbd1dc2844cdeb208',
-    '72ac9da16bc4458ca57dfe0dc61fa8b2'
+    '72ac9da16bc4458ca57dfe0dc61fa8b2',
+    // Key mới được thêm vào (31/03/2025)
+    '0186e2e5708f432cbc7e67288e4295ae'
   ],
   
   // Ethereum API Keys
@@ -119,7 +121,10 @@ const apiKeys: Record<string, string[]> = {
     '3bcac472-0eb9-4404-8d20-bb25ca9dadc8',
     'c9fe92c4-6d56-4f0c-8c3f-99ccf9685d7c',
     'f769413c-ebdf-4df9-841a-aa054fbce6b2', // Key mới được thêm vào
-    'a5f7d1bc-23f3-4833-80e6-279774f98ef1'  // Key mới được thêm vào (30/03/2025)
+    'a5f7d1bc-23f3-4833-80e6-279774f98ef1', // Key mới được thêm vào (30/03/2025)
+    // Keys mới được thêm vào (31/03/2025)
+    '88b6a5c4-a828-4f13-84aa-f84798b44234',
+    '4ae0a4eb-2f7f-419f-bba8-92899bfee440'
   ],
   
   // Bitcoin API Keys (Tatum.io)

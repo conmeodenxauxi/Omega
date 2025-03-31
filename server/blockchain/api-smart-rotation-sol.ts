@@ -33,7 +33,10 @@ const heliusApiKeys: string[] = [
   '3bcac472-0eb9-4404-8d20-bb25ca9dadc8',
   'c9fe92c4-6d56-4f0c-8c3f-99ccf9685d7c',
   'f769413c-ebdf-4df9-841a-aa054fbce6b2',
-  'a5f7d1bc-23f3-4833-80e6-279774f98ef1' // Key mới thêm vào (30/03/2025)
+  'a5f7d1bc-23f3-4833-80e6-279774f98ef1', // Key mới thêm vào (30/03/2025)
+  // Keys mới thêm vào (31/03/2025)
+  '88b6a5c4-a828-4f13-84aa-f84798b44234',
+  '4ae0a4eb-2f7f-419f-bba8-92899bfee440'
 ];
 
 // Thông tin API public (không cần key)
