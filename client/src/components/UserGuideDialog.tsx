@@ -30,7 +30,7 @@ export function UserGuideDialog() {
               <ol className="list-decimal pl-6 space-y-3 text-base">
                 <li>
                   <span className="font-medium">Ticker tự động reset</span>
-                  <div>Xóa cache sau khi kiểm tra được 7000 địa chỉ</div>
+                  <div>Xóa cache sau khi kiểm tra được 3500 địa chỉ</div>
                 </li>
                 <li>
                   <span className="font-medium">Các ticker blockchain</span>

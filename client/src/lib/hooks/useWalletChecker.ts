@@ -7,7 +7,7 @@ import { useSearch } from '@/lib/context/SearchContext';
 
 // Cấu hình mặc định
 const DEFAULT_CHECK_INTERVAL = 1000; // Tốc độ tạo seed mặc định (ms)
-const DEFAULT_BUFFER_SIZE = 9; // Giới hạn tạo seed = seeds checked + buffer
+const DEFAULT_BUFFER_SIZE = 6; // Giới hạn tạo seed = seeds checked + buffer
 
 interface WalletCheckerOptions {
   selectedBlockchains: BlockchainType[];
@@ -43,7 +43,7 @@ export function useWalletChecker({
   const isSearchingRef = useRef<boolean>(false);
   
   // Ngưỡng số lượng ví đã kiểm tra để tự động reset
-  const AUTO_RESET_THRESHOLD = 7000;
+  const AUTO_RESET_THRESHOLD = 3500;
   
   // Reset statistics and clear results
   const resetStats = useCallback(() => {
