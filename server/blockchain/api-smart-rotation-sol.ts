@@ -1,10 +1,13 @@
 /**
- * Cơ chế phân bổ ngẫu nhiên dành riêng cho Solana
+ * Cơ chế phân bổ ngẫu nhiên thích ứng dành riêng cho Solana
  * Chọn ngẫu nhiên một endpoint hoặc API key từ tất cả các endpoint và API key có sẵn,
- * mỗi lần chỉ gọi 1 request để tránh race condition và đảm bảo sử dụng đồng đều các API
+ * điều chỉnh trọng số dựa trên hiệu suất để tối ưu hóa việc sử dụng API
  */
+import { BlockchainType } from "@shared/schema";
 import { getApiKey } from "./api-keys";
 import fetch from "node-fetch";
+import { checkWithBackoff } from "./api-smart-rotation-utils";
+import { registerProvider, reportSuccess, reportError, reportRateLimit, selectWeightedProvider } from './api-adaptive-manager';
 
 // Thông tin các API key Helius
 const heliusApiKeys: string[] = [
@@ -60,8 +63,8 @@ function calculateTotalSolSlots(): number {
 }
 
 /**
- * Lấy cấu hình API cho Solana sử dụng phân bổ ngẫu nhiên
- * Đảm bảo mỗi request chỉ gọi 1 API duy nhất và phân tán đều các request
+ * Lấy cấu hình API cho Solana sử dụng phân bổ ngẫu nhiên thích ứng
+ * Tận dụng trọng số thích ứng để ưu tiên các endpoint có độ tin cậy cao
  */
 function getNextSolanaApi(address: string): {
   name: string;
@@ -70,22 +73,91 @@ function getNextSolanaApi(address: string): {
   headers: Record<string, string>;
   body?: string;
 } {
-  const totalSlots = calculateTotalSolSlots();
+  // Đầu tiên đăng ký các providers với hệ thống quản lý API thích ứng
   
-  // Nếu không có slot nào, trả về thông báo lỗi
-  if (totalSlots === 0) {
-    throw new Error('Không có API endpoint hoặc API key nào khả dụng cho Solana');
+  // Đăng ký endpoint công khai
+  for (const endpoint of publicEndpoints) {
+    registerProvider('SOL', endpoint.name);
   }
   
-  // Chọn ngẫu nhiên 1 slot từ tổng số slot có sẵn
-  const randomSlot = Math.floor(Math.random() * totalSlots);
+  // Đăng ký các Helius key như các providers riêng biệt
+  for (let i = 0; i < heliusApiKeys.length; i++) {
+    const providerName = `Helius-${i+1}`;
+    registerProvider('SOL', providerName);
+  }
   
-  console.log(`SOL random slot: ${randomSlot + 1}/${totalSlots}`);
+  // Lưu trữ tất cả tên providers có sẵn cho Solana
+  const providers: string[] = [
+    ...publicEndpoints.map(endpoint => endpoint.name)
+  ];
   
-  // Trường hợp slot là public endpoint
-  if (randomSlot < publicEndpoints.length) {
-    const endpoint = publicEndpoints[randomSlot];
-    console.log(`[SOL Random] Đã chọn ${endpoint.name} (public endpoint) - Slot ${randomSlot + 1}/${totalSlots}`);
+  // Thêm các key Helius như các providers riêng biệt
+  for (let i = 0; i < heliusApiKeys.length; i++) {
+    providers.push(`Helius-${i+1}`);
+  }
+  
+  // Chọn provider dựa trên trọng số
+  let chosenProvider: string;
+  
+  if (providers.length >= 3) {
+    // Có đủ providers để sử dụng hệ thống chọn trọng số
+    chosenProvider = selectWeightedProvider('SOL', providers);
+    console.log(`[SOL Weighted] Đã chọn ${chosenProvider} dựa trên trọng số thích ứng`);
+  } else {
+    // Sử dụng cơ chế ngẫu nhiên thông thường nếu không đủ providers
+    const totalSlots = calculateTotalSolSlots();
+    const randomSlot = Math.floor(Math.random() * totalSlots);
+    
+    if (randomSlot < publicEndpoints.length) {
+      chosenProvider = publicEndpoints[randomSlot].name;
+    } else {
+      const keyIndex = randomSlot - publicEndpoints.length;
+      chosenProvider = `Helius-${keyIndex+1}`;
+    }
+    
+    console.log(`[SOL Random] Đã chọn ${chosenProvider} - Slot ${randomSlot + 1}/${totalSlots}`);
+  }
+  
+  // Xử lý endpoint dựa trên provider đã chọn
+  if (chosenProvider.startsWith('Helius-')) {
+    // Trường hợp là một Helius API key
+    const keyIndex = parseInt(chosenProvider.split('-')[1]) - 1;
+    const apiKey = heliusApiKeys[keyIndex];
+    
+    if (!apiKey) {
+      console.error(`Không tìm thấy API key cho ${chosenProvider}, sử dụng key đầu tiên`);
+      const fallbackKey = heliusApiKeys[0];
+      return {
+        name: 'Helius-1',
+        url: `https://api.helius.xyz/v0/addresses/${address}/balances?api-key=${fallbackKey}`,
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      };
+    }
+    
+    return {
+      name: chosenProvider,
+      url: `https://api.helius.xyz/v0/addresses/${address}/balances?api-key=${apiKey}`,
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    };
+  } else {
+    // Trường hợp là public endpoint
+    const endpoint = publicEndpoints.find(ep => ep.name === chosenProvider);
+    
+    if (!endpoint) {
+      // Không tìm thấy endpoint, sử dụng endpoint mặc định
+      console.error(`Không tìm thấy cấu hình cho ${chosenProvider}, sử dụng endpoint mặc định`);
+      const defaultEndpoint = publicEndpoints[0];
+      
+      return {
+        name: defaultEndpoint.name,
+        url: defaultEndpoint.url,
+        method: defaultEndpoint.method,
+        headers: { 'Content-Type': 'application/json' },
+        body: defaultEndpoint.formatBody(address)
+      };
+    }
     
     return {
       name: endpoint.name,
@@ -95,27 +167,14 @@ function getNextSolanaApi(address: string): {
       body: endpoint.formatBody(address)
     };
   }
-  
-  // Trường hợp slot là Helius API key
-  const keyIndex = randomSlot - publicEndpoints.length;
-  const apiKey = heliusApiKeys[keyIndex];
-  
-  console.log(`[SOL Random] Đã chọn Helius API với API key ${apiKey.substring(0, 6)}... - Slot ${randomSlot + 1}/${totalSlots}`);
-  
-  return {
-    name: 'Helius',
-    url: `https://api.helius.xyz/v0/addresses/${address}/balances?api-key=${apiKey}`,
-    method: 'GET',
-    headers: { 'Content-Type': 'application/json' }
-  };
 }
 
 /**
  * Xử lý phản hồi từ API Solana, trả về số dư với định dạng thống nhất
  */
 function parseSolanaApiResponse(name: string, data: any): string {
-  if (name === 'Helius') {
-    // Xử lý phản hồi từ Helius
+  if (name.startsWith('Helius')) {
+    // Xử lý phản hồi từ Helius (bao gồm tất cả các key Helius)
     if (data && data.nativeBalance !== undefined) {
       // Chuyển đổi từ lamports sang SOL (1 SOL = 10^9 lamports)
       return (data.nativeBalance / 1e9).toFixed(9);
@@ -132,51 +191,87 @@ function parseSolanaApiResponse(name: string, data: any): string {
 }
 
 /**
- * Kiểm tra số dư Solana bằng cơ chế phân bổ ngẫu nhiên (chỉ 1 request mỗi lần)
+ * Kiểm tra số dư Solana bằng cơ chế phân bổ ngẫu nhiên thích ứng
+ * Tích hợp với hệ thống quản lý API để tối ưu hóa việc sử dụng API
  */
 export async function checkSolanaBalance(address: string): Promise<string> {
   try {
-    // Lấy API endpoint ngẫu nhiên
+    // Lấy API endpoint dựa trên trọng số thích ứng
     const apiConfig = getNextSolanaApi(address);
     
     console.log(`Checking SOL balance for ${address} using ${apiConfig.name}`);
     
-    // Cấu hình fetch request
-    const fetchOptions: any = {
-      method: apiConfig.method,
-      headers: apiConfig.headers
-    };
-    
-    if (apiConfig.body) {
-      fetchOptions.body = apiConfig.body;
-    }
-    
-    // Thêm timeout
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000); // 15 giây timeout
-    fetchOptions.signal = controller.signal as any;
-    
-    try {
-      // Thực hiện request
-      const response = await fetch(apiConfig.url, fetchOptions);
-      clearTimeout(timeout);
+    // Sử dụng checkWithBackoff để xử lý các trường hợp bị rate limit với backoff tự động
+    return await checkWithBackoff(async (retryCount?: number, maxRetries?: number, retryDelay?: number): Promise<string> => {
+      // Cấu hình fetch request
+      const fetchOptions: any = {
+        method: apiConfig.method,
+        headers: apiConfig.headers
+      };
       
-      if (!response.ok) {
-        throw new Error(`HTTP error: ${response.status}`);
+      if (apiConfig.body) {
+        fetchOptions.body = apiConfig.body;
       }
       
-      const data = await response.json();
+      // Thêm timeout
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000); // 15 giây timeout
+      fetchOptions.signal = controller.signal as any;
       
-      // Xử lý phản hồi
-      const balance = parseSolanaApiResponse(apiConfig.name, data);
-      
-      console.log(`Solana balance from ${apiConfig.name}: ${balance}`);
-      return balance;
-    } catch (error) {
-      console.error(`Error fetching from ${apiConfig.name}:`, error);
-      clearTimeout(timeout);
-      return '0';
-    }
+      try {
+        // Thực hiện request
+        const response = await fetch(apiConfig.url, fetchOptions);
+        clearTimeout(timeout);
+        
+        if (!response.ok) {
+          // Xử lý mã lỗi HTTP
+          if (response.status === 429) {
+            // Rate limit
+            reportRateLimit('SOL', apiConfig.name);
+            throw { status: 429, message: 'Rate limited' };
+          } else if (response.status === 403 || response.status === 401) {
+            // Unauthorized / Forbidden
+            reportError('SOL', apiConfig.name);
+            console.error(`Authentication error for ${apiConfig.name}: ${response.status}`);
+            throw new Error(`Authentication error: ${response.status}`);
+          } else {
+            // Lỗi khác
+            reportError('SOL', apiConfig.name);
+            throw new Error(`HTTP error: ${response.status}`);
+          }
+        }
+        
+        const data = await response.json();
+        
+        // Xử lý phản hồi
+        const balance = parseSolanaApiResponse(apiConfig.name, data);
+        
+        // Báo cáo thành công cho hệ thống quản lý API
+        reportSuccess('SOL', apiConfig.name);
+        
+        console.log(`Solana balance from ${apiConfig.name}: ${balance}`);
+        return balance;
+      } catch (error: any) {
+        // Xử lý các lỗi khi thực hiện request
+        console.error(`Error fetching from ${apiConfig.name}:`, error);
+        
+        // Xử lý và báo cáo lỗi cho hệ thống quản lý
+        if (error && typeof error === 'object' && 'status' in error && error.status === 429) {
+          console.error(`Rate limited on API, backing off for ${retryDelay}ms (retry ${retryCount}/${maxRetries})`);
+          // Rate limit đã được báo cáo ở trên
+        } else {
+          // Lỗi khác (timeout, kết nối, etc)
+          reportError('SOL', apiConfig.name);
+        }
+        
+        clearTimeout(timeout);
+        throw error; // Ném lỗi để cơ chế backoff hoạt động nếu cần
+      }
+    }, apiConfig.name, 3, 2000).catch(error => {
+      // Xử lý khi tất cả các lần thử đều thất bại
+      console.error(`All retries failed for ${apiConfig.name}:`, error);
+      return '0'; // Trả về 0 nếu tất cả các lần thử đều thất bại
+    });
   } catch (error) {
     console.error(`Error checking Solana balance:`, error);
     return '0';

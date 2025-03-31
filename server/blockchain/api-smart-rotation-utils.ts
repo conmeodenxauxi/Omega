@@ -4,14 +4,14 @@
 
 /**
  * Thêm cơ chế exponential backoff khi gặp lỗi từ API
- * @param apiCall Hàm cần thực hiện
+ * @param apiCall Hàm cần thực hiện, có thể nhận thông tin về lần thử hiện tại
  * @param apiName Tên của API đang gọi (dùng cho log)
  * @param maxRetries Số lần thử lại tối đa
  * @param baseDelay Thời gian chờ cơ bản (ms)
  * @returns Kết quả từ apiCall hoặc lỗi nếu đã vượt quá số lần thử lại
  */
 export async function checkWithBackoff<T>(
-  apiCall: () => Promise<T>, 
+  apiCall: (retryCount?: number, maxRetries?: number, retryDelay?: number) => Promise<T>, 
   apiName: string = 'API', 
   maxRetries: number = 3,
   baseDelay: number = 1500
@@ -19,7 +19,8 @@ export async function checkWithBackoff<T>(
   let retries = 0;
   while (retries < maxRetries) {
     try {
-      return await apiCall();
+      // Truyền thông tin về số lần thử lại hiện tại vào hàm apiCall
+      return await apiCall(retries, maxRetries, baseDelay);
     } catch (error: any) {
       if (error?.status === 429 || error?.status === 430 || 
           (error?.message && (
