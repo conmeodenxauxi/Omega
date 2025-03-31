@@ -15,7 +15,7 @@ const MAX_CONCURRENT_CHECKS = {
   BTC: 45,  // Tăng lên 45 request song song cho BTC
   ETH: 15,  // Tăng lên 15
   BSC: 15,  // Tăng lên 15
-  SOL: 15,  // Tăng lên 15
+  SOL: 5,   // Giảm xuống 5 để giảm khả năng bị rate limit
   DOGE: 15  // Tăng lên 15
 };
 

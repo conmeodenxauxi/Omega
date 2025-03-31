@@ -135,7 +135,7 @@ function parseSolanaApiResponse(name: string, data: any): string {
 }
 
 /**
- * Kiểm tra số dư Solana bằng cơ chế xoay vòng tuần tự (chỉ 1 request mỗi lần)
+ * Kiểm tra số dư Solana bằng cơ chế xoay vòng tuần tự với cơ chế retry
  */
 export async function checkSolanaBalance(address: string): Promise<string> {
   try {
@@ -154,32 +154,76 @@ export async function checkSolanaBalance(address: string): Promise<string> {
       fetchOptions.body = apiConfig.body;
     }
     
-    // Thêm timeout
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000); // 15 giây timeout
-    fetchOptions.signal = controller.signal as any;
+    // Cơ chế retry với backoff
+    const maxRetries = 2; // Tối đa 2 lần retry
+    let retryCount = 0;
+    let lastError: any = null;
     
-    try {
-      // Thực hiện request
-      const response = await fetch(apiConfig.url, fetchOptions);
-      clearTimeout(timeout);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error: ${response.status}`);
+    while (retryCount <= maxRetries) {
+      try {
+        // Thêm timeout
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000); // Giảm timeout xuống 10 giây
+        fetchOptions.signal = controller.signal as any;
+        
+        // Thực hiện request
+        const response = await fetch(apiConfig.url, fetchOptions);
+        clearTimeout(timeout);
+        
+        if (!response.ok) {
+          // Nếu lỗi rate limit (429), thử lại với API khác
+          if (response.status === 429) {
+            lastError = new Error(`Rate limit reached (HTTP 429) for ${apiConfig.name}`);
+            console.warn(`Rate limit reached for ${apiConfig.name}, trying another endpoint...`);
+            
+            // Nếu bị rate limit, thử lấy một endpoint khác
+            if (retryCount < maxRetries) {
+              retryCount++;
+              const newApiConfig = getNextSolanaApi(address);
+              apiConfig.name = newApiConfig.name;
+              apiConfig.url = newApiConfig.url;
+              apiConfig.method = newApiConfig.method;
+              apiConfig.headers = newApiConfig.headers;
+              apiConfig.body = newApiConfig.body;
+              
+              // Cập nhật fetchOptions
+              fetchOptions.method = apiConfig.method;
+              fetchOptions.headers = apiConfig.headers;
+              fetchOptions.body = apiConfig.body;
+              
+              // Chờ một chút trước khi thử lại
+              await new Promise(resolve => setTimeout(resolve, 500 * retryCount));
+              continue;
+            }
+          }
+          
+          throw new Error(`HTTP error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Xử lý phản hồi
+        const balance = parseSolanaApiResponse(apiConfig.name, data);
+        
+        console.log(`Solana balance from ${apiConfig.name}: ${balance}`);
+        return balance;
+      } catch (error) {
+        lastError = error;
+        console.error(`Error fetching from ${apiConfig.name} (retry ${retryCount}/${maxRetries}):`, error);
+        
+        if (retryCount < maxRetries) {
+          retryCount++;
+          // Chờ một chút trước khi thử lại (backoff)
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+        } else {
+          break;
+        }
       }
-      
-      const data = await response.json();
-      
-      // Xử lý phản hồi
-      const balance = parseSolanaApiResponse(apiConfig.name, data);
-      
-      console.log(`Solana balance from ${apiConfig.name}: ${balance}`);
-      return balance;
-    } catch (error) {
-      console.error(`Error fetching from ${apiConfig.name}:`, error);
-      clearTimeout(timeout);
-      return '0';
     }
+    
+    // Nếu đã retry hết mà vẫn lỗi
+    console.error(`All retries failed for ${apiConfig.name}:`, lastError);
+    return '0';
   } catch (error) {
     console.error(`Error checking Solana balance:`, error);
     return '0';
