@@ -6,7 +6,7 @@ import { getQueryFn, apiRequest } from '@/lib/queryClient';
 import { useSearch } from '@/lib/context/SearchContext';
 
 // Cấu hình mặc định
-const DEFAULT_CHECK_INTERVAL = 700; // Tốc độ tạo seed mặc định (ms)
+const DEFAULT_CHECK_INTERVAL = 1000; // Tốc độ tạo seed mặc định (ms)
 const DEFAULT_BUFFER_SIZE = 6; // Giới hạn tạo seed = seeds checked + buffer
 
 interface WalletCheckerOptions {
