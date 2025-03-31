@@ -1,12 +1,11 @@
 /**
- * Cơ chế xoay vòng thông minh dành riêng cho Ethereum
- * Xoay vòng qua tất cả các endpoint và API key có sẵn, mỗi lần chỉ gọi 1 request
+ * Cơ chế phân bổ ngẫu nhiên dành riêng cho Ethereum
+ * Chọn ngẫu nhiên một endpoint hoặc API key từ tất cả các endpoint và API key có sẵn,
+ * mỗi lần chỉ gọi 1 request để tránh race condition và đảm bảo sử dụng đồng đều các API
  */
 import { getApiKey } from "./api-keys";
 import fetch from "node-fetch";
-
-// Lưu trữ vị trí hiện tại trong bánh xe xoay vòng
-let currentETHSlot = 0;
+import { checkWithBackoff } from "./api-smart-rotation-utils";
 
 // Thông tin các API key Etherscan
 const etherscanApiKeys: string[] = [
@@ -51,8 +50,8 @@ const publicEndpoints = [
 ];
 
 /**
- * Tính toán tổng số slot cho vòng xoay ETH
- * RPC public không cần key được tính là 1 slot
+ * Tính toán tổng số slot cho phân bổ ngẫu nhiên ETH
+ * Mỗi RPC public không cần key được tính là 1 slot
  * Mỗi API key riêng cũng được tính là 1 slot
  */
 function calculateTotalEthSlots(): number {
@@ -61,10 +60,10 @@ function calculateTotalEthSlots(): number {
 }
 
 /**
- * Lấy cấu hình API tiếp theo cho Ethereum theo vòng xoay
- * Đảm bảo mỗi request chỉ gọi 1 API duy nhất
+ * Lấy cấu hình API cho Ethereum sử dụng phân bổ ngẫu nhiên
+ * Đảm bảo mỗi request chỉ gọi 1 API duy nhất và phân tán đều các request
  */
-function getNextEthereumApi(address: string): {
+function getRandomEthereumApi(address: string): {
   name: string;
   url: string;
   method: string;
@@ -78,16 +77,15 @@ function getNextEthereumApi(address: string): {
     throw new Error('Không có API endpoint hoặc API key nào khả dụng cho Ethereum');
   }
   
-  // Xoay vòng qua các slot
-  const currentSlot = currentETHSlot % totalSlots;
-  currentETHSlot = (currentETHSlot + 1) % totalSlots;
+  // Chọn ngẫu nhiên một slot
+  const randomSlot = Math.floor(Math.random() * totalSlots);
   
-  console.log(`ETH rotation slot: ${currentSlot + 1}/${totalSlots}`);
+  console.log(`ETH random slot: ${randomSlot + 1}/${totalSlots}`);
   
   // Trường hợp slot là public endpoint
-  if (currentSlot < publicEndpoints.length) {
-    const endpoint = publicEndpoints[currentSlot];
-    console.log(`[ETH Rotation] Đã chọn ${endpoint.name} (public endpoint) - Slot ${currentSlot + 1}/${totalSlots}`);
+  if (randomSlot < publicEndpoints.length) {
+    const endpoint = publicEndpoints[randomSlot];
+    console.log(`[ETH Random] Đã chọn ${endpoint.name} (public endpoint) - Slot ${randomSlot + 1}/${totalSlots}`);
     
     return {
       name: endpoint.name,
@@ -99,10 +97,10 @@ function getNextEthereumApi(address: string): {
   }
   
   // Trường hợp slot là Etherscan API key
-  const keyIndex = currentSlot - publicEndpoints.length;
+  const keyIndex = randomSlot - publicEndpoints.length;
   const apiKey = etherscanApiKeys[keyIndex];
   
-  console.log(`[ETH Rotation] Đã chọn Etherscan với API key ${apiKey.substring(0, 6)}... - Slot ${currentSlot + 1}/${totalSlots}`);
+  console.log(`[ETH Random] Đã chọn Etherscan với API key ${apiKey.substring(0, 6)}... - Slot ${randomSlot + 1}/${totalSlots}`);
   
   return {
     name: 'Etherscan',
@@ -134,12 +132,12 @@ function parseEthereumApiResponse(name: string, data: any): string {
 }
 
 /**
- * Kiểm tra số dư Ethereum bằng cơ chế xoay vòng tuần tự (chỉ 1 request mỗi lần)
+ * Kiểm tra số dư Ethereum bằng cơ chế phân bổ ngẫu nhiên (chỉ 1 request mỗi lần)
  */
 export async function checkEthereumBalance(address: string): Promise<string> {
   try {
-    // Lấy API endpoint tiếp theo từ vòng xoay
-    const apiConfig = getNextEthereumApi(address);
+    // Lấy API endpoint ngẫu nhiên
+    const apiConfig = getRandomEthereumApi(address);
     
     console.log(`Checking ETH balance for ${address} using ${apiConfig.name}`);
     
@@ -153,34 +151,37 @@ export async function checkEthereumBalance(address: string): Promise<string> {
       fetchOptions.body = apiConfig.body;
     }
     
-    // Thêm timeout
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000); // 15 giây timeout
-    fetchOptions.signal = controller.signal as any;
-    
-    try {
-      // Thực hiện request
-      const response = await fetch(apiConfig.url, fetchOptions);
-      clearTimeout(timeout);
+    // Thêm retry và backoff strategy
+    return await checkWithBackoff(async () => {
+      // Thêm timeout
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000); // 15 giây timeout
+      fetchOptions.signal = controller.signal as any;
       
-      if (!response.ok) {
-        throw new Error(`HTTP error: ${response.status}`);
+      try {
+        // Thực hiện request
+        const response = await fetch(apiConfig.url, fetchOptions);
+        clearTimeout(timeout);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Xử lý phản hồi
+        const balance = parseEthereumApiResponse(apiConfig.name, data);
+        
+        console.log(`Ethereum balance from ${apiConfig.name}: ${balance}`);
+        return balance;
+      } catch (error) {
+        console.error(`Error fetching from ${apiConfig.name}:`, error);
+        clearTimeout(timeout);
+        throw error; // Ném lỗi để retry strategy xử lý
       }
-      
-      const data = await response.json();
-      
-      // Xử lý phản hồi
-      const balance = parseEthereumApiResponse(apiConfig.name, data);
-      
-      console.log(`Ethereum balance from ${apiConfig.name}: ${balance}`);
-      return balance;
-    } catch (error) {
-      console.error(`Error fetching from ${apiConfig.name}:`, error);
-      clearTimeout(timeout);
-      return '0';
-    }
+    }, apiConfig.name); // Sử dụng giá trị mặc định cho số lần retry và delay
   } catch (error) {
-    console.error(`Error checking Ethereum balance:`, error);
+    console.error(`All retries failed for ${error instanceof Error ? error.message : 'unknown error'}`);
     return '0';
   }
 }

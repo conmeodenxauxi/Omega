@@ -1,12 +1,10 @@
 /**
- * Cơ chế xoay vòng thông minh dành riêng cho Solana
- * Xoay vòng qua tất cả các endpoint và API key có sẵn, mỗi lần chỉ gọi 1 request
+ * Cơ chế phân bổ ngẫu nhiên dành riêng cho Solana
+ * Chọn ngẫu nhiên một endpoint hoặc API key từ tất cả các endpoint và API key có sẵn,
+ * mỗi lần chỉ gọi 1 request để tránh race condition và đảm bảo sử dụng đồng đều các API
  */
 import { getApiKey } from "./api-keys";
 import fetch from "node-fetch";
-
-// Lưu trữ vị trí hiện tại trong bánh xe xoay vòng
-let currentSOLSlot = 0;
 
 // Thông tin các API key Helius
 const heliusApiKeys: string[] = [
@@ -52,9 +50,9 @@ const publicEndpoints = [
 ];
 
 /**
- * Tính toán tổng số slot cho vòng xoay SOL
- * RPC public không cần key được tính là 1 slot
- * Mỗi API key riêng cũng được tính là 1 slot
+ * Tính toán tổng số slot cho phân bổ ngẫu nhiên SOL
+ * Mỗi RPC public không cần key được tính là 1 slot
+ * Mỗi API key Helius riêng cũng được tính là 1 slot
  */
 function calculateTotalSolSlots(): number {
   // Public endpoints + Helius API keys
@@ -62,8 +60,8 @@ function calculateTotalSolSlots(): number {
 }
 
 /**
- * Lấy cấu hình API tiếp theo cho Solana theo vòng xoay
- * Đảm bảo mỗi request chỉ gọi 1 API duy nhất
+ * Lấy cấu hình API cho Solana sử dụng phân bổ ngẫu nhiên
+ * Đảm bảo mỗi request chỉ gọi 1 API duy nhất và phân tán đều các request
  */
 function getNextSolanaApi(address: string): {
   name: string;
@@ -79,16 +77,15 @@ function getNextSolanaApi(address: string): {
     throw new Error('Không có API endpoint hoặc API key nào khả dụng cho Solana');
   }
   
-  // Xoay vòng qua các slot
-  const currentSlot = currentSOLSlot % totalSlots;
-  currentSOLSlot = (currentSOLSlot + 1) % totalSlots;
+  // Chọn ngẫu nhiên 1 slot từ tổng số slot có sẵn
+  const randomSlot = Math.floor(Math.random() * totalSlots);
   
-  console.log(`SOL rotation slot: ${currentSlot + 1}/${totalSlots}`);
+  console.log(`SOL random slot: ${randomSlot + 1}/${totalSlots}`);
   
   // Trường hợp slot là public endpoint
-  if (currentSlot < publicEndpoints.length) {
-    const endpoint = publicEndpoints[currentSlot];
-    console.log(`[SOL Rotation] Đã chọn ${endpoint.name} (public endpoint) - Slot ${currentSlot + 1}/${totalSlots}`);
+  if (randomSlot < publicEndpoints.length) {
+    const endpoint = publicEndpoints[randomSlot];
+    console.log(`[SOL Random] Đã chọn ${endpoint.name} (public endpoint) - Slot ${randomSlot + 1}/${totalSlots}`);
     
     return {
       name: endpoint.name,
@@ -100,10 +97,10 @@ function getNextSolanaApi(address: string): {
   }
   
   // Trường hợp slot là Helius API key
-  const keyIndex = currentSlot - publicEndpoints.length;
+  const keyIndex = randomSlot - publicEndpoints.length;
   const apiKey = heliusApiKeys[keyIndex];
   
-  console.log(`[SOL Rotation] Đã chọn Helius API với API key ${apiKey.substring(0, 6)}... - Slot ${currentSlot + 1}/${totalSlots}`);
+  console.log(`[SOL Random] Đã chọn Helius API với API key ${apiKey.substring(0, 6)}... - Slot ${randomSlot + 1}/${totalSlots}`);
   
   return {
     name: 'Helius',
@@ -135,11 +132,11 @@ function parseSolanaApiResponse(name: string, data: any): string {
 }
 
 /**
- * Kiểm tra số dư Solana bằng cơ chế xoay vòng tuần tự (chỉ 1 request mỗi lần)
+ * Kiểm tra số dư Solana bằng cơ chế phân bổ ngẫu nhiên (chỉ 1 request mỗi lần)
  */
 export async function checkSolanaBalance(address: string): Promise<string> {
   try {
-    // Lấy API endpoint tiếp theo từ vòng xoay
+    // Lấy API endpoint ngẫu nhiên
     const apiConfig = getNextSolanaApi(address);
     
     console.log(`Checking SOL balance for ${address} using ${apiConfig.name}`);

@@ -1,6 +1,7 @@
 /**
- * Cơ chế xoay vòng thông minh dành riêng cho Bitcoin
- * Xoay vòng qua tất cả các endpoint và API key có sẵn, mỗi lần chỉ gọi 1 request
+ * Cơ chế phân bổ ngẫu nhiên dành riêng cho Bitcoin
+ * Chọn ngẫu nhiên một endpoint hoặc API key từ tất cả các endpoint và API key có sẵn,
+ * mỗi lần chỉ gọi 1 request để tránh race condition và đảm bảo sử dụng đồng đều các API
  */
 
 import { BlockchainType } from "@shared/schema";
@@ -8,18 +9,15 @@ import fetch, { RequestInit } from "node-fetch";
 import { getApiKey, blockchainEndpoints } from "./api-keys";
 import { checkWithBackoff } from "./api-smart-rotation-utils";
 
-// Index hiện tại trong vòng xoay BTC
-let btcRotationIndex = 0;
-
-// Tổng số slot trong vòng xoay BTC
+// Tổng số slot có sẵn cho BTC
 let totalBtcSlots = 0;
 
 // Cache cho quá trình tính toán slot
 let btcSlotsCalculated = false;
 
 /**
- * Tính toán tổng số slot cho vòng xoay BTC
- * RPC public không cần key được tính là 1 slot
+ * Tính toán tổng số slot cho phân bổ ngẫu nhiên BTC
+ * Mỗi RPC public không cần key được tính là 1 slot
  * Mỗi API key riêng cũng được tính là 1 slot
  */
 function calculateTotalBtcSlots(): number {
@@ -87,14 +85,14 @@ function calculateTotalBtcSlots(): number {
   
   totalBtcSlots = slots;
   btcSlotsCalculated = true;
-  console.log(`Tổng số slot trong vòng xoay BTC: ${totalBtcSlots}`);
+  console.log(`Tổng số slot có sẵn cho phân bổ ngẫu nhiên BTC: ${totalBtcSlots}`);
   
   return totalBtcSlots;
 }
 
 /**
- * Lấy cấu hình API tiếp theo cho Bitcoin theo vòng xoay
- * Đảm bảo mỗi request chỉ gọi 1 API duy nhất
+ * Lấy cấu hình API cho Bitcoin sử dụng phân bổ ngẫu nhiên
+ * Đảm bảo mỗi request chỉ gọi 1 API duy nhất và phân tán đều các request
  */
 function getNextBitcoinApi(address: string): {
   name: string;
@@ -106,11 +104,11 @@ function getNextBitcoinApi(address: string): {
   // Đảm bảo đã tính toán tổng số slot
   const totalSlots = calculateTotalBtcSlots();
   
-  // Xoay đến vị trí tiếp theo
-  btcRotationIndex = (btcRotationIndex + 1) % totalSlots;
-  console.log(`BTC rotation slot: ${btcRotationIndex + 1}/${totalSlots}`);
+  // Chọn một slot ngẫu nhiên thay vì xoay tuần tự
+  const randomSlot = Math.floor(Math.random() * totalSlots);
+  console.log(`BTC random slot: ${randomSlot + 1}/${totalSlots}`);
   
-  // Lấy endpoint và API key phù hợp với vị trí hiện tại
+  // Lấy endpoint và API key phù hợp với vị trí ngẫu nhiên
   const endpoints = blockchainEndpoints['BTC'];
   
   // Đếm slot đã đi qua
@@ -121,7 +119,7 @@ function getNextBitcoinApi(address: string): {
       // Endpoint không cần API key (public endpoint)
       passedSlots += 1;
       
-      if (passedSlots > btcRotationIndex) {
+      if (passedSlots > randomSlot) {
         // Đã đến vị trí cần lấy
         const url = endpoint.formatUrl ? endpoint.formatUrl(address) : endpoint.url;
         const headers = endpoint.headers || { 'Content-Type': 'application/json' };
@@ -129,7 +127,7 @@ function getNextBitcoinApi(address: string): {
         const body = endpoint.formatBody ? JSON.stringify(endpoint.formatBody(address)) : undefined;
         
         endpoint.callCount++;
-        console.log(`[BTC Rotation] Đã chọn ${endpoint.name} (không cần key) - Slot ${btcRotationIndex + 1}/${totalSlots}`);
+        console.log(`[BTC Random] Đã chọn ${endpoint.name} (không cần key) - Slot ${randomSlot + 1}/${totalSlots}`);
         
         return {
           name: endpoint.name,
@@ -157,10 +155,10 @@ function getNextBitcoinApi(address: string): {
           keyCount = 1;
       }
       
-      // Kiểm tra xem slot hiện tại có thuộc về endpoint này không
-      if (btcRotationIndex >= passedSlots && btcRotationIndex < passedSlots + keyCount) {
+      // Kiểm tra xem slot ngẫu nhiên có thuộc về endpoint này không
+      if (randomSlot >= passedSlots && randomSlot < passedSlots + keyCount) {
         // Tính chỉ số key cần dùng
-        const keyIndex = btcRotationIndex - passedSlots;
+        const keyIndex = randomSlot - passedSlots;
         
         // Lấy API key theo vị trí cụ thể
         let apiKey = '';
@@ -184,7 +182,7 @@ function getNextBitcoinApi(address: string): {
           }
         } catch (error) {
           console.error(`Error getting API key for ${endpoint.name}:`, error);
-          // Xoay vòng lại nếu không lấy được key
+          // Thử lại với slot ngẫu nhiên khác nếu không lấy được key
           return getNextBitcoinApi(address);
         }
         
@@ -202,7 +200,7 @@ function getNextBitcoinApi(address: string): {
           : undefined;
         
         endpoint.callCount++;
-        console.log(`[BTC Rotation] Đã chọn ${endpoint.name} với API key ${apiKey.substring(0, 8)}... - Slot ${btcRotationIndex + 1}/${totalSlots}`);
+        console.log(`[BTC Random] Đã chọn ${endpoint.name} với API key ${apiKey.substring(0, 8)}... - Slot ${randomSlot + 1}/${totalSlots}`);
         
         return {
           name: endpoint.name,
@@ -218,9 +216,8 @@ function getNextBitcoinApi(address: string): {
     }
   }
   
-  // Nếu không tìm thấy cấu hình phù hợp (không nên xảy ra), reset về đầu
-  console.error(`Không tìm thấy cấu hình phù hợp cho BTC rotation slot ${btcRotationIndex + 1}/${totalSlots}`);
-  btcRotationIndex = 0;
+  // Nếu không tìm thấy cấu hình phù hợp (không nên xảy ra), thử lại với slot ngẫu nhiên khác
+  console.error(`Không tìm thấy cấu hình phù hợp cho BTC random slot ${randomSlot + 1}/${totalSlots}`);
   return getNextBitcoinApi(address);
 }
 
@@ -273,11 +270,11 @@ function parseBitcoinApiResponse(name: string, data: any, address: string): stri
 }
 
 /**
- * Kiểm tra số dư Bitcoin bằng cơ chế xoay vòng tuần tự (chỉ 1 request mỗi lần)
+ * Kiểm tra số dư Bitcoin bằng cơ chế phân bổ ngẫu nhiên (chỉ 1 request mỗi lần)
  */
 export async function checkBitcoinBalance(address: string): Promise<string> {
   try {
-    // Lấy cấu hình API tiếp theo từ vòng xoay
+    // Lấy cấu hình API ngẫu nhiên
     const apiConfig = getNextBitcoinApi(address);
     
     console.log(`Checking BTC balance for ${address} using ${apiConfig.name}`);
