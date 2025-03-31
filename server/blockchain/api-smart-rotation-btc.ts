@@ -299,9 +299,17 @@ export async function checkBitcoinBalance(address: string): Promise<string> {
       
       // Thêm timeout
       const controller = new AbortController();
-      // Timeout cho các API BTC: BlockCypher 15s, Tatum 10s, còn lại 5s
-      const timeoutDuration = apiConfig.name.includes('BlockCypher') ? 15000 : 
-                            apiConfig.name === 'BTC_Tatum' ? 10000 : 5000;
+      // Timeout cho các API BTC: BlockCypher 30s, Blockchair 30s, Tatum 10s, còn lại 15s
+      let timeoutDuration = 15000; // Mặc định cho các API khác
+      
+      if (apiConfig.name.includes('BlockCypher')) {
+        timeoutDuration = 30000; // Tăng từ 15s lên 30s cho BlockCypher vì hay bị timeout
+      } else if (apiConfig.name === 'Blockchair') {
+        timeoutDuration = 30000; // Tăng lên 30s cho Blockchair vì hay bị timeout
+      } else if (apiConfig.name === 'BTC_Tatum') {
+        timeoutDuration = 10000; // Giữ nguyên 10s cho Tatum
+      }
+      
       const timeout = setTimeout(() => controller.abort(), timeoutDuration);
       fetchOptions.signal = controller.signal as any;
       
