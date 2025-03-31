@@ -59,14 +59,20 @@ export default function Home() {
       }
     };
 
-    // Đăng ký callback vào context
-    console.log('Đã đăng ký callback tự động kích hoạt tìm kiếm');
-    registerSearchCallback(() => {
-      // Thêm timeout ngắn để đảm bảo state được cập nhật đúng
-      setTimeout(() => {
-        console.log('===== GỌI CALLBACK TÌM KIẾM SAU TIMEOUT =====');
-        startSearchCallback();
-      }, 200);
+    // Đăng ký callback vào context - QUAN TRỌNG!
+    console.log('===== ĐĂNG KÝ CALLBACK TÌM KIẾM TỰ ĐỘNG =====');
+    // Đăng ký trực tiếp callback function thay vì thông qua arrow function
+    registerSearchCallback(function searchActivator() {
+      console.log('===== CALLBACK TÌM KIẾM ĐƯỢC GỌI TỪ BÊN NGOÀI =====');
+      console.log('===== TRẠNG THÁI HIỆN TẠI: ' + (isSearching ? 'ĐANG TÌM KIẾM' : 'KHÔNG TÌM KIẾM') + ' =====');
+      
+      // Bắt đầu tìm kiếm ngay lập tức nếu chưa tìm kiếm
+      if (!isSearching) {
+        console.log('===== BẮT ĐẦU TÌM KIẾM TỰ ĐỘNG SAU KHI PHỤC HỒI =====');
+        toggleSearching();
+      } else {
+        console.log('===== ĐÃ ĐANG TÌM KIẾM, KHÔNG CẦN KÍCH HOẠT LẠI =====');
+      }
     });
 
     // Cleanup khi component unmount

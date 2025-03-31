@@ -22,11 +22,16 @@ export const SearchProvider = ({ children }: SearchProviderProps) => {
   // Hàm kích hoạt tìm kiếm từ bên ngoài
   const triggerSearch = () => {
     if (searchCallbackRef.current) {
-      console.log('Tự động kích hoạt tìm kiếm sau khi phát hiện máy chủ đã hoạt động trở lại');
-      // Gọi callback được lưu trong ref
-      searchCallbackRef.current();
+      console.log('===== TỰ ĐỘNG KÍCH HOẠT TÌM KIẾM SAU KHI PHÁT HIỆN MÁY CHỦ ĐÃ HOẠT ĐỘNG TRỞ LẠI =====');
+      console.log('===== GỌI CALLBACK TÌM KIẾM TỪ REF: searchCallbackRef.current TỒN TẠI =====');
+      // Gọi callback được lưu trong ref trực tiếp
+      try {
+        searchCallbackRef.current();
+      } catch (error) {
+        console.error('===== LỖI KHI GỌI CALLBACK TÌM KIẾM: ', error, ' =====');
+      }
     } else {
-      console.log('Không thể kích hoạt tìm kiếm: callback chưa được đăng ký');
+      console.error('===== KHÔNG THỂ KÍCH HOẠT TÌM KIẾM: CALLBACK CHƯA ĐƯỢC ĐĂNG KÝ =====');
     }
   };
 

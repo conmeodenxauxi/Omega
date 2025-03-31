@@ -65,8 +65,16 @@ function ServerMonitor() {
           // Tạo timeout mới để kích hoạt tìm kiếm
           reconnectTimeoutRef.current = setTimeout(() => {
             console.log('===== Đã đến thời gian tự động kích hoạt tìm kiếm =====');
-            // GỌI HÀM triggerSearch - RẤT QUAN TRỌNG
-            triggerSearch();
+            console.log('===== GỌI HÀM triggerSearch ĐỂ BẮT ĐẦU TÌM KIẾM TỰ ĐỘNG =====');
+            
+            // GỌI HÀM triggerSearch VỚI TRY-CATCH ĐỂ ĐẢM BẢO KHÔNG CÓ LỖI
+            try {
+              triggerSearch();
+              console.log('===== ĐÃ GỌI triggerSearch THÀNH CÔNG =====');
+            } catch (error) {
+              console.error('===== LỖI KHI GỌI triggerSearch: ', error, ' =====');
+            }
+            
             reconnectTimeoutRef.current = null;
           }, randomDelay);
         } 
