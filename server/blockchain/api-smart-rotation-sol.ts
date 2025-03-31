@@ -2,9 +2,16 @@
  * Cơ chế xoay vòng thông minh dành riêng cho Solana
  * Xoay vòng NGẪU NHIÊN qua tất cả các endpoint và API key có sẵn, mỗi lần chỉ gọi 1 request
  * Cơ chế ngẫu nhiên giúp tránh rate limit khi nhiều phiên cùng hoạt động
+ * Tích hợp cơ chế tự động tạm dừng API key bị rate limit trong 1 phút
  */
 import { getApiKey } from "./api-keys";
 import fetch from "node-fetch";
+import { 
+  isKeyRateLimited, 
+  markKeyAsRateLimited, 
+  isEndpointRateLimited, 
+  markEndpointAsRateLimited 
+} from "./api-rate-limit-manager";
 
 // Không còn sử dụng vị trí tuần tự do đã chuyển sang cơ chế ngẫu nhiên
 // let currentSOLSlot = 0;
@@ -49,7 +56,6 @@ const publicEndpoints = [
       params: [address]
     })
   },
-
 ];
 
 /**
@@ -62,34 +68,61 @@ function calculateTotalSolSlots(): number {
   return publicEndpoints.length + heliusApiKeys.length;
 }
 
-/**
- * Lấy cấu hình API tiếp theo cho Solana theo cơ chế ngẫu nhiên
- * Đảm bảo mỗi request chỉ gọi 1 API duy nhất
- * Áp dụng cơ chế hoàn toàn ngẫu nhiên để tránh rate limit khi nhiều phiên cùng hoạt động
- */
-function getNextSolanaApi(address: string): {
+// Định nghĩa kiểu API config với hỗ trợ keyIdentifier
+interface SolanaApiConfig {
   name: string;
   url: string;
   method: string;
   headers: Record<string, string>;
   body?: string;
-} {
+  keyIdentifier?: string; // Định danh của API key để xác định khi bị ratelimit
+}
+
+/**
+ * Lấy cấu hình API tiếp theo cho Solana theo cơ chế ngẫu nhiên
+ * Đảm bảo mỗi request chỉ gọi 1 API duy nhất
+ * Áp dụng cơ chế hoàn toàn ngẫu nhiên để tránh rate limit khi nhiều phiên cùng hoạt động
+ * Bỏ qua các API key đang bị giới hạn tốc độ
+ */
+function getNextSolanaApi(address: string): SolanaApiConfig {
   const totalSlots = calculateTotalSolSlots();
   
-  // Nếu không có slot nào, trả về thông báo lỗi
-  if (totalSlots === 0) {
-    throw new Error('Không có API endpoint hoặc API key nào khả dụng cho Solana');
+  // Danh sách chứa các slots khả dụng (không bị rate limit)
+  const availableSlots: number[] = [];
+  
+  // Kiểm tra public endpoints
+  for (let i = 0; i < publicEndpoints.length; i++) {
+    if (!isEndpointRateLimited('SOL', publicEndpoints[i].name)) {
+      availableSlots.push(i);
+    }
   }
   
-  // Chọn ngẫu nhiên một slot thay vì xoay vòng tuần tự
-  const randomSlot = Math.floor(Math.random() * totalSlots);
+  // Kiểm tra Helius API keys
+  for (let i = 0; i < heliusApiKeys.length; i++) {
+    const keyIdentifier = heliusApiKeys[i].substring(0, 8);
+    if (!isKeyRateLimited('SOL', 'Helius', keyIdentifier)) {
+      availableSlots.push(i + publicEndpoints.length);
+    }
+  }
   
-  console.log(`SOL random slot: ${randomSlot + 1}/${totalSlots}`);
+  // Nếu không có slot nào khả dụng, trả về thông báo lỗi
+  if (availableSlots.length === 0) {
+    console.warn('Tất cả slots đều đang bị rate limited. Thử lại với slot ngẫu nhiên.');
+    // Chọn ngẫu nhiên một slot bất kỳ khi tất cả đều bị rate limit
+    const randomSlot = Math.floor(Math.random() * totalSlots);
+    availableSlots.push(randomSlot);
+  }
+  
+  // Chọn ngẫu nhiên một slot từ các slot khả dụng
+  const randomIndex = Math.floor(Math.random() * availableSlots.length);
+  const selectedSlot = availableSlots[randomIndex];
+  
+  console.log(`SOL random slot: ${selectedSlot + 1}/${totalSlots} (từ ${availableSlots.length} slots khả dụng)`);
   
   // Trường hợp slot là public endpoint
-  if (randomSlot < publicEndpoints.length) {
-    const endpoint = publicEndpoints[randomSlot];
-    console.log(`[SOL Random] Đã chọn ${endpoint.name} (public endpoint) - Slot ${randomSlot + 1}/${totalSlots}`);
+  if (selectedSlot < publicEndpoints.length) {
+    const endpoint = publicEndpoints[selectedSlot];
+    console.log(`[SOL Random] Đã chọn ${endpoint.name} (public endpoint) - Slot ${selectedSlot + 1}/${totalSlots}`);
     
     return {
       name: endpoint.name,
@@ -101,16 +134,17 @@ function getNextSolanaApi(address: string): {
   }
   
   // Trường hợp slot là Helius API key
-  const keyIndex = randomSlot - publicEndpoints.length;
+  const keyIndex = selectedSlot - publicEndpoints.length;
   const apiKey = heliusApiKeys[keyIndex];
   
-  console.log(`[SOL Random] Đã chọn Helius API với API key ${apiKey.substring(0, 6)}... - Slot ${randomSlot + 1}/${totalSlots}`);
+  console.log(`[SOL Random] Đã chọn Helius API với API key ${apiKey.substring(0, 6)}... - Slot ${selectedSlot + 1}/${totalSlots}`);
   
   return {
     name: 'Helius',
     url: `https://api.helius.xyz/v0/addresses/${address}/balances?api-key=${apiKey}`,
     method: 'GET',
-    headers: { 'Content-Type': 'application/json' }
+    headers: { 'Content-Type': 'application/json' },
+    keyIdentifier: apiKey.substring(0, 8) // Thêm keyIdentifier để hỗ trợ đánh dấu rate limit
   };
 }
 
@@ -138,6 +172,7 @@ function parseSolanaApiResponse(name: string, data: any): string {
 /**
  * Kiểm tra số dư Solana bằng cơ chế xoay vòng ngẫu nhiên (chỉ 1 request mỗi lần)
  * Cơ chế ngẫu nhiên giúp phân tán tải khi nhiều phiên cùng hoạt động
+ * Tích hợp cơ chế tự động tạm dừng API key bị rate limit trong 1 phút
  */
 export async function checkSolanaBalance(address: string): Promise<string> {
   try {
@@ -167,10 +202,49 @@ export async function checkSolanaBalance(address: string): Promise<string> {
       clearTimeout(timeout);
       
       if (!response.ok) {
+        // Kiểm tra lỗi rate limit
+        const isRateLimit = 
+          response.status === 429 || 
+          response.status === 403 || 
+          response.status === 402 || // Payment Required (nhiều API trả về khi quá limit)
+          response.statusText?.toLowerCase().includes('rate') ||
+          response.statusText?.toLowerCase().includes('limit');
+        
+        if (isRateLimit) {
+          console.warn(`RATE LIMIT phát hiện cho ${apiConfig.name}`);
+          
+          // Đánh dấu API key hoặc endpoint là bị giới hạn
+          if (apiConfig.name === 'Helius' && apiConfig.keyIdentifier) {
+            markKeyAsRateLimited('SOL', apiConfig.name, apiConfig.keyIdentifier);
+          } else {
+            markEndpointAsRateLimited('SOL', apiConfig.name);
+          }
+        }
+        
         throw new Error(`HTTP error: ${response.status}`);
       }
       
       const data = await response.json();
+      
+      // Kiểm tra lỗi rate limit trong phản hồi
+      const responseText = JSON.stringify(data).toLowerCase();
+      if (
+        responseText.includes("rate limit") || 
+        responseText.includes("ratelimit") ||
+        responseText.includes("too many requests") ||
+        responseText.includes("quota exceeded")
+      ) {
+        console.warn(`RATE LIMIT phát hiện trong phản hồi từ ${apiConfig.name}`);
+        
+        // Đánh dấu API key hoặc endpoint là bị giới hạn
+        if (apiConfig.name === 'Helius' && apiConfig.keyIdentifier) {
+          markKeyAsRateLimited('SOL', apiConfig.name, apiConfig.keyIdentifier);
+        } else {
+          markEndpointAsRateLimited('SOL', apiConfig.name);
+        }
+        
+        throw new Error(`Rate limit trong phản hồi`);
+      }
       
       // Xử lý phản hồi
       const balance = parseSolanaApiResponse(apiConfig.name, data);
@@ -180,6 +254,28 @@ export async function checkSolanaBalance(address: string): Promise<string> {
     } catch (error) {
       console.error(`Error fetching from ${apiConfig.name}:`, error);
       clearTimeout(timeout);
+      
+      // Kiểm tra lỗi timeout hoặc network
+      const errorMessage = String(error).toLowerCase();
+      if (
+        error instanceof Error && 
+        (
+          error.name === 'AbortError' ||
+          errorMessage.includes('timeout') ||
+          errorMessage.includes('networkerror') ||
+          errorMessage.includes('failed to fetch')
+        )
+      ) {
+        console.warn(`Timeout hoặc lỗi mạng với ${apiConfig.name}, có thể do API quá tải`);
+        
+        // Đánh dấu API key hoặc endpoint là bị giới hạn
+        if (apiConfig.name === 'Helius' && apiConfig.keyIdentifier) {
+          markKeyAsRateLimited('SOL', apiConfig.name, apiConfig.keyIdentifier);
+        } else {
+          markEndpointAsRateLimited('SOL', apiConfig.name);
+        }
+      }
+      
       return '0';
     }
   } catch (error) {
