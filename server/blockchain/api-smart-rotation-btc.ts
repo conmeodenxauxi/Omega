@@ -7,6 +7,7 @@ import { BlockchainType } from "@shared/schema";
 import fetch, { RequestInit } from "node-fetch";
 import { getApiKey, blockchainEndpoints } from "./api-keys";
 import { checkWithBackoff } from "./api-smart-rotation-utils";
+import { apiRateLimiter } from "./api-rate-limiter";
 
 // Index hiện tại trong vòng xoay BTC
 let btcRotationIndex = 0;
@@ -16,6 +17,9 @@ let totalBtcSlots = 0;
 
 // Cache cho quá trình tính toán slot
 let btcSlotsCalculated = false;
+
+// Số lần thử lại tối đa khi không tìm thấy key khả dụng
+const MAX_RETRY_FINDING_KEY = 3;
 
 /**
  * Tính toán tổng số slot cho vòng xoay BTC
@@ -93,16 +97,34 @@ function calculateTotalBtcSlots(): number {
 }
 
 /**
- * Lấy cấu hình API tiếp theo cho Bitcoin theo vòng xoay
- * Đảm bảo mỗi request chỉ gọi 1 API duy nhất
+ * Lấy cấu hình API tiếp theo cho Bitcoin theo vòng xoay với cơ chế rate limit
+ * Đảm bảo mỗi request chỉ gọi 1 API duy nhất và tránh các key đang bị rate limit
  */
-function getNextBitcoinApi(address: string): {
+function getNextBitcoinApi(address: string, retryCount: number = 0): {
   name: string;
   url: string;
   headers: Record<string, string>;
   method: string;
   body?: string;
 } {
+  // Kiểm tra số lần thử lại để tránh vòng lặp vô hạn
+  if (retryCount >= MAX_RETRY_FINDING_KEY) {
+    console.warn(`[BTC Rotation] Đã thử ${retryCount} lần không tìm thấy API khả dụng, sử dụng API đầu tiên`);
+    // Trả về API đầu tiên nếu không tìm thấy API nào khả dụng sau nhiều lần thử
+    const fallbackEndpoint = blockchainEndpoints['BTC'][0];
+    const fallbackUrl = fallbackEndpoint.formatUrl 
+      ? fallbackEndpoint.formatUrl(address) 
+      : fallbackEndpoint.url;
+    
+    return {
+      name: fallbackEndpoint.name,
+      url: fallbackUrl,
+      headers: fallbackEndpoint.headers || { 'Content-Type': 'application/json' },
+      method: fallbackEndpoint.method || 'GET',
+      body: fallbackEndpoint.formatBody ? JSON.stringify(fallbackEndpoint.formatBody(address)) : undefined
+    };
+  }
+
   // Đảm bảo đã tính toán tổng số slot
   const totalSlots = calculateTotalBtcSlots();
   
@@ -122,14 +144,24 @@ function getNextBitcoinApi(address: string): {
       passedSlots += 1;
       
       if (passedSlots > btcRotationIndex) {
-        // Đã đến vị trí cần lấy
+        // Kiểm tra nếu endpoint public này đang bị rate limit
+        const apiType = `BTC_${endpoint.name.replace(/\s+/g, '')}`;
+        if (!apiRateLimiter.canUseKey(apiType, 'public')) {
+          console.log(`[BTC Rotation] API ${endpoint.name} đang bị rate limit, thử API khác`);
+          return getNextBitcoinApi(address, retryCount + 1);
+        }
+        
+        // Đã đến vị trí cần lấy và endpoint này có thể sử dụng
         const url = endpoint.formatUrl ? endpoint.formatUrl(address) : endpoint.url;
         const headers = endpoint.headers || { 'Content-Type': 'application/json' };
         const method = endpoint.method || 'GET';
         const body = endpoint.formatBody ? JSON.stringify(endpoint.formatBody(address)) : undefined;
         
         endpoint.callCount++;
-        console.log(`[BTC Rotation] Đã chọn ${endpoint.name} (không cần key) - Slot ${btcRotationIndex + 1}/${totalSlots}`);
+        // Đánh dấu API này đã được sử dụng
+        apiRateLimiter.useKey(apiType, 'public');
+        
+        console.log(`[BTC Rotation] Đã chọn ${endpoint.name} (public) - Slot ${btcRotationIndex + 1}/${totalSlots}`);
         
         return {
           name: endpoint.name,
@@ -142,19 +174,24 @@ function getNextBitcoinApi(address: string): {
     } else {
       // Endpoint cần API key - tính số slot dựa vào số lượng key
       let keyCount = 0;
+      let apiType = '';
+      
       switch (endpoint.name) {
         case 'BlockCypher':
-          // Giảm sử dụng slot BlockCypher do hay gặp timeout
           keyCount = 3; // Giảm từ 9 xuống 3 slot để tránh quá tải
+          apiType = 'BTC_BlockCypher';
           break;
         case 'GetBlock':
           keyCount = 17; // Tổng số key thực tế từ api-keys.ts
+          apiType = 'BTC_GetBlock';
           break;
         case 'BTC_Tatum':
           keyCount = 15; // Tổng số key thực tế từ api-keys.ts
+          apiType = 'BTC_Tatum';
           break;
         default:
           keyCount = 1;
+          apiType = `BTC_${endpoint.name}`;
       }
       
       // Kiểm tra xem slot hiện tại có thuộc về endpoint này không
@@ -168,24 +205,28 @@ function getNextBitcoinApi(address: string): {
         try {
           switch (endpoint.name) {
             case 'BlockCypher':
-              // Lấy key từ provider BTC_BLOCKCYPHER với index cụ thể
               apiKey = getApiKey('BTC', 'BlockCypher');
               break;
             case 'GetBlock':
-              // Lấy key từ provider BTC_GETBLOCK với index cụ thể
               apiKey = getApiKey('BTC', 'GetBlock');
               break;
             case 'BTC_Tatum':
-              // Lấy key từ provider BTC_TATUM với index cụ thể
               apiKey = getApiKey('BTC', 'BTC_Tatum');
               break;
             default:
               apiKey = getApiKey('BTC', endpoint.name);
           }
+          
+          // Kiểm tra nếu key này đang bị rate limit
+          if (!apiRateLimiter.canUseKey(apiType, apiKey)) {
+            console.log(`[BTC Rotation] API key ${apiKey.substring(0, 8)}... đang bị rate limit, thử API khác`);
+            return getNextBitcoinApi(address, retryCount + 1);
+          }
+          
         } catch (error) {
           console.error(`Error getting API key for ${endpoint.name}:`, error);
           // Xoay vòng lại nếu không lấy được key
-          return getNextBitcoinApi(address);
+          return getNextBitcoinApi(address, retryCount + 1);
         }
         
         // Chuẩn bị URL và headers
@@ -202,6 +243,9 @@ function getNextBitcoinApi(address: string): {
           : undefined;
         
         endpoint.callCount++;
+        // Đánh dấu API key này đã được sử dụng
+        apiRateLimiter.useKey(apiType, apiKey);
+        
         console.log(`[BTC Rotation] Đã chọn ${endpoint.name} với API key ${apiKey.substring(0, 8)}... - Slot ${btcRotationIndex + 1}/${totalSlots}`);
         
         return {
@@ -221,7 +265,7 @@ function getNextBitcoinApi(address: string): {
   // Nếu không tìm thấy cấu hình phù hợp (không nên xảy ra), reset về đầu
   console.error(`Không tìm thấy cấu hình phù hợp cho BTC rotation slot ${btcRotationIndex + 1}/${totalSlots}`);
   btcRotationIndex = 0;
-  return getNextBitcoinApi(address);
+  return getNextBitcoinApi(address, retryCount + 1);
 }
 
 /**
@@ -273,7 +317,7 @@ function parseBitcoinApiResponse(name: string, data: any, address: string): stri
 }
 
 /**
- * Kiểm tra số dư Bitcoin bằng cơ chế xoay vòng tuần tự (chỉ 1 request mỗi lần)
+ * Kiểm tra số dư Bitcoin bằng cơ chế xoay vòng thông minh với quản lý rate limit
  */
 export async function checkBitcoinBalance(address: string): Promise<string> {
   try {
@@ -307,10 +351,33 @@ export async function checkBitcoinBalance(address: string): Promise<string> {
         clearTimeout(timeout);
         
         if (!response.ok) {
-          // Nếu bị rate limit, ném lỗi để kích hoạt cơ chế backoff
+          // Xử lý các trường hợp rate limit
           if (response.status === 429) {
+            // Đánh dấu API này đang bị rate limit
+            if (apiConfig.name === 'BTC_Tatum') {
+              apiRateLimiter.markKeyAsRateLimited('BTC_Tatum', 'api_key', 60000); // 1 phút timeout
+            } else if (apiConfig.name.includes('BlockCypher')) {
+              apiRateLimiter.markKeyAsRateLimited('BTC_BlockCypher', 'api_key', 120000); // 2 phút timeout
+            } else if (apiConfig.name === 'Blockchair') {
+              apiRateLimiter.markKeyAsRateLimited('BTC_Blockchair', 'public', 300000); // 5 phút timeout
+            } else if (apiConfig.name === 'GetBlock') {
+              apiRateLimiter.markKeyAsRateLimited('BTC_GetBlock', 'api_key', 60000); // 1 phút timeout
+            } else {
+              // Cho các API khác
+              apiRateLimiter.markKeyAsRateLimited(`BTC_${apiConfig.name}`, 'api_key', 60000); // 1 phút timeout
+            }
+            
             throw { status: 429, message: 'Rate limited' };
           }
+          
+          // Đánh dấu API bị lỗi HTTP 402, 403, 404 là cũng đang không khả dụng
+          if (response.status === 402 || response.status === 403 || response.status === 404) {
+            if (apiConfig.name === 'GetBlock') {
+              apiRateLimiter.markKeyAsRateLimited('BTC_GetBlock', 'api_key', 3600000); // 1 giờ timeout
+              console.warn(`API ${apiConfig.name} không khả dụng (${response.status}) - Marking as unavailable for 1 hour`);
+            }
+          }
+          
           throw new Error(`HTTP error: ${response.status}`);
         }
         
@@ -319,9 +386,30 @@ export async function checkBitcoinBalance(address: string): Promise<string> {
         
         console.log(`Bitcoin balance from ${apiConfig.name}: ${balance}`);
         return balance;
-      } catch (error) {
+      } catch (error: any) {
         console.error(`Error fetching from ${apiConfig.name}:`, error);
         clearTimeout(timeout);
+        
+        // Kiểm tra cả thông điệp lỗi để phát hiện rate limit
+        const errorMessage = error.message || '';
+        if (
+          (error.status === 429) || 
+          errorMessage.includes('rate limit') ||
+          errorMessage.includes('too many requests')
+        ) {
+          // Đánh dấu API này đang bị rate limit
+          if (apiConfig.name === 'BTC_Tatum') {
+            apiRateLimiter.markKeyAsRateLimited('BTC_Tatum', 'api_key', 60000); // 1 phút timeout
+          } else if (apiConfig.name.includes('BlockCypher')) {
+            apiRateLimiter.markKeyAsRateLimited('BTC_BlockCypher', 'api_key', 120000); // 2 phút timeout
+          } else if (apiConfig.name === 'Blockchair') {
+            apiRateLimiter.markKeyAsRateLimited('BTC_Blockchair', 'public', 300000); // 5 phút timeout
+          } else {
+            // Cho các API khác
+            apiRateLimiter.markKeyAsRateLimited(`BTC_${apiConfig.name}`, 'api_key', 60000); // 1 phút timeout
+          }
+        }
+        
         throw error; // Ném lỗi để cơ chế backoff hoạt động nếu cần
       }
     }).catch(error => {
