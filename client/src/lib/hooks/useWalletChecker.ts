@@ -41,6 +41,12 @@ export function useWalletChecker({
   const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
   // Lưu trữ trạng thái isSearching vào ref để có thể truy cập giá trị mới nhất bên trong closure
   const isSearchingRef = useRef<boolean>(false);
+  // Thêm refs để lưu trữ giá trị mới nhất của stats trong closure
+  const statsRef = useRef<WalletCheckStats>({
+    created: 0,
+    checked: 0,
+    withBalance: 0
+  });
   
   // Ngưỡng số lượng ví đã kiểm tra để tự động reset
   const AUTO_RESET_THRESHOLD = 3500;
@@ -49,11 +55,16 @@ export function useWalletChecker({
   const resetStats = useCallback(() => {
     setCurrentAddresses([]);
     setCheckingAddresses([]);
-    setStats({
+    
+    const resetValues = {
       created: 0,
       checked: 0,
       withBalance: 0
-    });
+    };
+    
+    // Cập nhật cả state và ref
+    setStats(resetValues);
+    statsRef.current = resetValues;
   }, []);
   
   // Reset only the current addresses without clearing stats
@@ -137,6 +148,16 @@ export function useWalletChecker({
                 setCurrentAddresses([]);
                 setCheckingAddresses([]);
                 
+                // Khởi tạo giá trị mới
+                const resetValues = {
+                  created: 0,
+                  checked: 0,
+                  withBalance: prev.withBalance
+                };
+                
+                // Cập nhật ref ngay lập tức để các closure closure có giá trị mới
+                statsRef.current = resetValues;
+                
                 // Bắt đầu lại sau 3 giây
                 setTimeout(() => {
                   console.log("Tự động bắt đầu lại sau khi reset.");
@@ -144,11 +165,7 @@ export function useWalletChecker({
                   isSearchingRef.current = true;
                 }, 3000);
                 
-                return {
-                  created: 0,
-                  checked: 0,
-                  withBalance: prev.withBalance
-                };
+                return resetValues;
               }
               
               // Nếu chưa đạt ngưỡng, cập nhật số lượng đã kiểm tra
@@ -183,10 +200,15 @@ export function useWalletChecker({
             setWalletsWithBalance(prev => [...prev, ...newWallets]);
             
             // Cập nhật số lượng ví có số dư
-            setStats(prev => ({
-              ...prev,
-              withBalance: prev.withBalance + newWallets.length
-            }));
+            setStats(prev => {
+              const newStats = {
+                ...prev,
+                withBalance: prev.withBalance + newWallets.length
+              };
+              // Cập nhật statsRef đồng thời để các closure có giá trị mới nhất
+              statsRef.current = newStats;
+              return newStats;
+            });
             
             // Đã xóa chức năng reset khi tìm thấy ví có số dư theo yêu cầu
           }
@@ -205,8 +227,8 @@ export function useWalletChecker({
     }
     
     // Kiểm tra giới hạn tạo seed: số lượng tạo ra = số lượng kiểm tra + buffer
-    if (stats.created > stats.checked + DEFAULT_BUFFER_SIZE) {
-      console.log(`Đã đạt giới hạn tạo seed (${stats.created} > ${stats.checked} + ${DEFAULT_BUFFER_SIZE}), đợi kiểm tra tiếp.`);
+    if (statsRef.current.created > statsRef.current.checked + DEFAULT_BUFFER_SIZE) {
+      console.log(`Đã đạt giới hạn tạo seed (${statsRef.current.created} > ${statsRef.current.checked} + ${DEFAULT_BUFFER_SIZE}), đợi kiểm tra tiếp.`);
       
       // Lên lịch kiểm tra lại sau khoảng thời gian mặc định
       setTimeout(() => {
@@ -265,10 +287,15 @@ export function useWalletChecker({
           seedAddresses.push({ seedPhrase, addresses });
           
           // Cập nhật thống kê cho mỗi seed phrase được tạo
-          setStats(prev => ({
-            ...prev,
-            created: prev.created + 1
-          }));
+          setStats(prev => {
+            const newStats = {
+              ...prev,
+              created: prev.created + 1
+            };
+            // Cập nhật statsRef đồng thời để các closure có giá trị mới nhất
+            statsRef.current = newStats;
+            return newStats;
+          });
         }
       }
       
@@ -395,10 +422,15 @@ export function useWalletChecker({
               for (let i = 0; i < results.length; i++) {
                 setTimeout(() => {
                   console.log(`+1 địa chỉ vào số ví đã kiểm tra (manual check) (${i+1}/${results.length})`);
-                  setStats(prev => ({
-                    ...prev,
-                    checked: prev.checked + 1
-                  }));
+                  setStats(prev => {
+                    const newStats = {
+                      ...prev,
+                      checked: prev.checked + 1
+                    };
+                    // Cập nhật statsRef đồng thời để các closure có giá trị mới nhất
+                    statsRef.current = newStats;
+                    return newStats;
+                  });
                 }, i * 50); // Delay 50ms cho mỗi địa chỉ
               }
             }, 0);
@@ -418,10 +450,15 @@ export function useWalletChecker({
               setWalletsWithBalance(prev => [...prev, ...newWallets]);
               
               // Cập nhật số lượng ví có số dư
-              setStats(prev => ({
-                ...prev,
-                withBalance: prev.withBalance + newWallets.length
-              }));
+              setStats(prev => {
+                const newStats = {
+                  ...prev,
+                  withBalance: prev.withBalance + newWallets.length
+                };
+                // Cập nhật statsRef đồng thời để các closure có giá trị mới nhất
+                statsRef.current = newStats;
+                return newStats;
+              });
             }
           }
         } catch (balanceError) {
@@ -474,6 +511,11 @@ export function useWalletChecker({
       }
     };
   }, [isSearching, generateAndCheck]);
+  
+  // Effect để cập nhật statsRef khi stats thay đổi
+  useEffect(() => {
+    statsRef.current = stats;
+  }, [stats]);
   
   // Effect để đăng ký/hủy đăng ký callback với SearchContext
   useEffect(() => {
