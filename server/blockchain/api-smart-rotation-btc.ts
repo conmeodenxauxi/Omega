@@ -73,6 +73,7 @@ interface BitcoinApiConfig {
   url: string;
   method: string;
   headers: Record<string, string>;
+  body?: string; // Nội dung body cho request (dùng với POST JSON-RPC)
   keyIdentifier?: string; // Định danh của API key để xác định khi bị ratelimit
 }
 
@@ -154,12 +155,18 @@ function getNextBitcoinApi(address: string): BitcoinApiConfig {
     
     return {
       name: 'BTC_Tatum',
-      url: `https://api.tatum.io/v3/bitcoin/address/balance/${address}`,
-      method: 'GET',
+      url: 'https://bitcoin-mainnet.gateway.tatum.io/',
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey
       },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        method: "getaddressbalance",
+        params: [{ addresses: [address] }],
+        id: 1
+      }),
       keyIdentifier: apiKey.substring(0, 8)
     };
   }
@@ -205,10 +212,16 @@ function parseBitcoinApiResponse(name: string, data: any, address: string): stri
     }
     return '0';
   } else if (name === 'BTC_Tatum') {
-    // Xử lý phản hồi từ Tatum
-    if (data?.incoming && data?.outgoing) {
-      const balance = parseFloat(data.incoming) - parseFloat(data.outgoing);
-      return balance.toFixed(8);
+    // Xử lý phản hồi từ Tatum API mới (JSON-RPC)
+    if (data?.result !== undefined) {
+      // Có thể trả về kết quả như số khối cao nhất hoặc balance tùy vào method gọi
+      if (typeof data.result === 'number') {
+        // Đối với method getblockcount
+        return '0'; // Không có thông tin balance
+      } else if (data.result?.balance !== undefined) {
+        // Đối với method getaddressbalance
+        return (data.result.balance / 100000000).toFixed(8);
+      }
     }
     return '0';
   } else if (name === 'GetBlock') {
@@ -234,8 +247,8 @@ export async function checkBitcoinBalance(address: string): Promise<string> {
     
     console.log(`Checking BTC balance for ${address} using ${apiConfig.name}`);
     
-    // Xử lý đặc biệt cho GetBlock (JSON-RPC)
-    if (apiConfig.name === 'GetBlock') {
+    // Xử lý đặc biệt cho các API sử dụng JSON-RPC (GetBlock, Tatum)
+    if (apiConfig.name === 'GetBlock' || apiConfig.name === 'BTC_Tatum') {
       // Tạo request body cho JSON-RPC
       const requestBody = {
         jsonrpc: '2.0',
@@ -410,6 +423,17 @@ export async function checkBitcoinBalance(address: string): Promise<string> {
         ) {
           if (apiConfig.keyIdentifier) {
             console.warn(`Timeout hoặc lỗi mạng với ${apiConfig.name}, có thể do API quá tải`);
+            markKeyAsRateLimited('BTC', apiConfig.name, apiConfig.keyIdentifier);
+          } else if (apiConfig.name) {
+            markEndpointAsRateLimited('BTC', apiConfig.name);
+          }
+        }
+        
+        // Xử lý lỗi DNS (ENOTFOUND)
+        if (errorMessage.includes('enotfound')) {
+          console.warn(`Lỗi DNS (ENOTFOUND) với ${apiConfig.name}. URL có thể không chính xác hoặc dịch vụ không khả dụng.`);
+          // Đánh dấu endpoint là bị hạn chế tạm thời
+          if (apiConfig.keyIdentifier) {
             markKeyAsRateLimited('BTC', apiConfig.name, apiConfig.keyIdentifier);
           } else if (apiConfig.name) {
             markEndpointAsRateLimited('BTC', apiConfig.name);
