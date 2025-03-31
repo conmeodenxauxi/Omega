@@ -3,6 +3,7 @@ import { BlockchainType } from '@/types';
 import { WalletAddress, WalletWithBalance, WalletCheckStats } from '@/types';
 import { generateSeedPhrase } from '@/lib/utils/seed';
 import { getQueryFn, apiRequest } from '@/lib/queryClient';
+import { useSearch } from '@/lib/context/SearchContext';
 
 // Cấu hình mặc định
 const DEFAULT_CHECK_INTERVAL = 1000; // Tốc độ tạo seed mặc định (ms)
@@ -19,6 +20,13 @@ export function useWalletChecker({
   seedPhraseLength,
   autoReset
 }: WalletCheckerOptions) {
+  // Lấy context tìm kiếm tự động
+  const { 
+    autoStartEnabled, 
+    registerAutoStartCallback, 
+    unregisterAutoStartCallback 
+  } = useSearch();
+  
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [currentAddresses, setCurrentAddresses] = useState<WalletAddress[]>([]);
   const [checkingAddresses, setCheckingAddresses] = useState<WalletAddress[]>([]); // Địa chỉ đang kiểm tra số dư
@@ -54,9 +62,141 @@ export function useWalletChecker({
     setCheckingAddresses([]);
   }, []);
   
+  // Bắt đầu hoặc dừng quá trình tìm kiếm
+  const toggleSearching = useCallback(() => {
+    setIsSearching(prev => {
+      const newState = !prev;
+      console.log(`Chuyển trạng thái tìm kiếm thành: ${newState ? 'BẬT' : 'TẮT'}`);
+      
+      // Cập nhật ref để các closure có thể truy cập giá trị mới nhất
+      isSearchingRef.current = newState;
+      
+      // Nếu dừng lại, xóa timer đang chạy
+      if (!newState && searchTimerRef.current) {
+        console.log('Hủy timer tìm kiếm');
+        clearTimeout(searchTimerRef.current);
+        searchTimerRef.current = null;
+      }
+      return newState;
+    });
+  }, []);
+  
   // Thiết lập kích thước batch - số lượng seed phrase được tạo và kiểm tra cùng lúc
   const BATCH_SIZE = 2; // Giảm từ 3 xuống 2 để tối ưu hiệu suất khi chạy nhiều phiên
 
+  // Check balances of addresses - không await để không chặn quá trình tạo seed
+  const checkBalances = useCallback((addresses: WalletAddress[], seedPhrase: string) => {
+    if (!addresses.length) return;
+    
+    // Không cập nhật địa chỉ đang kiểm tra ở đây nữa để tránh can thiệp vào quá trình luân phiên
+    // setCheckingAddresses(addresses); // Đã loại bỏ để giữ nguyên hiệu ứng luân phiên
+    
+    // Thực hiện kiểm tra trong một hàm async tách biệt
+    (async () => {
+      try {
+        // Chuẩn bị dữ liệu gửi đi
+        const allAddresses = addresses.flatMap(walletAddress => 
+          walletAddress.addresses.map(address => ({
+            blockchain: walletAddress.blockchain,
+            address
+          }))
+        );
+        
+        console.log(`Kiểm tra số dư cho ${allAddresses.length} địa chỉ`);
+        
+        // Gửi yêu cầu kiểm tra số dư SONG SONG
+        const response = await apiRequest('/api/check-balances-parallel', {
+          method: 'POST',
+          body: JSON.stringify({ 
+            addresses: allAddresses,
+            seedPhrase,   // Thêm seedPhrase vào request để lưu vào database nếu có số dư
+            isManualCheck: false // Đánh dấu là kiểm tra tự động
+          })
+        });
+        
+        if (response.ok) {
+          const { results } = await response.json();
+          
+          // Thay đổi cách cập nhật state để React không gộp các cập nhật
+          // Sẽ chỉ cập nhật state một lần và cộng dồn số lượng ví đã kiểm tra
+          setTimeout(() => {
+            // Kiểm tra xem số lượng ví đã kiểm tra sau khi thêm mới có vượt ngưỡng không
+            setStats(prev => {
+              const newChecked = prev.checked + results.length;
+              console.log(`Tổng số ví đã kiểm tra: ${newChecked}/${AUTO_RESET_THRESHOLD} (ngưỡng reset)`);
+              
+              // Nếu đạt hoặc vượt ngưỡng, kích hoạt reset
+              if (newChecked >= AUTO_RESET_THRESHOLD) {
+                console.log(`Đã đạt đến ngưỡng ${AUTO_RESET_THRESHOLD} ví đã kiểm tra. Tự động reset và khởi động lại sau 3 giây.`);
+                
+                // Tạm dừng tìm kiếm
+                setIsSearching(false);
+                isSearchingRef.current = false;
+                
+                // Reset thống kê (nhưng không xóa danh sách ví có số dư)
+                setCurrentAddresses([]);
+                setCheckingAddresses([]);
+                
+                // Bắt đầu lại sau 3 giây
+                setTimeout(() => {
+                  console.log("Tự động bắt đầu lại sau khi reset.");
+                  setIsSearching(true);
+                  isSearchingRef.current = true;
+                }, 3000);
+                
+                return {
+                  created: 0,
+                  checked: 0,
+                  withBalance: prev.withBalance
+                };
+              }
+              
+              // Nếu chưa đạt ngưỡng, cập nhật số lượng đã kiểm tra
+              return {
+                ...prev,
+                checked: newChecked
+              };
+            });
+            
+            // Hiển thị thêm chi tiết cho từng địa chỉ
+            for (let i = 0; i < results.length; i++) {
+              setTimeout(() => {
+                console.log(`+1 địa chỉ vào số ví đã kiểm tra (${i+1}/${results.length})`);
+              }, i * 50); // Delay 50ms cho mỗi địa chỉ
+            }
+          }, 0);
+          
+          // Lọc các địa chỉ có số dư
+          const addressesWithBalance = results.filter((result: any) => result.hasBalance);
+          
+          if (addressesWithBalance.length > 0) {
+            console.log(`Tìm thấy ${addressesWithBalance.length} địa chỉ có số dư!`);
+            
+            // Thêm vào danh sách ví có số dư
+            const newWallets = addressesWithBalance.map((result: any) => ({
+              blockchain: result.blockchain,
+              address: result.address,
+              balance: result.balance,
+              seedPhrase
+            }));
+            
+            setWalletsWithBalance(prev => [...prev, ...newWallets]);
+            
+            // Cập nhật số lượng ví có số dư
+            setStats(prev => ({
+              ...prev,
+              withBalance: prev.withBalance + newWallets.length
+            }));
+            
+            // Đã xóa chức năng reset khi tìm thấy ví có số dư theo yêu cầu
+          }
+        }
+      } catch (error) {
+        console.error('Error checking balances:', error);
+      }
+    })();
+  }, []);
+  
   // Hàm để tạo các seed phrases mới theo batch
   const generateSeed = useCallback(async () => {
     if (!isSearchingRef.current || selectedBlockchains.length === 0) {
@@ -180,7 +320,7 @@ export function useWalletChecker({
         }, DEFAULT_CHECK_INTERVAL);
       }
     }
-  }, [selectedBlockchains, seedPhraseLength]);
+  }, [selectedBlockchains, seedPhraseLength, stats.created, stats.checked, checkBalances]);
   
   // Hàm chạy vòng lặp tìm kiếm
   const generateAndCheck = useCallback(() => {
@@ -188,139 +328,13 @@ export function useWalletChecker({
     generateSeed();
   }, [generateSeed]);
   
-  // Check balances of addresses - không await để không chặn quá trình tạo seed
-  const checkBalances = (addresses: WalletAddress[], seedPhrase: string) => {
-    if (!addresses.length) return;
-    
-    // Không cập nhật địa chỉ đang kiểm tra ở đây nữa để tránh can thiệp vào quá trình luân phiên
-    // setCheckingAddresses(addresses); // Đã loại bỏ để giữ nguyên hiệu ứng luân phiên
-    
-    // Thực hiện kiểm tra trong một hàm async tách biệt
-    (async () => {
-      try {
-        // Chuẩn bị dữ liệu gửi đi
-        const allAddresses = addresses.flatMap(walletAddress => 
-          walletAddress.addresses.map(address => ({
-            blockchain: walletAddress.blockchain,
-            address
-          }))
-        );
-        
-        console.log(`Kiểm tra số dư cho ${allAddresses.length} địa chỉ`);
-        
-        // Gửi yêu cầu kiểm tra số dư SONG SONG
-        const response = await apiRequest('/api/check-balances-parallel', {
-          method: 'POST',
-          body: JSON.stringify({ 
-            addresses: allAddresses,
-            seedPhrase,   // Thêm seedPhrase vào request để lưu vào database nếu có số dư
-            isManualCheck: false // Đánh dấu là kiểm tra tự động
-          })
-        });
-        
-        if (response.ok) {
-          const { results } = await response.json();
-          
-          // Thay đổi cách cập nhật state để React không gộp các cập nhật
-          // Sẽ chỉ cập nhật state một lần và cộng dồn số lượng ví đã kiểm tra
-          setTimeout(() => {
-            // Kiểm tra xem số lượng ví đã kiểm tra sau khi thêm mới có vượt ngưỡng không
-            setStats(prev => {
-              const newChecked = prev.checked + results.length;
-              console.log(`Tổng số ví đã kiểm tra: ${newChecked}/${AUTO_RESET_THRESHOLD} (ngưỡng reset)`);
-              
-              // Nếu đạt hoặc vượt ngưỡng, kích hoạt reset
-              if (newChecked >= AUTO_RESET_THRESHOLD) {
-                console.log(`Đã đạt đến ngưỡng ${AUTO_RESET_THRESHOLD} ví đã kiểm tra. Tự động reset và khởi động lại sau 3 giây.`);
-                
-                // Tạm dừng tìm kiếm
-                setIsSearching(false);
-                isSearchingRef.current = false;
-                
-                // Reset thống kê (nhưng không xóa danh sách ví có số dư)
-                setCurrentAddresses([]);
-                setCheckingAddresses([]);
-                
-                // Bắt đầu lại sau 3 giây
-                setTimeout(() => {
-                  console.log("Tự động bắt đầu lại sau khi reset.");
-                  setIsSearching(true);
-                  isSearchingRef.current = true;
-                }, 3000);
-                
-                return {
-                  created: 0,
-                  checked: 0,
-                  withBalance: prev.withBalance
-                };
-              }
-              
-              // Nếu chưa đạt ngưỡng, cập nhật số lượng đã kiểm tra
-              return {
-                ...prev,
-                checked: newChecked
-              };
-            });
-            
-            // Hiển thị thêm chi tiết cho từng địa chỉ
-            for (let i = 0; i < results.length; i++) {
-              setTimeout(() => {
-                console.log(`+1 địa chỉ vào số ví đã kiểm tra (${i+1}/${results.length})`);
-              }, i * 50); // Delay 50ms cho mỗi địa chỉ
-            }
-          }, 0);
-          
-          // Lọc các địa chỉ có số dư
-          const addressesWithBalance = results.filter((result: any) => result.hasBalance);
-          
-          if (addressesWithBalance.length > 0) {
-            console.log(`Tìm thấy ${addressesWithBalance.length} địa chỉ có số dư!`);
-            
-            // Thêm vào danh sách ví có số dư
-            const newWallets = addressesWithBalance.map((result: any) => ({
-              blockchain: result.blockchain,
-              address: result.address,
-              balance: result.balance,
-              seedPhrase
-            }));
-            
-            setWalletsWithBalance(prev => [...prev, ...newWallets]);
-            
-            // Cập nhật số lượng ví có số dư
-            setStats(prev => ({
-              ...prev,
-              withBalance: prev.withBalance + newWallets.length
-            }));
-            
-            // Đã xóa chức năng reset khi tìm thấy ví có số dư theo yêu cầu
-          }
-          
-          // Phần kiểm tra ngưỡng đã được chuyển lên đoạn mã trước đó
-        }
-      } catch (error) {
-        console.error('Error checking balances:', error);
-      }
-    })();
-  };
-  
-  // Bắt đầu hoặc dừng quá trình tìm kiếm
-  const toggleSearching = useCallback(() => {
-    setIsSearching(prev => {
-      const newState = !prev;
-      console.log(`Chuyển trạng thái tìm kiếm thành: ${newState ? 'BẬT' : 'TẮT'}`);
-      
-      // Cập nhật ref để các closure có thể truy cập giá trị mới nhất
-      isSearchingRef.current = newState;
-      
-      // Nếu dừng lại, xóa timer đang chạy
-      if (!newState && searchTimerRef.current) {
-        console.log('Hủy timer tìm kiếm');
-        clearTimeout(searchTimerRef.current);
-        searchTimerRef.current = null;
-      }
-      return newState;
-    });
-  }, []);
+  // Start search callback cho tính năng tự động bắt đầu tìm kiếm
+  const startSearch = useCallback(() => {
+    if (!isSearching) {
+      console.log("Tự động bắt đầu tìm kiếm theo cơ chế SearchContext");
+      toggleSearching();
+    }
+  }, [isSearching, toggleSearching]);
   
   // Kiểm tra thủ công một seed phrase
   const manualCheck = useCallback(async (seedPhrase: string) => {
@@ -432,7 +446,7 @@ export function useWalletChecker({
       };
     }
   }, [isSearching, selectedBlockchains, resetCurrentAddresses]);
-  
+
   // Effect để bắt đầu hoặc dừng quá trình tìm kiếm
   useEffect(() => {
     // Đồng bộ giá trị isSearching vào ref
@@ -460,6 +474,19 @@ export function useWalletChecker({
       }
     };
   }, [isSearching, generateAndCheck]);
+  
+  // Effect để đăng ký/hủy đăng ký callback với SearchContext
+  useEffect(() => {
+    // Nếu tính năng tự động bắt đầu được bật, đăng ký callback
+    if (autoStartEnabled) {
+      registerAutoStartCallback(startSearch);
+    }
+    
+    // Cleanup: hủy đăng ký callback khi component unmount
+    return () => {
+      unregisterAutoStartCallback(startSearch);
+    };
+  }, [autoStartEnabled, registerAutoStartCallback, unregisterAutoStartCallback, startSearch]);
   
   return {
     isSearching,

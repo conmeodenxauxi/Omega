@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import { useEffect } from "react";
+import { SearchProvider } from "./lib/context/SearchContext";
 
 // Hàm hook đã được xóa và chuyển trực tiếp vào component App
 
@@ -41,8 +42,10 @@ function App() {
   
   return (
     <QueryClientProvider client={queryClient}>
-      <Router />
-      <Toaster />
+      <SearchProvider>
+        <Router />
+        <Toaster />
+      </SearchProvider>
     </QueryClientProvider>
   );
 }
