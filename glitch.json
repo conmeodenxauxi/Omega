@@ -2,11 +2,6 @@
   "install": "npm install",
   "start": "node start.js",
   "watch": {
-    "ignore": [
-      "\\.git",
-      "node_modules",
-      "dist"
-    ],
     "install": {
       "include": [
         "^package\\.json$"
@@ -14,9 +9,8 @@
     },
     "restart": {
       "include": [
-        "\\.js$",
-        "\\.json",
-        "start\\.js"
+        "^start\\.js$",
+        "^server\\/.*\\.js$"
       ]
     },
     "throttle": 1000
