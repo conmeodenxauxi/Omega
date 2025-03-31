@@ -1,7 +1,6 @@
 /**
  * Cơ chế kiểm tra số dư song song cho các địa chỉ ví trên nhiều blockchain
  * Cho phép kiểm tra đồng thời các địa chỉ, tăng tốc quá trình quét
- * Sử dụng hệ thống quản lý API thích ứng để tối ưu hóa hiệu suất
  */
 
 import { BlockchainType, BalanceCheckResult } from '../../shared/schema';
@@ -10,7 +9,15 @@ import { checkEthereumBalance } from './api-smart-rotation-eth';
 import { checkBscBalance } from './api-smart-rotation-bsc';
 import { checkSolanaBalance } from './api-smart-rotation-sol';
 import { checkDogecoinBalance } from './api-smart-rotation-doge';
-import { getCurrentConcurrency } from './api-adaptive-manager';
+
+// Thiết lập mức độ song song tối đa cho mỗi blockchain
+const MAX_CONCURRENT_CHECKS = {
+  BTC: 45,  // Tăng lên 45 request song song cho BTC
+  ETH: 15,  // Tăng lên 15
+  BSC: 15,  // Tăng lên 15
+  SOL: 15,  // Tăng lên 15
+  DOGE: 15  // Tăng lên 15
+};
 
 // Quản lý số lượng request đang xử lý cho mỗi blockchain
 const activeRequests: Record<BlockchainType, number> = {
@@ -34,7 +41,7 @@ function getDelayWithJitter(baseDelay: number, jitter: number = 0.3): number {
 }
 
 /**
- * Kiểm tra số dư cho một địa chỉ cụ thể với cơ chế giới hạn song song thích ứng
+ * Kiểm tra số dư cho một địa chỉ cụ thể với cơ chế giới hạn song song
  * @param blockchain Loại blockchain
  * @param address Địa chỉ ví
  */
@@ -42,11 +49,8 @@ export async function checkBalanceWithRateLimit(blockchain: BlockchainType, addr
   // Thêm độ trễ ngẫu nhiên khác nhau cho mỗi blockchain để giảm áp lực API
   await new Promise(resolve => setTimeout(resolve, getDelayWithJitter(blockchain === 'BTC' ? 200 : 100)));
   
-  // Lấy giới hạn concurrency thích ứng hiện tại từ hệ thống quản lý
-  const maxConcurrent = getCurrentConcurrency(blockchain);
-  
   // Kiểm tra xem có đang đạt giới hạn song song không
-  while (activeRequests[blockchain] >= maxConcurrent) {
+  while (activeRequests[blockchain] >= MAX_CONCURRENT_CHECKS[blockchain]) {
     // Nếu đã đạt giới hạn, đợi một chút trước khi thử lại với jitter
     await new Promise(resolve => setTimeout(resolve, getDelayWithJitter(150)));
   }
@@ -89,8 +93,7 @@ export async function checkBalanceWithRateLimit(blockchain: BlockchainType, addr
 export async function checkBalancesInParallel(
   addresses: Array<{ blockchain: BlockchainType; address: string }>
 ): Promise<BalanceCheckResult[]> {
-  const btcConcurrency = getCurrentConcurrency('BTC');
-  console.log(`Bắt đầu kiểm tra ${addresses.length} địa chỉ song song (batch size: ${btcConcurrency})`);
+  console.log(`Bắt đầu kiểm tra ${addresses.length} địa chỉ song song (batch size: ${MAX_CONCURRENT_CHECKS.BTC})`);
 
   // Tạo mảng các promise để kiểm tra song song
   const checkPromises = addresses.map(async ({ blockchain, address }, index) => {

@@ -3,56 +3,36 @@
  */
 
 /**
- * Thêm cơ chế exponential backoff khi gặp lỗi từ API
- * @param apiCall Hàm cần thực hiện, có thể nhận thông tin về lần thử hiện tại
- * @param apiName Tên của API đang gọi (dùng cho log)
+ * Thêm cơ chế exponential backoff khi gặp rate limit
+ * @param apiCall Hàm cần thực hiện
  * @param maxRetries Số lần thử lại tối đa
- * @param baseDelay Thời gian chờ cơ bản (ms)
  * @returns Kết quả từ apiCall hoặc lỗi nếu đã vượt quá số lần thử lại
  */
-export async function checkWithBackoff<T>(
-  apiCall: (retryCount?: number, maxRetries?: number, retryDelay?: number) => Promise<T>, 
-  apiName: string = 'API', 
-  maxRetries: number = 3,
-  baseDelay: number = 1500
-): Promise<T> {
+export async function checkWithBackoff<T>(apiCall: () => Promise<T>, maxRetries = 3): Promise<T> {
   let retries = 0;
   while (retries < maxRetries) {
     try {
-      // Truyền thông tin về số lần thử lại hiện tại vào hàm apiCall
-      return await apiCall(retries, maxRetries, baseDelay);
+      return await apiCall();
     } catch (error: any) {
-      if (error?.status === 429 || error?.status === 430 || 
-          (error?.message && (
-            error.message.includes('rate limit') || 
-            error.message.includes('limit exceeded')
-          ))
-      ) {
-        // Tính thời gian chờ theo hàm mũ: 2^retries * baseDelay
-        let backoffTime = Math.pow(2, retries) * baseDelay;
+      if (error?.status === 429 || error?.status === 430 || (error?.message && (error.message.includes('rate limit') || error.message.includes('limit exceeded')))) {
+        // Tính thời gian chờ theo hàm mũ: 2^retries * 1500ms (1.5s, 3s, 6s...)
+        // Tăng base từ 1000ms lên 1500ms khi chạy nhiều phiên đồng thời
+        const baseTime = 1500;
+        let backoffTime = Math.pow(2, retries) * baseTime;
         
         // Thêm jitter (±20%) để tránh các phiên thử lại đồng thời
         const jitter = backoffTime * 0.2 * (Math.random() * 2 - 1);
         backoffTime = Math.floor(backoffTime + jitter);
         
-        console.log(`Rate limited on ${apiName}, backing off for ${backoffTime}ms (retry ${retries + 1}/${maxRetries})`);
+        console.log(`Rate limited, backing off for ${backoffTime}ms (retry ${retries + 1}/${maxRetries})`);
         await new Promise(resolve => setTimeout(resolve, backoffTime));
         retries++;
       } else {
-        console.error(`Error fetching from ${apiName}:`, error);
-        if (retries < maxRetries - 1) {
-          // Nếu không phải rate limit nhưng vẫn còn cơ hội retry
-          retries++;
-          const backoffTime = Math.pow(1.5, retries) * baseDelay;
-          console.log(`Error from ${apiName}, retrying in ${backoffTime}ms (retry ${retries}/${maxRetries})`);
-          await new Promise(resolve => setTimeout(resolve, backoffTime));
-        } else {
-          throw error;
-        }
+        throw error;
       }
     }
   }
-  throw new Error(`Max retries (${maxRetries}) reached for ${apiName}`);
+  throw new Error("Max retries reached");
 }
 
 /**
