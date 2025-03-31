@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useRef } from 'react';
 
 interface SearchContextProps {
   // Hàm bắt đầu tìm kiếm từ bên ngoài Home component
@@ -16,27 +16,30 @@ interface SearchProviderProps {
 }
 
 export const SearchProvider = ({ children }: SearchProviderProps) => {
-  // Lưu trữ callback bắt đầu tìm kiếm từ Home component
-  const [searchCallback, setSearchCallback] = useState<(() => void) | null>(null);
+  // Sử dụng useRef để lưu trữ callback thay vì useState để tránh trễ render
+  const searchCallbackRef = useRef<(() => void) | null>(null);
 
   // Hàm kích hoạt tìm kiếm từ bên ngoài
   const triggerSearch = () => {
-    if (searchCallback) {
+    if (searchCallbackRef.current) {
       console.log('Tự động kích hoạt tìm kiếm sau khi phát hiện máy chủ đã hoạt động trở lại');
-      searchCallback();
+      // Gọi callback được lưu trong ref
+      searchCallbackRef.current();
     } else {
       console.log('Không thể kích hoạt tìm kiếm: callback chưa được đăng ký');
     }
   };
 
-  // Đăng ký callback
+  // Đăng ký callback - lưu trực tiếp vào ref
   const registerSearchCallback = (callback: () => void) => {
-    setSearchCallback(() => callback);
+    console.log('Đăng ký callback mới vào SearchContext');
+    searchCallbackRef.current = callback;
   };
 
   // Xóa callback
   const unregisterSearchCallback = () => {
-    setSearchCallback(null);
+    console.log('Hủy đăng ký callback từ SearchContext');
+    searchCallbackRef.current = null;
   };
 
   return (

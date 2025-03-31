@@ -65,6 +65,7 @@ function ServerMonitor() {
           // Tạo timeout mới để kích hoạt tìm kiếm
           reconnectTimeoutRef.current = setTimeout(() => {
             console.log('===== Đã đến thời gian tự động kích hoạt tìm kiếm =====');
+            // GỌI HÀM triggerSearch - RẤT QUAN TRỌNG
             triggerSearch();
             reconnectTimeoutRef.current = null;
           }, randomDelay);

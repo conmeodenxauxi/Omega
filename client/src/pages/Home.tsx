@@ -45,20 +45,29 @@ export default function Home() {
 
   // Đăng ký callback tìm kiếm khi component mount
   useEffect(() => {
-    // Chỉ đăng ký nếu không đang tìm kiếm
-    // Nếu đang tìm kiếm rồi thì không cần kích hoạt lại
+    // Định nghĩa callback tìm kiếm
     const startSearchCallback = () => {
+      console.log('===== Tự động kích hoạt tìm kiếm sau khi phục hồi kết nối server =====');
+      
+      // Thực hiện bắt đầu tìm kiếm nếu chưa tìm kiếm
       if (!isSearching) {
-        console.log('===== Tự động kích hoạt tìm kiếm sau khi phục hồi kết nối server =====');
+        console.log('===== ĐANG BẮT ĐẦU TÌM KIẾM TỰ ĐỘNG =====');
+        // Gọi trực tiếp toggleSearching để bắt đầu tìm kiếm
         toggleSearching();
       } else {
         console.log('===== Đã đang tìm kiếm, không cần kích hoạt lại =====');
       }
     };
 
-    // Đăng ký callback
-    registerSearchCallback(startSearchCallback);
+    // Đăng ký callback vào context
     console.log('Đã đăng ký callback tự động kích hoạt tìm kiếm');
+    registerSearchCallback(() => {
+      // Thêm timeout ngắn để đảm bảo state được cập nhật đúng
+      setTimeout(() => {
+        console.log('===== GỌI CALLBACK TÌM KIẾM SAU TIMEOUT =====');
+        startSearchCallback();
+      }, 200);
+    });
 
     // Cleanup khi component unmount
     return () => {
