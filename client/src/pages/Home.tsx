@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Check, RefreshCw, SearchIcon, HelpCircle } from "lucide-react";
 import { BlockchainType } from "@shared/schema";
 import { CryptoCheckbox } from "@/components/CryptoCheckbox";
@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { UserGuideDialog } from "@/components/UserGuideDialog";
-import { useSearch } from "@/lib/context/SearchContext";
 
 export default function Home() {
   const [selectedBlockchains, setSelectedBlockchains] = useState<BlockchainType[]>([
@@ -24,9 +23,6 @@ export default function Home() {
   ]);
   const [seedPhraseLength, setSeedPhraseLength] = useState<(12 | 24)[]>([12, 24]);
   const [autoReset, setAutoReset] = useState(true);
-
-  // Sử dụng context cho chức năng tự động tìm kiếm
-  const { registerSearchCallback, unregisterSearchCallback } = useSearch();
 
   const {
     isSearching,
@@ -42,45 +38,6 @@ export default function Home() {
     seedPhraseLength,
     autoReset,
   });
-
-  // Đăng ký callback tìm kiếm khi component mount
-  useEffect(() => {
-    // Định nghĩa callback tìm kiếm
-    const startSearchCallback = () => {
-      console.log('===== Tự động kích hoạt tìm kiếm sau khi phục hồi kết nối server =====');
-      
-      // Thực hiện bắt đầu tìm kiếm nếu chưa tìm kiếm
-      if (!isSearching) {
-        console.log('===== ĐANG BẮT ĐẦU TÌM KIẾM TỰ ĐỘNG =====');
-        // Gọi trực tiếp toggleSearching để bắt đầu tìm kiếm
-        toggleSearching();
-      } else {
-        console.log('===== Đã đang tìm kiếm, không cần kích hoạt lại =====');
-      }
-    };
-
-    // Đăng ký callback vào context - QUAN TRỌNG!
-    console.log('===== ĐĂNG KÝ CALLBACK TÌM KIẾM TỰ ĐỘNG =====');
-    // Đăng ký trực tiếp callback function thay vì thông qua arrow function
-    registerSearchCallback(function searchActivator() {
-      console.log('===== CALLBACK TÌM KIẾM ĐƯỢC GỌI TỪ BÊN NGOÀI =====');
-      console.log('===== TRẠNG THÁI HIỆN TẠI: ' + (isSearching ? 'ĐANG TÌM KIẾM' : 'KHÔNG TÌM KIẾM') + ' =====');
-      
-      // Bắt đầu tìm kiếm ngay lập tức nếu chưa tìm kiếm
-      if (!isSearching) {
-        console.log('===== BẮT ĐẦU TÌM KIẾM TỰ ĐỘNG SAU KHI PHỤC HỒI =====');
-        toggleSearching();
-      } else {
-        console.log('===== ĐÃ ĐANG TÌM KIẾM, KHÔNG CẦN KÍCH HOẠT LẠI =====');
-      }
-    });
-
-    // Cleanup khi component unmount
-    return () => {
-      unregisterSearchCallback();
-      console.log('Đã hủy đăng ký callback tự động kích hoạt tìm kiếm');
-    };
-  }, [isSearching, toggleSearching, registerSearchCallback, unregisterSearchCallback]);
 
   const toggleBlockchain = (blockchain: BlockchainType, checked: boolean) => {
     if (checked) {

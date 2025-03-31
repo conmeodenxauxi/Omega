@@ -7,96 +7,10 @@ import { checkBalancesInParallel, checkBalanceWithRateLimit } from "./blockchain
 import { BlockchainType, blockchainSchema, seedPhraseSchema, BalanceCheckResult, WalletAddress } from "@shared/schema";
 import { z } from "zod";
 
-// Biến để kiểm soát trạng thái giả lập mất kết nối
-let isServerDown = false;
-let serverDownTimeout: NodeJS.Timeout | null = null;
-
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check endpoint để không cho ứng dụng ngủ
   app.get("/api/health", (req: Request, res: Response) => {
-    // Nếu đang trong chế độ giả lập mất kết nối, trả về lỗi 503
-    if (isServerDown) {
-      console.log('[Giả lập] Server đang ở trạng thái DOWN - Trả về lỗi 503');
-      return res.status(503).json({ 
-        status: "error", 
-        message: "Service unavailable (simulated downtime)",
-        timestamp: new Date().toISOString() 
-      });
-    }
-    
-    // Trạng thái bình thường
     res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
-  });
-  
-  // Endpoint để giả lập server bị sập
-  app.get("/api/test/server-down", (req: Request, res: Response) => {
-    if (isServerDown) {
-      return res.status(200).json({
-        success: false,
-        message: "Server đã ở trạng thái DOWN rồi"
-      });
-    }
-    
-    // Thời gian giả lập mất kết nối (mặc định 20 giây)
-    const durationSeconds = req.query.duration ? parseInt(req.query.duration as string, 10) : 20;
-    
-    // Giới hạn thời gian tối đa là 60 giây
-    const actualDuration = Math.min(durationSeconds, 60) * 1000;
-    
-    // Thiết lập trạng thái mất kết nối
-    isServerDown = true;
-    console.log(`[Giả lập] Đã kích hoạt trạng thái DOWN trong ${actualDuration/1000} giây`);
-    
-    // Xóa timeout cũ nếu có
-    if (serverDownTimeout) {
-      clearTimeout(serverDownTimeout);
-    }
-    
-    // Tự động phục hồi sau khoảng thời gian xác định
-    serverDownTimeout = setTimeout(() => {
-      isServerDown = false;
-      serverDownTimeout = null;
-      console.log('[Giả lập] Đã tự động phục hồi trạng thái UP sau thời gian đã định');
-    }, actualDuration);
-    
-    return res.status(200).json({
-      success: true,
-      message: `Đã kích hoạt trạng thái DOWN. Sẽ tự động phục hồi sau ${actualDuration/1000} giây`
-    });
-  });
-  
-  // Endpoint để phục hồi server
-  app.get("/api/test/server-up", (req: Request, res: Response) => {
-    if (!isServerDown) {
-      return res.status(200).json({
-        success: false,
-        message: "Server đã ở trạng thái UP rồi"
-      });
-    }
-    
-    // Phục hồi trạng thái
-    isServerDown = false;
-    
-    // Xóa timeout nếu có
-    if (serverDownTimeout) {
-      clearTimeout(serverDownTimeout);
-      serverDownTimeout = null;
-    }
-    
-    console.log('[Giả lập] Đã kích hoạt phục hồi trạng thái UP thủ công');
-    
-    return res.status(200).json({
-      success: true,
-      message: "Đã phục hồi trạng thái UP"
-    });
-  });
-  
-  // Endpoint để kiểm tra trạng thái hiện tại
-  app.get("/api/test/server-status", (req: Request, res: Response) => {
-    return res.status(200).json({
-      status: isServerDown ? "down" : "up",
-      message: isServerDown ? "Server hiện đang offline (mô phỏng)" : "Server đang hoạt động bình thường"
-    });
   });
 
   // Generate addresses from seed phrase
