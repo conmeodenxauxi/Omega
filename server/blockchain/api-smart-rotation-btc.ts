@@ -172,7 +172,7 @@ function getNextBitcoinApi(address: string): BitcoinApiConfig {
   
   return {
     name: 'GetBlock',
-    url: 'https://btc.getblock.io/mainnet/',
+    url: 'https://go.getblock.io/mainnet/',
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -260,6 +260,16 @@ export async function checkBitcoinBalance(address: string): Promise<string> {
           clearTimeout(timeout);
           
           if (!response.ok) {
+            // Kiểm tra lỗi xác thực (401) cho GetBlock
+            if (response.status === 401) {
+              console.warn(`Lỗi xác thực (Unauthorized) với ${apiConfig.name}. API key có thể đã hết hạn hoặc không hợp lệ.`);
+              // Đánh dấu API key là bị giới hạn để tạm thời loại bỏ khỏi vòng xoay
+              if (apiConfig.keyIdentifier) {
+                markKeyAsRateLimited('BTC', apiConfig.name, apiConfig.keyIdentifier);
+              }
+              throw new Error(`HTTP error: 401 Unauthorized`);
+            }
+            
             // Kiểm tra lỗi rate limit
             const isRateLimit = 
               response.status === 429 || 
@@ -298,6 +308,15 @@ export async function checkBitcoinBalance(address: string): Promise<string> {
             }
           }
           
+          // Xử lý lỗi DNS (ENOTFOUND)
+          if (errorMessage.includes('enotfound')) {
+            console.warn(`Lỗi DNS (ENOTFOUND) với ${apiConfig.name}. URL có thể không chính xác hoặc dịch vụ không khả dụng.`);
+            // Đánh dấu endpoint là bị hạn chế tạm thời
+            if (apiConfig.keyIdentifier) {
+              markKeyAsRateLimited('BTC', apiConfig.name, apiConfig.keyIdentifier);
+            }
+          }
+          
           throw error;
         }
       }, 3, apiConfig.name);
@@ -319,6 +338,16 @@ export async function checkBitcoinBalance(address: string): Promise<string> {
         clearTimeout(timeout);
         
         if (!response.ok) {
+          if (response.status === 401 && apiConfig.name === 'BTC_Tatum') {
+            // Xử lý lỗi xác thực riêng cho Tatum API
+            console.warn(`Lỗi xác thực (Unauthorized) với ${apiConfig.name}. API key có thể đã hết hạn hoặc không hợp lệ.`);
+            // Vẫn đánh dấu API key là bị giới hạn để tạm thời loại bỏ khỏi hệ thống
+            if (apiConfig.keyIdentifier) {
+              markKeyAsRateLimited('BTC', apiConfig.name, apiConfig.keyIdentifier);
+            }
+            throw { status: response.status, message: 'Unauthorized' };
+          }
+          
           // Kiểm tra lỗi rate limit
           const isRateLimit = 
             response.status === 429 || 
