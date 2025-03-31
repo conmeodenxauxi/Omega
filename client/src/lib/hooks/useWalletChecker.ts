@@ -37,10 +37,19 @@ export function useWalletChecker({
     withBalance: 0
   });
   
+  // Tham chiếu đến state mới nhất cho stats để đảm bảo đọc giá trị mới nhất trong các closure
+  const statsRef = useRef<WalletCheckStats>({
+    created: 0,
+    checked: 0,
+    withBalance: 0
+  });
+  
   const currentSeedPhrase = useRef<string>('');
   const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
   // Lưu trữ trạng thái isSearching vào ref để có thể truy cập giá trị mới nhất bên trong closure
   const isSearchingRef = useRef<boolean>(false);
+  // Cờ để kiểm soát việc tạo seed đang được thực hiện hay không
+  const isGeneratingRef = useRef<boolean>(false);
   
   // Ngưỡng số lượng ví đã kiểm tra để tự động reset
   const AUTO_RESET_THRESHOLD = 3500;
@@ -197,23 +206,43 @@ export function useWalletChecker({
     })();
   }, []);
   
+  // Effect để đồng bộ stats vào statsRef mỗi khi stats thay đổi
+  useEffect(() => {
+    // Cập nhật statsRef mỗi khi stats thay đổi
+    statsRef.current = stats;
+  }, [stats]);
+
   // Hàm để tạo các seed phrases mới theo batch
   const generateSeed = useCallback(async () => {
+    // Kiểm tra nếu không đang tìm kiếm hoặc không có blockchain nào được chọn
     if (!isSearchingRef.current || selectedBlockchains.length === 0) {
       console.log("Không tạo seed: isSearchingRef =", isSearchingRef.current, ", selectedBlockchains =", selectedBlockchains.length);
       return;
     }
     
+    // Nếu đang có quá trình tạo seed khác đang chạy, bỏ qua request này
+    if (isGeneratingRef.current) {
+      console.log("Đã có tiến trình tạo seed đang chạy, bỏ qua yêu cầu mới");
+      return;
+    }
+    
+    // Đánh dấu là đang tạo seed
+    isGeneratingRef.current = true;
+    
     // Kiểm tra giới hạn tạo seed: số lượng tạo ra = số lượng kiểm tra + buffer
-    if (stats.created > stats.checked + DEFAULT_BUFFER_SIZE) {
-      console.log(`Đã đạt giới hạn tạo seed (${stats.created} > ${stats.checked} + ${DEFAULT_BUFFER_SIZE}), đợi kiểm tra tiếp.`);
+    // Sử dụng statsRef để đảm bảo lấy giá trị mới nhất
+    if (statsRef.current.created > statsRef.current.checked + DEFAULT_BUFFER_SIZE) {
+      console.log(`Đã đạt giới hạn tạo seed (${statsRef.current.created} > ${statsRef.current.checked} + ${DEFAULT_BUFFER_SIZE}), đợi kiểm tra tiếp.`);
+      
+      // Đặt lại cờ isGenerating
+      isGeneratingRef.current = false;
       
       // Lên lịch kiểm tra lại sau khoảng thời gian mặc định
-      setTimeout(() => {
+      searchTimerRef.current = setTimeout(() => {
         if (isSearchingRef.current) {
           generateSeed();
         }
-      }, DEFAULT_CHECK_INTERVAL / 2); // Kiểm tra sớm hơn để tạo seed nhanh khi có thể
+      }, DEFAULT_CHECK_INTERVAL); // Sử dụng đúng giá trị DEFAULT_CHECK_INTERVAL
       
       return;
     }
@@ -243,6 +272,7 @@ export function useWalletChecker({
         // Tạo địa chỉ cho từng seed phrase
         if (!isSearchingRef.current) {
           console.log("Không còn tìm kiếm - hủy bỏ xử lý seed phrase mới");
+          isGeneratingRef.current = false;
           return;
         }
 
@@ -257,6 +287,7 @@ export function useWalletChecker({
         
         if (!isSearchingRef.current) {
           console.log("Không còn tìm kiếm - hủy bỏ xử lý kết quả API");
+          isGeneratingRef.current = false;
           return;
         }
         
@@ -302,7 +333,7 @@ export function useWalletChecker({
       
       // Lên lịch tạo batch tiếp theo
       if (isSearchingRef.current) {
-        setTimeout(() => {
+        searchTimerRef.current = setTimeout(() => {
           if (isSearchingRef.current) {
             generateSeed();
           }
@@ -313,14 +344,17 @@ export function useWalletChecker({
       
       // Nếu có lỗi, thử lại sau một khoảng thời gian
       if (isSearchingRef.current) {
-        setTimeout(() => {
+        searchTimerRef.current = setTimeout(() => {
           if (isSearchingRef.current) {
             generateSeed();
           }
         }, DEFAULT_CHECK_INTERVAL);
       }
+    } finally {
+      // Đặt lại cờ isGenerating để các lời gọi tiếp theo có thể xử lý
+      isGeneratingRef.current = false;
     }
-  }, [selectedBlockchains, seedPhraseLength, stats.created, stats.checked, checkBalances]);
+  }, [selectedBlockchains, seedPhraseLength, checkBalances]);
   
   // Hàm chạy vòng lặp tìm kiếm
   const generateAndCheck = useCallback(() => {
