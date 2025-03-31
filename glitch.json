@@ -1,6 +1,6 @@
 {
   "install": "npm install",
-  "start": "node start.js",
+  "start": "node start.cjs",
   "watch": {
     "install": {
       "include": [
@@ -9,7 +9,7 @@
     },
     "restart": {
       "include": [
-        "^start\\.js$",
+        "^start\\.cjs$",
         "^server\\/.*\\.js$"
       ]
     },

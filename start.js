@@ -52,7 +52,10 @@ app.get('*', (req, res) => {
 });
 
 // Start server
-app.listen(port, '0.0.0.0', () => {
-  console.log(`Server running on port ${port}`);
+app.listen(process.env.PORT || 3000, '0.0.0.0', () => {
+  console.log(`Server running on port ${process.env.PORT || 3000}`);
   console.log(`View your app at: https://${process.env.PROJECT_DOMAIN}.glitch.me`);
+  
+  // Log để debug
+  console.log(`Environment variables: PROJECT_DOMAIN=${process.env.PROJECT_DOMAIN}, PORT=${process.env.PORT}`);
 });
