@@ -1,21 +1,12 @@
 /**
  * Cơ chế xoay vòng thông minh dành riêng cho Binance Smart Chain (BSC)
- * Xoay vòng NGẪU NHIÊN qua tất cả các endpoint và API key có sẵn, mỗi lần chỉ gọi 1 request
- * Cơ chế ngẫu nhiên giúp tránh rate limit khi nhiều phiên cùng hoạt động
- * Tích hợp cơ chế tự động tạm dừng API key bị rate limit trong 1 phút
+ * Xoay vòng qua tất cả các endpoint và API key có sẵn, mỗi lần chỉ gọi 1 request
  */
 import { getApiKey } from "./api-keys";
 import fetch from "node-fetch";
-import { 
-  isKeyRateLimited, 
-  markKeyAsRateLimited, 
-  isEndpointRateLimited, 
-  markEndpointAsRateLimited 
-} from "./api-rate-limit-manager";
-import { checkWithBackoff, timeoutPromise } from "./api-smart-rotation-utils";
 
-// Không còn sử dụng vị trí tuần tự do đã chuyển sang cơ chế ngẫu nhiên
-// let currentBSCSlot = 0;
+// Lưu trữ vị trí hiện tại trong bánh xe xoay vòng
+let currentBSCSlot = 0;
 
 // Thông tin các API key BSCScan
 const bscscanApiKeys: string[] = [
@@ -70,62 +61,33 @@ function calculateTotalBscSlots(): number {
 }
 
 /**
- * Định nghĩa kiểu API config với hỗ trợ keyIdentifier
+ * Lấy cấu hình API tiếp theo cho BSC theo vòng xoay
+ * Đảm bảo mỗi request chỉ gọi 1 API duy nhất
  */
-interface BscApiConfig {
+function getNextBscApi(address: string): {
   name: string;
   url: string;
   method: string;
   headers: Record<string, string>;
   body?: string;
-  keyIdentifier?: string; // Định danh của API key để xác định khi bị ratelimit
-}
-
-/**
- * Lấy cấu hình API tiếp theo cho BSC theo cơ chế ngẫu nhiên
- * Đảm bảo mỗi request chỉ gọi 1 API duy nhất
- * Áp dụng cơ chế hoàn toàn ngẫu nhiên để tránh rate limit khi nhiều phiên cùng hoạt động
- * Bỏ qua các API key đang bị giới hạn tốc độ
- */
-function getNextBscApi(address: string): BscApiConfig {
+} {
   const totalSlots = calculateTotalBscSlots();
   
-  // Danh sách chứa các slots khả dụng (không bị rate limit)
-  const availableSlots: number[] = [];
-  
-  // Kiểm tra public endpoints
-  for (let i = 0; i < publicEndpoints.length; i++) {
-    if (!isEndpointRateLimited('BSC', publicEndpoints[i].name)) {
-      availableSlots.push(i);
-    }
+  // Nếu không có slot nào, trả về thông báo lỗi
+  if (totalSlots === 0) {
+    throw new Error('Không có API endpoint hoặc API key nào khả dụng cho BSC');
   }
   
-  // Kiểm tra BSCScan API keys
-  for (let i = 0; i < bscscanApiKeys.length; i++) {
-    const keyIdentifier = bscscanApiKeys[i].substring(0, 8);
-    if (!isKeyRateLimited('BSC', 'BSCScan', keyIdentifier)) {
-      availableSlots.push(i + publicEndpoints.length);
-    }
-  }
+  // Xoay vòng qua các slot
+  const currentSlot = currentBSCSlot % totalSlots;
+  currentBSCSlot = (currentBSCSlot + 1) % totalSlots;
   
-  // Nếu không có slot nào khả dụng, trả về thông báo lỗi hoặc chọn ngẫu nhiên
-  if (availableSlots.length === 0) {
-    console.warn('Tất cả slots đều đang bị rate limited. Thử lại với slot ngẫu nhiên.');
-    // Chọn ngẫu nhiên một slot bất kỳ khi tất cả đều bị rate limit
-    const randomSlot = Math.floor(Math.random() * totalSlots);
-    availableSlots.push(randomSlot);
-  }
-  
-  // Chọn ngẫu nhiên một slot từ các slot khả dụng
-  const randomIndex = Math.floor(Math.random() * availableSlots.length);
-  const selectedSlot = availableSlots[randomIndex];
-  
-  console.log(`BSC random slot: ${selectedSlot + 1}/${totalSlots} (từ ${availableSlots.length} slots khả dụng)`);
+  console.log(`BSC rotation slot: ${currentSlot + 1}/${totalSlots}`);
   
   // Trường hợp slot là public endpoint
-  if (selectedSlot < publicEndpoints.length) {
-    const endpoint = publicEndpoints[selectedSlot];
-    console.log(`[BSC Random] Đã chọn ${endpoint.name} (public endpoint) - Slot ${selectedSlot + 1}/${totalSlots}`);
+  if (currentSlot < publicEndpoints.length) {
+    const endpoint = publicEndpoints[currentSlot];
+    console.log(`[BSC Rotation] Đã chọn ${endpoint.name} (public endpoint) - Slot ${currentSlot + 1}/${totalSlots}`);
     
     return {
       name: endpoint.name,
@@ -137,17 +99,16 @@ function getNextBscApi(address: string): BscApiConfig {
   }
   
   // Trường hợp slot là BSCScan API key
-  const keyIndex = selectedSlot - publicEndpoints.length;
+  const keyIndex = currentSlot - publicEndpoints.length;
   const apiKey = bscscanApiKeys[keyIndex];
   
-  console.log(`[BSC Random] Đã chọn BSCScan với API key ${apiKey.substring(0, 6)}... - Slot ${selectedSlot + 1}/${totalSlots}`);
+  console.log(`[BSC Rotation] Đã chọn BSCScan với API key ${apiKey.substring(0, 6)}... - Slot ${currentSlot + 1}/${totalSlots}`);
   
   return {
     name: 'BSCScan',
     url: `https://api.bscscan.com/api?module=account&action=balance&address=${address}&tag=latest&apikey=${apiKey}`,
     method: 'GET',
-    headers: { 'Content-Type': 'application/json' },
-    keyIdentifier: apiKey.substring(0, 8)
+    headers: { 'Content-Type': 'application/json' }
   };
 }
 
@@ -173,113 +134,53 @@ function parseBscApiResponse(name: string, data: any): string {
 }
 
 /**
- * Kiểm tra số dư BSC bằng cơ chế xoay vòng ngẫu nhiên (chỉ 1 request mỗi lần)
- * Cơ chế ngẫu nhiên giúp phân tán tải khi nhiều phiên cùng hoạt động
- * Tích hợp cơ chế tự động tạm dừng API key bị rate limit trong 1 phút
+ * Kiểm tra số dư BSC bằng cơ chế xoay vòng tuần tự (chỉ 1 request mỗi lần)
  */
 export async function checkBscBalance(address: string): Promise<string> {
   try {
-    // Lấy API endpoint ngẫu nhiên
+    // Lấy API endpoint tiếp theo từ vòng xoay
     const apiConfig = getNextBscApi(address);
     
     console.log(`Checking BSC balance for ${address} using ${apiConfig.name}`);
     
-    return await checkWithBackoff(async () => {
-      try {
-        // Cấu hình fetch request
-        const fetchOptions: any = {
-          method: apiConfig.method,
-          headers: apiConfig.headers
-        };
-        
-        if (apiConfig.body) {
-          fetchOptions.body = apiConfig.body;
-        }
-        
-        // Thêm timeout
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000); // 10 giây timeout
-        fetchOptions.signal = controller.signal as any;
-        
-        // Thực hiện request
-        const response = await fetch(apiConfig.url, fetchOptions);
-        clearTimeout(timeout);
-        
-        if (!response.ok) {
-          // Kiểm tra lỗi rate limit
-          const isRateLimit = 
-            response.status === 429 || 
-            response.status === 403 || 
-            response.status === 402 || 
-            response.statusText?.toLowerCase().includes('rate') ||
-            response.statusText?.toLowerCase().includes('limit');
-          
-          if (isRateLimit) {
-            console.warn(`RATE LIMIT phát hiện cho ${apiConfig.name}`);
-            
-            if (apiConfig.keyIdentifier) {
-              // Đánh dấu API key bị rate limit
-              markKeyAsRateLimited('BSC', apiConfig.name, apiConfig.keyIdentifier);
-            } else {
-              // Đánh dấu endpoint public bị rate limit
-              markEndpointAsRateLimited('BSC', apiConfig.name);
-            }
-          }
-          
-          throw new Error(`HTTP error: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        // Kiểm tra lỗi rate limit trong phản hồi
-        const responseText = JSON.stringify(data).toLowerCase();
-        if (
-          responseText.includes("rate limit") || 
-          responseText.includes("ratelimit") ||
-          responseText.includes("too many requests") ||
-          responseText.includes("quota exceeded") ||
-          responseText.includes("max rate limit")
-        ) {
-          console.warn(`RATE LIMIT phát hiện trong phản hồi từ ${apiConfig.name}`);
-          
-          if (apiConfig.keyIdentifier) {
-            // Đánh dấu API key bị rate limit
-            markKeyAsRateLimited('BSC', apiConfig.name, apiConfig.keyIdentifier);
-          } else {
-            // Đánh dấu endpoint public bị rate limit
-            markEndpointAsRateLimited('BSC', apiConfig.name);
-          }
-          
-          throw new Error(`Rate limit trong phản hồi`);
-        }
-        
-        // Xử lý phản hồi
-        const balance = parseBscApiResponse(apiConfig.name, data);
-        console.log(`BSC balance from ${apiConfig.name}: ${balance}`);
-        return balance;
-      } catch (error) {
-        console.error(`Error fetching from ${apiConfig.name}:`, error);
-        
-        // Kiểm tra lỗi timeout hoặc network
-        const errorMessage = String(error).toLowerCase();
-        if (
-          (error instanceof Error && error.name === 'AbortError') ||
-          errorMessage.includes('timeout') ||
-          errorMessage.includes('networkerror')
-        ) {
-          if (apiConfig.keyIdentifier) {
-            console.warn(`Timeout hoặc lỗi mạng với ${apiConfig.name}, có thể do API quá tải`);
-            markKeyAsRateLimited('BSC', apiConfig.name, apiConfig.keyIdentifier);
-          } else if (apiConfig.name) {
-            markEndpointAsRateLimited('BSC', apiConfig.name);
-          }
-        }
-        
-        throw error;
+    // Cấu hình fetch request
+    const fetchOptions: any = {
+      method: apiConfig.method,
+      headers: apiConfig.headers
+    };
+    
+    if (apiConfig.body) {
+      fetchOptions.body = apiConfig.body;
+    }
+    
+    // Thêm timeout
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000); // 15 giây timeout
+    fetchOptions.signal = controller.signal as any;
+    
+    try {
+      // Thực hiện request
+      const response = await fetch(apiConfig.url, fetchOptions);
+      clearTimeout(timeout);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error: ${response.status}`);
       }
-    }, 3, apiConfig.name);
+      
+      const data = await response.json();
+      
+      // Xử lý phản hồi
+      const balance = parseBscApiResponse(apiConfig.name, data);
+      
+      console.log(`BSC balance from ${apiConfig.name}: ${balance}`);
+      return balance;
+    } catch (error) {
+      console.error(`Error fetching from ${apiConfig.name}:`, error);
+      clearTimeout(timeout);
+      return '0';
+    }
   } catch (error) {
-    console.error(`All retries failed for ${error instanceof Error ? error.message : error}`);
+    console.error(`Error checking BSC balance:`, error);
     return '0';
   }
 }

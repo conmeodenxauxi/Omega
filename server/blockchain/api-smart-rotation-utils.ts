@@ -1,65 +1,47 @@
 /**
- * Các tiện ích chung cho cơ chế xoay vòng API
+ * Các tiện ích và hàm dùng chung cho cơ chế xoay vòng API thông minh
  */
 
 /**
- * Hàm thử lại với thời gian chờ tăng dần giữa mỗi lần thử
- * @param fn Hàm cần thực hiện và thử lại
+ * Thêm cơ chế exponential backoff khi gặp rate limit
+ * @param apiCall Hàm cần thực hiện
  * @param maxRetries Số lần thử lại tối đa
- * @param endpoint Tên API endpoint để ghi log (không bắt buộc)
- * @returns Kết quả của lần thử thành công
+ * @returns Kết quả từ apiCall hoặc lỗi nếu đã vượt quá số lần thử lại
  */
-export async function checkWithBackoff<T>(
-  fn: () => Promise<T>,
-  maxRetries: number = 3,
-  endpoint?: string
-): Promise<T> {
-  // Thử lần đầu
-  try {
-    return await fn();
-  } catch (error) {
-    // Nếu không cho phép thử lại hoặc đã hết số lần thử
-    if (maxRetries <= 0) {
-      console.error(`All retries failed for ${endpoint}:`, error);
-      throw error;
-    }
-    
-    // Thử lại với thời gian chờ tăng dần
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        // Thời gian chờ tăng dần theo cấp số nhân
-        const backoffDelay = Math.floor(Math.random() * 1000) + attempt * 500;
-        console.log(`Rate limited, backing off for ${backoffDelay}ms (retry ${attempt}/${maxRetries})`);
+export async function checkWithBackoff<T>(apiCall: () => Promise<T>, maxRetries = 3): Promise<T> {
+  let retries = 0;
+  while (retries < maxRetries) {
+    try {
+      return await apiCall();
+    } catch (error: any) {
+      if (error?.status === 429 || error?.status === 430 || (error?.message && (error.message.includes('rate limit') || error.message.includes('limit exceeded')))) {
+        // Tính thời gian chờ theo hàm mũ: 2^retries * 1500ms (1.5s, 3s, 6s...)
+        // Tăng base từ 1000ms lên 1500ms khi chạy nhiều phiên đồng thời
+        const baseTime = 1500;
+        let backoffTime = Math.pow(2, retries) * baseTime;
         
-        // Đợi trước khi thử lại
-        await new Promise(resolve => setTimeout(resolve, backoffDelay));
+        // Thêm jitter (±20%) để tránh các phiên thử lại đồng thời
+        const jitter = backoffTime * 0.2 * (Math.random() * 2 - 1);
+        backoffTime = Math.floor(backoffTime + jitter);
         
-        // Thử lại
-        return await fn();
-      } catch (retryError) {
-        // Nếu là lần thử cuối cùng, ném lỗi
-        if (attempt === maxRetries) {
-          console.error(`All retries failed for ${endpoint}:`, retryError);
-          throw new Error(`Max retries reached`);
-        }
-        
-        // Ghi log lỗi và thử lại
-        console.error(`Error on retry ${attempt}/${maxRetries} for ${endpoint}:`, retryError);
+        console.log(`Rate limited, backing off for ${backoffTime}ms (retry ${retries + 1}/${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, backoffTime));
+        retries++;
+      } else {
+        throw error;
       }
     }
-    
-    // Nếu tất cả các lần thử đều thất bại (không bao giờ đến đây do có throw ở trên)
-    throw new Error(`All retries failed for ${endpoint}`);
   }
+  throw new Error("Max retries reached");
 }
 
 /**
- * Tạo promise với timeout
- * @param ms Thời gian timeout tính bằng mili giây
- * @returns Promise sẽ reject sau thời gian timeout
+ * Tạo một promise với timeout
+ * @param ms Thời gian timeout (ms)
+ * @returns Promise sẽ reject sau thời gian chỉ định
  */
-export function timeoutPromise(ms: number): Promise<never> {
-  return new Promise((_, reject) => {
-    setTimeout(() => reject(new Error(`Timeout after ${ms}ms`)), ms);
+export const timeoutPromise = (ms: number) => {
+  return new Promise<never>((_, reject) => {
+    setTimeout(() => reject(new Error('Request timed out')), ms);
   });
-}
+};

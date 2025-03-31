@@ -1,7 +1,5 @@
 /**
- * Test cơ chế xoay vòng thông minh ngẫu nhiên cho tất cả các blockchain
- * Cơ chế xoay vòng ngẫu nhiên giúp phân tán tải khi nhiều phiên cùng hoạt động
- * Tích hợp cơ chế tự động tạm dừng API key bị rate limit trong 1 phút
+ * Test cơ chế xoay vòng thông minh mới cho tất cả các blockchain
  */
 import {
   checkBitcoinBalance
@@ -29,11 +27,11 @@ const testAddresses = {
 };
 
 /**
- * Test cơ chế xoay vòng ngẫu nhiên Bitcoin
+ * Test cơ chế xoay vòng Bitcoin
  */
 async function testBitcoinRotation() {
   try {
-    console.log('Test cơ chế xoay vòng ngẫu nhiên Bitcoin...');
+    console.log('Test cơ chế xoay vòng Bitcoin...');
     for (let i = 0; i < 5; i++) {
       const balance = await checkBitcoinBalance(testAddresses.BTC);
       console.log(`Lần ${i + 1}: Balance = ${balance} BTC`);
@@ -45,11 +43,11 @@ async function testBitcoinRotation() {
 }
 
 /**
- * Test cơ chế xoay vòng ngẫu nhiên Ethereum
+ * Test cơ chế xoay vòng Ethereum
  */
 async function testEthereumRotation() {
   try {
-    console.log('Test cơ chế xoay vòng ngẫu nhiên Ethereum...');
+    console.log('Test cơ chế xoay vòng Ethereum...');
     for (let i = 0; i < 5; i++) {
       const balance = await checkEthereumBalance(testAddresses.ETH);
       console.log(`Lần ${i + 1}: Balance = ${balance} ETH`);
@@ -61,11 +59,11 @@ async function testEthereumRotation() {
 }
 
 /**
- * Test cơ chế xoay vòng ngẫu nhiên BSC
+ * Test cơ chế xoay vòng BSC
  */
 async function testBscRotation() {
   try {
-    console.log('Test cơ chế xoay vòng ngẫu nhiên BSC...');
+    console.log('Test cơ chế xoay vòng BSC...');
     for (let i = 0; i < 5; i++) {
       const balance = await checkBscBalance(testAddresses.BSC);
       console.log(`Lần ${i + 1}: Balance = ${balance} BNB`);
@@ -77,11 +75,11 @@ async function testBscRotation() {
 }
 
 /**
- * Test cơ chế xoay vòng ngẫu nhiên Solana
+ * Test cơ chế xoay vòng Solana
  */
 async function testSolanaRotation() {
   try {
-    console.log('Test cơ chế xoay vòng ngẫu nhiên Solana...');
+    console.log('Test cơ chế xoay vòng Solana...');
     for (let i = 0; i < 5; i++) {
       const balance = await checkSolanaBalance(testAddresses.SOL);
       console.log(`Lần ${i + 1}: Balance = ${balance} SOL`);
@@ -93,11 +91,11 @@ async function testSolanaRotation() {
 }
 
 /**
- * Test cơ chế xoay vòng ngẫu nhiên Dogecoin
+ * Test cơ chế xoay vòng Dogecoin
  */
 async function testDogecoinRotation() {
   try {
-    console.log('Test cơ chế xoay vòng ngẫu nhiên Dogecoin...');
+    console.log('Test cơ chế xoay vòng Dogecoin...');
     for (let i = 0; i < 5; i++) {
       const balance = await checkDogecoinBalance(testAddresses.DOGE);
       console.log(`Lần ${i + 1}: Balance = ${balance} DOGE`);
@@ -112,7 +110,7 @@ async function testDogecoinRotation() {
  * Chạy tất cả các test
  */
 async function runAllTests() {
-  console.log('Bắt đầu test tất cả các cơ chế xoay vòng thông minh ngẫu nhiên...\n');
+  console.log('Bắt đầu test tất cả các cơ chế xoay vòng thông minh...\n');
   
   await testBitcoinRotation();
   await testEthereumRotation();
