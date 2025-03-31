@@ -49,19 +49,21 @@ export default function Home() {
     // Nếu đang tìm kiếm rồi thì không cần kích hoạt lại
     const startSearchCallback = () => {
       if (!isSearching) {
-        console.log('Tự động kích hoạt tìm kiếm sau khi phục hồi kết nối server');
+        console.log('===== Tự động kích hoạt tìm kiếm sau khi phục hồi kết nối server =====');
         toggleSearching();
       } else {
-        console.log('Đã đang tìm kiếm, không cần kích hoạt lại');
+        console.log('===== Đã đang tìm kiếm, không cần kích hoạt lại =====');
       }
     };
 
     // Đăng ký callback
     registerSearchCallback(startSearchCallback);
+    console.log('Đã đăng ký callback tự động kích hoạt tìm kiếm');
 
     // Cleanup khi component unmount
     return () => {
       unregisterSearchCallback();
+      console.log('Đã hủy đăng ký callback tự động kích hoạt tìm kiếm');
     };
   }, [isSearching, toggleSearching, registerSearchCallback, unregisterSearchCallback]);
 
